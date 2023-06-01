@@ -1,5 +1,7 @@
 import tensorflow as tf
-from gated_linear_unit import gated_linear_unit
+from layers.gated_linear_unit import gated_linear_unit
+
+
 class gated_residual_network(tf.keras.layers.Layer):
     '''
       Args:

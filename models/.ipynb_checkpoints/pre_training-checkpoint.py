@@ -28,7 +28,7 @@ from tensorflow.keras.optimizers.schedules import ExponentialDecay
 
 class Pre_Training(tf.keras.Model):
     
-    def __init__(self, sTaskType, **kwargs):
+    def __init__(self, sTaskType = None, **kwargs):
         super().__init__(**kwargs)
         
         self.sTaskType = sTaskType
@@ -90,15 +90,15 @@ class Pre_Training(tf.keras.Model):
                                         
             
 
-        
     def call(self, x):
 
         x = self.ce(x) + self.pe(x) + self.se(x)
 
         for oEncoder in self.aTransformerEncoders:
             x = oEncoder(x)
-                        
-        x = self.oDecoder(x)
+                       
+        if self.sTaskType != None:
+            x = self.oDecoder(x)
 
         return x
     

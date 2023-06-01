@@ -17,7 +17,7 @@ import shutil
 
         
 def main(sDatasetName,  fNppLr, fMppLr, fSppLr, fRppLr):
-        
+    
     X_npp = np.load(f'{NEXT_PATCH_PREDICTION_DATA_FOLDER}\\X_{sDatasetName}.npy')    
     Y_npp = np.load(f'{NEXT_PATCH_PREDICTION_DATA_FOLDER}\\Y_{sDatasetName}.npy')
     

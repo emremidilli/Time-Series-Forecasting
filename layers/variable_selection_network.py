@@ -1,5 +1,6 @@
 import tensorflow as tf
-from gated_residual_network import gated_residual_network
+
+from layers.gated_residual_network import gated_residual_network
 
 class variable_selection_network(tf.keras.layers.Layer):
     '''
@@ -21,7 +22,6 @@ class variable_selection_network(tf.keras.layers.Layer):
         
         self.iModelDims = iModelDims
         self.fDropout = fDropout
-        
         
         self.aGrus = []
         iTotalVars = (4 + iNrOfKnownVars + iNrOfObservedVars) * iNrOfChannels
