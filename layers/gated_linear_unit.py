@@ -7,15 +7,12 @@ class gated_linear_unit(tf.keras.layers.Layer):
         
         self.oDense_a = tf.keras.layers.Dense(units=iFfnUnits, activation=None)
         
-        self.oSigmoid = tf.keras.activations.sigmoid()
-        self.oDense_b = tf.keras.layers.Dense(units=iFfnUnits, activation=None)
+        self.oDense_b = tf.keras.layers.Dense(units=iFfnUnits, activation='sigmoid')
         self.oMultiplier = tf.keras.layers.Multiply()
     
     def call(self, x):
         
         b = self.oDense_b(x)
-        b = self.oSigmoid(b) 
-        
         
         a = self.oDense_a(x)
         

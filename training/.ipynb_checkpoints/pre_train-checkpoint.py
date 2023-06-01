@@ -76,33 +76,50 @@ if __name__ == '__main__':
     
     # main(
     #     'dist', 
-    #     train_c.DISERT_NPP_LR,
-    #     train_c.DISERT_MPP_LR, 
-    #     train_c.DISERT_SPP_LR, 
-    #     train_c.DISERT_RPP_LR
+    #     1e-2,
+    #     1e-2, 
+    #     1e-2, 
+    #     1e-2
     # )
 
     # main(
     #     'tic',
-    #     train_c.TICERT_NPP_LR,
-    #     train_c.TICERT_MPP_LR, 
-    #     train_c.TICERT_SPP_LR, 
-    #     train_c.TICERT_RPP_LR
+    #     1e-2,
+    #     1e-2, 
+    #     1e-2, 
+    #     1e-2
     # )
 
-    # main(
-    #     'tre',
-    #     train_c.TREERT_NPP_LR,
-    #     train_c.TREERT_MPP_LR, 
-    #     train_c.TREERT_SPP_LR, 
-    #     train_c.TREERT_RPP_LR
-    # )
+#     main(
+#         'tre',
+#         1e-2,
+#         1e-2, 
+#         1e-2, 
+#         1e-2
+#     )
 
     
+#     main(
+#         'sea',
+#         1e-2,
+#         1e-2, 
+#         1e-2, 
+#         1e-2
+#     )
+
     main(
-        'sea',
-        train_c.SEAERT_NPP_LR,
-        train_c.SEAERT_MPP_LR, 
-        train_c.SEAERT_SPP_LR, 
-        train_c.SEAERT_RPP_LR
+        'known',
+        1e-2,
+        1e-2, 
+        1e-2, 
+        1e-2
+    )
+
+
+    main(
+        'observed',
+        1e-2,
+        1e-2, 
+        1e-2, 
+        1e-2
     )
