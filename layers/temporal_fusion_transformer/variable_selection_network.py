@@ -64,7 +64,7 @@ class variable_selection_network(tf.keras.layers.Layer):
         v = self.oSoftmax(v)
         v = tf.expand_dims(v, 1)
     
-        
+    
         arr = []
         i = 0
         for oGru in self.aGrus:

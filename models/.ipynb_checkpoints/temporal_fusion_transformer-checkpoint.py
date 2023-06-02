@@ -1,6 +1,7 @@
 import sys
 sys.path.append( '../')
-from layers.variable_selection_network import variable_selection_network
+from layers.temporal_fusion_transformer.variable_selection_network import variable_selection_network
+from layers.temporal_fusion_transformer.interpretable_multi_head_attention import interpretable_multi_head_attention
 
 import tensorflow as tf
 
@@ -8,6 +9,8 @@ class temporal_fusion_transformer(tf.keras.Model):
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        
+        
         
         
         self. oVsnLookback = variable_selection_network(
@@ -39,6 +42,12 @@ class temporal_fusion_transformer(tf.keras.Model):
         )
         
         
+        self.oInterpretableMha = interpretable_multi_head_attention(
+            iNrOfHeads = 2
+            iModelDims = 32
+            fDropout = 0.1
+        )
+        
         
     def call(self, x):
         x_l = x[0]
@@ -51,6 +60,9 @@ class temporal_fusion_transformer(tf.keras.Model):
     
         y_f, v_f = self.oTimeDistVsnForecast([x_f, c_s_f])
         y_decoder, h_decoder, c_decoder = self.oLstmDecoder(y_f)
+        
+        
+        
         
         return y_decoder
         

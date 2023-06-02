@@ -3,21 +3,21 @@ import tensorflow as tf
 import sys
 sys.path.append( '../')
 
-from layers.CHANNEL_EMBEDDING import Channel_Embedding
+from layers.general_pre_training.channel_embedding import Channel_Embedding
 
-from layers.SEGMENT_EMBEDDING import Segment_Embedding
+from layers.general_pre_training.segment_embedding import Segment_Embedding
 
-from layers.POSITION_EMBEDDING import Position_Embedding
+from layers.general_pre_training.position_embedding import Position_Embedding
 
-from layers.TRANSFORMER_ENCODER import Transformer_Encoder
+from layers.general_pre_training.transformer_embedding import Transformer_Encoder
 
-from layers.NPP_DECODER import Npp_Decoder
+from layers.general_pre_training.npp_decoder import Npp_Decoder
 
-from layers.MPP_DECODER import Mpp_Decoder
+from layers.general_pre_training.mpp_decoder import Mpp_Decoder
 
-from layers.SPP_DECODER import Spp_Decoder
+from layers.general_pre_training.spp_decoder import Spp_Decoder
 
-from layers.RPP_DECODER import Rpp_Decoder
+from layers.general_pre_training.rpp_decoder import Rpp_Decoder
 
 import preprocessing.constants as c
 
