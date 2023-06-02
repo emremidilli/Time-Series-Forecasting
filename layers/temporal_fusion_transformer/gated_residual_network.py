@@ -1,5 +1,5 @@
 import tensorflow as tf
-from layers.gated_linear_unit import gated_linear_unit
+from layers.temporal_fusion_transformer.gated_linear_unit import gated_linear_unit
 
 
 class gated_residual_network(tf.keras.layers.Layer):
@@ -68,6 +68,8 @@ class gated_residual_network(tf.keras.layers.Layer):
         x = self.oDropout(x)
 
         x = self.oGate(x)
+
+
         x = x + a
         x = self.oLayerNorm(x)
         

@@ -49,18 +49,7 @@ if __name__ == '__main__':
     oObsERT = general_pre_training()
 
     
-    
     # static covariate encoder (should be seperately developed)
-    oFlatten = tf.keras.layers.Flatten()
-    oDense = tf.keras.layers.Dense(units = 32)
-    oLookbackRepeat = tf.keras.layers.RepeatVector(n = iNrOfLookbackPatches)
-    oForecastRepeat = tf.keras.layers.RepeatVector(n = iNrOfForecastPatches)
-    
-    c_s = oFlatten(X_static)
-    c_s = oDense(c_s)
-    c_s_l = oLookbackRepeat(c_s)
-    c_s_f = oForecastRepeat(c_s)
-    
     c_dist = oDisERT(X_dist)  
     c_tre = oTreERT(X_tre)
     c_sea = oSeaERT(X_sea)
@@ -84,11 +73,12 @@ if __name__ == '__main__':
     x_f = tf.reshape(x_f, (x_f.shape[0],x_f.shape[1],-1, x_f.shape[-1]))
     x_f = tf.transpose(x_f, (0,1, 3,2))
     
-    
-    oTft = temporal_fusion_transformer()
-    print(oTft([x_l, c_s_l, x_f,c_s_f]).shape)
+
+    oTft = temporal_fusion_transformer(iNrOfLookbackPatches, iNrOfForecastPatches)
+    oTft(x_l, x_f ,X_static)
     
     print(oTft.summary())
+    
     
     
     

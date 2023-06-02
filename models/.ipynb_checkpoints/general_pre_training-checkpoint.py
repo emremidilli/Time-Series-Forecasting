@@ -9,7 +9,7 @@ from layers.general_pre_training.segment_embedding import Segment_Embedding
 
 from layers.general_pre_training.position_embedding import Position_Embedding
 
-from layers.general_pre_training.transformer_embedding import Transformer_Encoder
+from layers.general_pre_training.transformer_encoder import Transformer_Encoder
 
 from layers.general_pre_training.npp_decoder import Npp_Decoder
 

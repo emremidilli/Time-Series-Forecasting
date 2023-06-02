@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from layers.gated_residual_network import gated_residual_network
+from layers.temporal_fusion_transformer.gated_residual_network import gated_residual_network
 
 class variable_selection_network(tf.keras.layers.Layer):
     '''
@@ -11,16 +11,18 @@ class variable_selection_network(tf.keras.layers.Layer):
     '''
     def __init__(self, 
                  iModelDims,
-                 iNrOfChannels,
-                 fDropout
+                 iNrOfVariables,
+                 fDropout,
+                 bIsWithExternal = False
                 ):
         super().__init__()
         
         self.iModelDims = iModelDims
         self.fDropout = fDropout
+        self.bIsWithExternal = bIsWithExternal
         
         self.aGrus = []
-        iNrOfVariables = 6 * iNrOfChannels 
+         
         for i in range(iNrOfVariables):
             self.aGrus.append(
                 gated_residual_network(
@@ -39,15 +41,14 @@ class variable_selection_network(tf.keras.layers.Layer):
             iInputDims = iModelDims * iNrOfVariables, 
             iOutputDims = iNrOfVariables, 
             fDropout=  fDropout, 
-            bIsWithStaticCovariate=True
+            bIsWithStaticCovariate=bIsWithExternal
         )
         self.oSoftmax = tf.keras.layers.Softmax(axis=-1)
         
     '''
         Args:
-            x: (None, 1, model_dims, 6 x nr_of_channels)
+            x: (None, 1, model_dims, nr_of_variables)
                combination of all encoder representations for a given time patch.
-               nr_of_variables = 6 x nr_of_channels
                in TFT paper, 
                    - nr_of_variables: is mentioned as dimension of \mu_{\chi}
                    - model_dims: is mentioned as transformed inputs (or embedding)
@@ -56,14 +57,22 @@ class variable_selection_network(tf.keras.layers.Layer):
     '''
     def call(self, inputs):
         
-        x = inputs[0]
-        c_s = inputs[1]
-                
-        a = self.oFlatten(x)
-        v = self.oGruFlatten(a, c_s)
+        
+        if self.bIsWithExternal == True:
+            x = inputs[0]
+            a = self.oFlatten(x)
+            c_s = inputs[1]
+            v = self.oGruFlatten(a, c_s)
+            
+        else:
+            x = inputs
+            a = self.oFlatten(x) 
+            v = self.oGruFlatten(a)
+            
         v = self.oSoftmax(v)
         v = tf.expand_dims(v, 1)
     
+        
     
         arr = []
         i = 0

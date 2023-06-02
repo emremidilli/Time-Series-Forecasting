@@ -36,7 +36,7 @@ class interpretable_multi_head_attention(tf.keras.layers.Layer):
         
         self.oAttention = tf.keras.layers.Attention(use_scale = True)
         self.oDropout = tf.keras.layers.Dropout(rate = fDropout)
-        self.oDense = tf.keras.kayers.Dense(units = iKeyDims, use_bias = False)
+        self.oDense = tf.keras.layers.Dense(units = iModelDims, use_bias = False)
         
 
     def call(self, q, k, v, mask = None):
