@@ -26,7 +26,7 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
 
 
-class Pre_Training(tf.keras.Model):
+class general_pre_training(tf.keras.Model):
     
     def __init__(self, sTaskType = None, **kwargs):
         super().__init__(**kwargs)
@@ -91,7 +91,7 @@ class Pre_Training(tf.keras.Model):
             
 
     def call(self, x):
-
+        
         x = self.ce(x) + self.pe(x) + self.se(x)
 
         for oEncoder in self.aTransformerEncoders:
@@ -103,9 +103,8 @@ class Pre_Training(tf.keras.Model):
         return x
     
     
+
     
-
-
     def TransferLearningForEncoder(self, oModelFrom):
         iIndexDecoder = 0
         for s in oModelFrom.weights: 

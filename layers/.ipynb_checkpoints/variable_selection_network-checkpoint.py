@@ -54,7 +54,11 @@ class variable_selection_network(tf.keras.layers.Layer):
             c_s: (None, 1, model_dims x nr_of_channels)
                encoded static covariate vector.
     '''
-    def call(self, x, c_s):
+    def call(self, inputs):
+        
+        x = inputs[0]
+        c_s = inputs[1]
+                
         a = self.oFlatten(x)
         v = self.oGruFlatten(a, c_s)
         v = self.oSoftmax(v)
@@ -69,9 +73,7 @@ class variable_selection_network(tf.keras.layers.Layer):
             
         b = tf.stack(arr, axis = -1)  
         
-        
-        
         c = b * v
         c = tf.reduce_sum(c, -1)
         
-        return c
+        return c, v
