@@ -77,7 +77,7 @@ if __name__ == '__main__':
     oTft = temporal_fusion_transformer(iNrOfLookbackPatches, iNrOfForecastPatches)
     oTft(x_l, x_f ,X_static)
     
-    print(oTft.summary())
+    # print(oTft.summary())
     
     
     

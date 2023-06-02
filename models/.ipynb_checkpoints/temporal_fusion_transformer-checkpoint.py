@@ -32,6 +32,7 @@ class temporal_fusion_transformer(tf.keras.Model):
         
         self.oStaticLookbackRepeat = tf.keras.layers.RepeatVector(n = iNrOfLookbackPatches)
         self.oStaticForecastRepeat = tf.keras.layers.RepeatVector(n = iNrOfForecastPatches)
+        self.oStaticAllRepeat = tf.keras.layers.RepeatVector(n = iNrOfLookbackPatches+ iNrOfForecastPatches)
     
         # static covariate encoders to be used in different parts of the tft model
         self.oStaticContextTemporalVsn = gated_residual_network(
@@ -58,7 +59,7 @@ class temporal_fusion_transformer(tf.keras.Model):
         self.oStaticContextEnrichment = gated_residual_network(
             iInputDims = iModelDims ,
             iOutputDims = iModelDims, 
-            fDropout = fDropout, 
+            fDropout = 0, 
             bIsWithStaticCovariate=False
         )
         
@@ -107,6 +108,18 @@ class temporal_fusion_transformer(tf.keras.Model):
             tf.keras.layers.LayerNormalization()
         )
         
+        
+        # static enrichment
+        self.oStaticEnrichment  = tf.keras.layers.TimeDistributed(
+            gated_residual_network(
+                iInputDims = iModelDims ,
+                iOutputDims = iModelDims, 
+                fDropout = fDropout, 
+                bIsWithStaticCovariate=True
+            )
+        )
+        
+        
 #         self.oInterpretableMha = interpretable_multi_head_attention(
 #             iNrOfHeads = 2,
 #             iModelDims = iModelDims,
@@ -119,11 +132,16 @@ class temporal_fusion_transformer(tf.keras.Model):
         s = self.oStaticEncoder(x_static)
         s_c, s_v = self.oVsnStatic(s)
         
+        # producing static vectors via static covariate encoders
         s_c_temporal_vsn = self.oStaticContextTemporalVsn(s_c)
+        s_c_static_enrichment = self.oStaticContextEnrichment(s_c)
+        
+
+        
+        # variable selection for temporal steps
         s_c_lookback_vsn = self.oStaticLookbackRepeat(s_c_temporal_vsn)
         s_c_forecast_vsn = self.oStaticForecastRepeat(s_c_temporal_vsn)
         
-        # variable selection for temporal steps
         y_lookback, w_lookback = self.oTimeDistVsnLookback([x_lookback, s_c_lookback_vsn])
         y_forecast, w_forecast = self.oTimeDistVsnForecast([x_forecast, s_c_forecast_vsn])
         
@@ -139,8 +157,14 @@ class temporal_fusion_transformer(tf.keras.Model):
         y_tft_encoder = self.oGates_1(y_encoder_decoder)
         y_tft_encoder = y_tft_encoder + y_lookback_forecast 
         y_tft_encoder = self.oLayerNorm_1(y_tft_encoder)
-
         
-        return y_encoder_decoder
+        
+        # static enrichment
+        s_c_static_enrichment = self.oStaticAllRepeat(s_c_static_enrichment)
+        y_static_enrichment = self.oStaticEnrichment(
+            y_tft_encoder, s_c_static_enrichment
+        )
+        
+        return y_static_enrichment
         
         

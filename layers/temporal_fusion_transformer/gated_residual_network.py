@@ -52,23 +52,24 @@ class gated_residual_network(tf.keras.layers.Layer):
     '''
     def call(self, x, c=None):
         a = x
+        
         if self.iInputDims != self.iOutputDims:
             a = self.oDenseSkipConnection(a)
-
-                
+        
         x = self.oDense1(x)
 
         if c != None:
             c = self.oDense_c(c)
             x = x + c
+            
 
         x = self.oElu(x)
         
         x = self.oDense2(x)
+        
         x = self.oDropout(x)
 
         x = self.oGate(x)
-
 
         x = x + a
         x = self.oLayerNorm(x)
