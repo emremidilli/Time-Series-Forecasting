@@ -5,10 +5,21 @@ from models.temporal_fusion_transformer import temporal_fusion_transformer
 from models.general_pre_training import general_pre_training
 
 from preprocessing.constants import QUANTILE_PREDICTION_DATA_FOLDER
+from preprocessing.constants import TARGET_QUANTILES
 
 import numpy as np
 
 import tensorflow as tf
+
+import constants as train_c
+
+from tensorflow.keras.metrics import MeanAbsoluteError
+
+import os
+
+import shutil
+
+
 
 
 iNrOfForecastPatches = 4
@@ -73,13 +84,28 @@ if __name__ == '__main__':
     x_f = tf.reshape(x_f, (x_f.shape[0],x_f.shape[1],-1, x_f.shape[-1]))
     x_f = tf.transpose(x_f, (0,1, 3,2))
     
-
-    oTft = temporal_fusion_transformer(iNrOfLookbackPatches, iNrOfForecastPatches)
-    oTft(x_l, x_f ,X_static)
-    
-    # print(oTft.summary())
     
     
+    iBatchNr = 1
+    sArtifactsFolder = f'{train_c.ARTIFACTS_FOLDER}\\Batch_{iBatchNr}\\TFT'
+    if os.path.exists(sArtifactsFolder) == True:
+        shutil.rmtree(sArtifactsFolder)
     
-    
-    
+    oTft = temporal_fusion_transformer(
+        iNrOfLookbackPatches, 
+        iNrOfForecastPatches,
+        TARGET_QUANTILES,
+        fDropout = 0.1,
+        iModelDims = 32,
+        iNrOfChannels = 3
+    )
+    oTft.Train(
+        X_train = (x_l, x_f, X_static), 
+        Y_train = Y,
+        sArtifactsFolder = sArtifactsFolder,
+        fLearningRate = 0.01,
+        iNrOfEpochs =  train_c.NR_OF_EPOCHS, 
+        iBatchSize = train_c.MINI_BATCH_SIZE,
+        oLoss = oTft.quantile_loss,
+        oMetrics = MeanAbsoluteError()
+    )

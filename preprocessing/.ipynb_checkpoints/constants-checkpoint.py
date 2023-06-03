@@ -17,6 +17,7 @@ THRESHOLD_STATIC_SENSITIVITY = 0.01
 RAW_FREQUENCY  = 'T' # https://pandas.pydata.org/docs/user_guide/timeseries.html#timeseries-offset-aliases
 DATETIME_FEATURES = ['month', 'day', 'dayofweek', 'hour', 'minute']
 
+TARGET_QUANTILES = [0.10, 0.50, 0.90]
 
 PATCH_SIZE= 30
 FORECAST_HORIZON = 120

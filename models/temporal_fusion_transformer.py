@@ -5,21 +5,33 @@ from layers.temporal_fusion_transformer.interpretable_multi_head_attention impor
 from layers.temporal_fusion_transformer.gated_residual_network import gated_residual_network
 from layers.temporal_fusion_transformer.gated_linear_unit import gated_linear_unit
 
-
 import tensorflow as tf
+
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.optimizers.schedules import ExponentialDecay
 
 class temporal_fusion_transformer(tf.keras.Model):
     
     def __init__(self, 
                  iNrOfLookbackPatches,
                  iNrOfForecastPatches,
+                 aTargetQuantiles,
+                 fDropout,
+                 iModelDims,
+                 iNrOfChannels,
                  **kwargs):
         super().__init__(**kwargs)
         
-        iNrOfChannels = 3
-        fDropout = 0.1
-        iModelDims = 32
-        iNrOfQuantiles = 3
+        
+        self.iNrOfLookbackPatches = iNrOfLookbackPatches
+        self.iNrOfForecastPatches = iNrOfForecastPatches
+        self.aTargetQuantiles = aTargetQuantiles
+        self.fDropout = fDropout
+        self.iModelDims = iModelDims
+        self.iNrOfChannels = iNrOfChannels
+        
+
+        
         
         self.oStaticEncoder = tf.keras.layers.Dense(units = iModelDims)
         
@@ -42,19 +54,19 @@ class temporal_fusion_transformer(tf.keras.Model):
             bIsWithStaticCovariate=False
         )
         
-#         self.oStaticContextStateH = gated_residual_network(
-#             iInputDims = iModelDims ,
-#             iOutputDims = iModelDims, 
-#             fDropout = fDropout, 
-#             bIsWithStaticCovariate=False
-#         )
+        self.oStaticContextStateHidden = gated_residual_network(
+            iInputDims = iModelDims ,
+            iOutputDims = iModelDims, 
+            fDropout = fDropout, 
+            bIsWithStaticCovariate=False
+        )
 
-#         self.oStaticContextStateC = gated_residual_network(
-#             iInputDims = iModelDims ,
-#             iOutputDims = iModelDims, 
-#             fDropout = fDropout, 
-#             bIsWithStaticCovariate=False
-#         )
+        self.oStaticContextStateCarry = gated_residual_network(
+            iInputDims = iModelDims ,
+            iOutputDims = iModelDims, 
+            fDropout = fDropout, 
+            bIsWithStaticCovariate=False
+        )
         
         self.oStaticContextEnrichment = gated_residual_network(
             iInputDims = iModelDims ,
@@ -127,6 +139,7 @@ class temporal_fusion_transformer(tf.keras.Model):
             fDropout = fDropout
         )
         
+        
         # temporal self-attention -> gate, add & norm
         self.oGates_2 = tf.keras.layers.TimeDistributed(
             gated_linear_unit(iFfnUnits = iModelDims)
@@ -158,21 +171,23 @@ class temporal_fusion_transformer(tf.keras.Model):
         
         # output -> dense
         self.oDenseQuantile =  tf.keras.layers.TimeDistributed(
-            tf.keras.layers.Dense(iNrOfQuantiles)
+            tf.keras.layers.Dense(units = (len(aTargetQuantiles) * iNrOfChannels)) 
         )
+        self.oReshape = tf.keras.layers.Reshape(target_shape = (-1, len(aTargetQuantiles), iNrOfChannels))
         
         
         
         
-        
-    def call(self, x_lookback, x_forecast , x_static):
-        
+    def call(self, inputs):
+        x_lookback, x_forecast , x_static = inputs
         s = self.oStaticEncoder(x_static)
         s_c, s_v = self.oVsnStatic([s, None])
         
         # producing static vectors via static covariate encoders
         s_c_temporal_vsn = self.oStaticContextTemporalVsn([s_c, None])
         s_c_static_enrichment = self.oStaticContextEnrichment([s_c, None])
+        s_c_static_state_hidden = self.oStaticContextStateHidden([s_c, None])
+        s_c_static_state_carry = self.oStaticContextStateCarry([s_c, None])
         
         # variable selection for temporal steps
         s_c_lookback_vsn = self.oLookbackRepeat(s_c_temporal_vsn)
@@ -182,8 +197,14 @@ class temporal_fusion_transformer(tf.keras.Model):
         y_forecast, w_forecast = self.oTimeDistVsnForecast([x_forecast, s_c_forecast_vsn])
         
         # encode & decode with LSTMs
-        y_encoder, h_encoder, c_encoder = self.oLstmEncoder(y_lookback)        
-        y_decoder, h_decoder, c_decoder = self.oLstmDecoder(y_forecast)
+        y_encoder, h_encoder, c_encoder = self.oLstmEncoder(
+            y_lookback,  
+            initial_state=[s_c_static_state_hidden,s_c_static_state_carry]
+        )        
+        y_decoder, h_decoder, c_decoder = self.oLstmDecoder(
+            y_forecast,
+            initial_state=[h_encoder,c_encoder]
+        )
         
         # concat outputs
         y_lookback_forecast = self.oConcatter([y_lookback, y_forecast])
@@ -228,11 +249,59 @@ class temporal_fusion_transformer(tf.keras.Model):
         y = y + y_tft_encoder
         y = self.oLayerNorm_3(y)
         
+        # Output only forecasting patches
+        y = y[:, -self.iNrOfForecastPatches:, Ellipsis]
+        
         # Output - dense
         y = self.oDenseQuantile(y)
-        
-        print(y.shape)
+        y = self.oReshape(y)
         
         return y
+    
+
+
+    def quantile_loss(self, true, pred):
+        '''
+        Returns quantile loss for specified quantiles.
+        Args:
+            true: Targets (None, nr_of_forecast_patches, nr_of_quantiles, nr_of_channels) 
+            pred: Predictions (None, nr_of_forecast_patches, nr_of_quantiles, nr_of_channels) 
+        '''
+        loss = 0.
+        for i, quantile in enumerate(self.aTargetQuantiles):
+            for j in range(self.iNrOfChannels):
+                prediction_underflow = true[Ellipsis, i,j] - pred[Ellipsis, i,j]
+                arr = quantile * tf.maximum(prediction_underflow, 0.) + (1. - quantile) * tf.maximum(-prediction_underflow, 0.)
+                loss = loss + tf.reduce_sum(input_tensor=arr, axis=-1)
+
+                
+        return tf.reduce_mean(loss)
+    
+    
+    def Train(self, X_train, Y_train, sArtifactsFolder, fLearningRate, iNrOfEpochs, iBatchSize ,oLoss, oMetrics):    
+        self.compile(
+            loss = oLoss, 
+            metrics = oMetrics,
+            optimizer= Adam(
+                learning_rate=ExponentialDecay(
+                    initial_learning_rate=fLearningRate,
+                    decay_steps=10**2,
+                    decay_rate=0.9
+                )
+            )
+        )
+
+        self.fit(
+            X_train, 
+            Y_train, 
+            epochs= iNrOfEpochs, 
+            batch_size=iBatchSize, 
+            verbose=1
+        )
+
         
-        
+        sModelArtifactPath = f'{sArtifactsFolder}\\'
+        self.save_weights(
+            sModelArtifactPath,
+            save_format ='tf'
+        )
