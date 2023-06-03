@@ -38,21 +38,29 @@ class gated_residual_network(tf.keras.layers.Layer):
         self.oGate = gated_linear_unit(self.iOutputDims)
         self.oLayerNorm = tf.keras.layers.LayerNormalization()
 
-        
-        
-        
 
     '''
         Args:
-            x: should a transformation of a time patch in following format (None, 1, model_dims)
-               output of an encoder representation (e.g. DisERT) will be in format of (None, number_of_patches, model_dims)
-               for a time step, there will be for 4 representations coming from DisERT, TicERT, TreERT and SeaERT.
-               in TFT paper, model_dims is mentioned as "transformed inputs" in Figure 2.
-            c: is optional input. In case static covariates will be an input, it should be accepted.
+            inputs (list): contain max 2 parts in order to be able to use as part of TimeDistributed layer. 
+            Otherwise TimeDistributed layer don't allow multiple input arguments. 
+            The only way to pass multiple arguments to TimeDistributed layer, is to pass as a list:
+            should be a list with 2 arguments:
+                1.st argument:
+                    should a transformation of a time patch in following format (None, 1, model_dims)
+                    output of an encoder representation (e.g. DisERT) will be in format of (None, number_of_patches, model_dims)
+                    for a time step, there will be for 4 representations coming from DisERT, TicERT, TreERT and SeaERT.
+                    in TFT paper, model_dims is mentioned as "transformed inputs" in Figure 2.
+                2nd argument: 
+                    is optional input. In case static covariates will be an input, it should be accepted.
     '''
-    def call(self, x, c=None):
-        a = x
-        
+    def call(self, inputs):
+        x = inputs[0]
+        if self.bIsWithStaticCovariate == True:
+            c = inputs[1]
+        else:
+            c = None
+         
+        a = x # a is used for skip connection
         if self.iInputDims != self.iOutputDims:
             a = self.oDenseSkipConnection(a)
         

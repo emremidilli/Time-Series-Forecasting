@@ -47,37 +47,35 @@ class variable_selection_network(tf.keras.layers.Layer):
         
     '''
         Args:
-            x: (None, 1, model_dims, nr_of_variables)
-               combination of all encoder representations for a given time patch.
-               in TFT paper, 
-                   - nr_of_variables: is mentioned as dimension of \mu_{\chi}
-                   - model_dims: is mentioned as transformed inputs (or embedding)
-            c_s: (None, 1, model_dims x nr_of_channels)
-               encoded static covariate vector.
+            inputs (list): contain max 2 parts in order to be able to use as part of TimeDistributed layer. 
+               Otherwise TimeDistributed layer don't allow multiple input arguments. 
+               The only way to pass multiple arguments to TimeDistributed layer, is to pass as a list:
+                x: (None, 1, model_dims, nr_of_variables)
+                   combination of all encoder representations for a given time patch.
+                   in TFT paper, 
+                       - nr_of_variables: is mentioned as dimension of \mu_{\chi}
+                       - model_dims: is mentioned as transformed inputs (or embedding)
+                c_s: (None, 1, model_dims x nr_of_channels)
+                   encoded static covariate vector.
+                   it is None in case bIsWithExternal = False
     '''
     def call(self, inputs):
+    
+        x = inputs[0]
+        c_s = inputs[1]            
+
         
-        
-        if self.bIsWithExternal == True:
-            x = inputs[0]
-            a = self.oFlatten(x)
-            c_s = inputs[1]
-            v = self.oGruFlatten(a, c_s)
-            
-        else:
-            x = inputs
-            a = self.oFlatten(x) 
-            v = self.oGruFlatten(a)
+        a = self.oFlatten(x)
+        v = self.oGruFlatten([a, c_s])
             
         v = self.oSoftmax(v)
         v = tf.expand_dims(v, 1)
     
         
-    
         arr = []
         i = 0
         for oGru in self.aGrus:
-            arr.append(oGru(x[:,:,i]))
+            arr.append(oGru([x[:,:,i]]))
             i = i + 1
             
         b = tf.stack(arr, axis = -1)  
