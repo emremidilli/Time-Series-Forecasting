@@ -62,7 +62,10 @@ for sFileName in aFileNames:
     dfRaw.rename(columns = {'<HIGH>':'TICKER',
                          '<VOL>':'OBSERVED'
                         }, inplace = True)
-
+    
+    
+    ixOutlierVolume = dfRaw.query('OBSERVED > 180000000').index
+    dfRaw.loc[ixOutlierVolume, 'OBSERVED'] = 180000000
     dfRaw.loc[:, 'TIME_STAMP'] = pd.to_datetime(dfRaw.loc[:,'TIME_STAMP'])
     
     
@@ -168,17 +171,14 @@ for sFileName in aFileNames:
     dfStaticCovariates.rename(columns = {0:'STATIC_DIGIT'}, inplace = True)
     dfStaticCovariates = dfStaticCovariates.merge(right = dfTransitions, left_index = True, right_index = True, how = 'inner')
     arr = dfStaticCovariates.to_numpy(dtype = 'float64')
-    
     aStaticCovariates = arr.copy()
     
     
     # observeds
     arr = dfObserveds.to_numpy(dtype = 'float64')
     arr = np.reshape(arr , (arr.shape[0], iNrOfLookbackPatches + iNrOfForecastPatches ,-1))
-
     arr = np.quantile(arr , [0.1, 0.9], axis = 2)
     arr =np.transpose(arr ,(1, 2, 0))
-    
     aObserveds = arr.copy()
     
     
@@ -194,7 +194,6 @@ for sFileName in aFileNames:
             exec(f'arr[:, {i} ,{j}] = ixSearch.{sDatePart}')
 
             j = j + 1
-                        
     aKnowns = arr.copy()
     
     

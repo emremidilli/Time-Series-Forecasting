@@ -30,9 +30,6 @@ class temporal_fusion_transformer(tf.keras.Model):
         self.iModelDims = iModelDims
         self.iNrOfChannels = iNrOfChannels
         
-
-        
-        
         self.oStaticEncoder = tf.keras.layers.Dense(units = iModelDims)
         
         self.oVsnStatic = variable_selection_network(
@@ -177,8 +174,19 @@ class temporal_fusion_transformer(tf.keras.Model):
         
         
         
-        
     def call(self, inputs):
+        '''
+        Inference for TFT model.
+        Args:
+            inputs - tuple of 3 elements:
+                x_lookback - (None, iNrOfLookbackPatches, iModelDims ,6 x iNrOfChannels) are the representations of each channel within model_dims for each lookback patches.
+                    6: {dist, tre, sea, tic, known, observed}
+                x_forecast - (None, iNrOfForecastPatches, iModelDims ,6 x iNrOfChannels) are the representations of each channel within model_dims for each lookback patches.
+                    6: {dist, tre, sea, tic, known, observed}
+                x_static - (None, 1, 2 x iNrOfChannels) are the static representations of each channel.
+                    2: {static digit, transition}
+        '''
+        
         x_lookback, x_forecast , x_static = inputs
         s = self.oStaticEncoder(x_static)
         s_c, s_v = self.oVsnStatic([s, None])
@@ -278,7 +286,7 @@ class temporal_fusion_transformer(tf.keras.Model):
         return tf.reduce_mean(loss)
     
     
-    def Train(self, X_train, Y_train, sArtifactsFolder, fLearningRate, iNrOfEpochs, iBatchSize ,oLoss, oMetrics):    
+    def Train(self, X_train, Y_train, sArtifactsFolder, fLearningRate, iNrOfEpochs, iBatchSize ,oLoss, oMetrics):
         self.compile(
             loss = oLoss, 
             metrics = oMetrics,
