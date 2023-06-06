@@ -28,19 +28,12 @@ from tensorflow.keras.optimizers.schedules import ExponentialDecay
 
 class general_pre_training(tf.keras.Model):
     
-    def __init__(self, sTaskType = None, **kwargs):
+    def __init__(self, iNrOfEncoderBlocks,iNrOfHeads,fDropoutRate, iEncoderFfnUnits,iEmbeddingDims, sTaskType = None, **kwargs):
         super().__init__(**kwargs)
         
         self.sTaskType = sTaskType
         self.iNrOfChannels = 3
         self.iNrOfQuantiles = 3
-        
-        iNrOfEncoderBlocks = 2
-        iNrOfHeads = 3
-        fDropoutRate = 0.05
-        iFfnUnits = 128
-        
-        iEmbeddingDims = 32
 
         iNrOfLookbackPatches = 16
         iNrOfForecastPatches = 4
@@ -66,7 +59,8 @@ class general_pre_training(tf.keras.Model):
                 iKeyDims = iEmbeddingDims, 
                 iNrOfHeads = iNrOfHeads, 
                 fDropoutRate = fDropoutRate, 
-                iFfnUnits = iFfnUnits)
+                iFfnUnits = iEncoderFfnUnits
+            )
             self.aTransformerEncoders.append(oToAdd)
         
     
