@@ -19,9 +19,6 @@ from layers.general_pre_training.spp_decoder import Spp_Decoder
 
 from layers.general_pre_training.rpp_decoder import Rpp_Decoder
 
-import preprocessing.constants as c
-
-
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
 
@@ -92,13 +89,11 @@ class general_pre_training(tf.keras.Model):
                 iFfnUnits = self.iNrOfChannels # there are binary classes for each channel.
             )
             
-            
         elif self.sTaskType == 'MPP':
             self.oDecoder = Mpp_Decoder(
                 iFfnUnits = input_shape[-1]
             )
 
-            
         elif self.sTaskType == 'SPP':
             self.oDecoder = Spp_Decoder(
                 iFfnUnits = self.iNrOfQuantiles * 3 # due to quantiles. 3 means one-hot categories of signs {positive, negative and zero}
@@ -108,7 +103,6 @@ class general_pre_training(tf.keras.Model):
             self.oDecoder = Rpp_Decoder(
                 iFfnUnits = self.iNrOfQuantiles * (self.iNrOfChannels + 1) # +1 is because 0 rank is assigned for the positions of special tokens.
             )
-   
             
 
     def call(self, x):
@@ -143,7 +137,7 @@ class general_pre_training(tf.keras.Model):
     
 
 
-    def Train(self, X_train, Y_train, sArtifactsFolder, fLearningRate, iNrOfEpochs, iBatchSize):    
+    def Train(self, X_train, Y_train, sArtifactsFolder, fLearningRate, fMomentumRate ,iNrOfEpochs, iBatchSize):    
         self.compile(
             loss = self.oLoss, 
             metrics = self.oMetric,
@@ -153,7 +147,8 @@ class general_pre_training(tf.keras.Model):
                     decay_steps=10**2,
                     decay_rate=0.9
                 )
-            )
+            ),
+            beta_1 = fMomentumRate
         )
 
         self.fit(

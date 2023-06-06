@@ -75,32 +75,10 @@ def get_training_test_datasets(sDatasetName):
     
     return train_dataset, test_dataset
 
-class hypermodel_pre_train(keras_tuner.HyperModel):
-    
-    def __init__(self, sTaskType = None):
-        super().__init__()
-
-        self.sTaskType =sTaskType
+class architectural_hypermodel(keras_tuner.HyperModel):
         
-    
     def build(self, hp ):
     
-        learning_rate = hp.Float(
-            name ='learning_rate',
-            min_value = PRE_TRAINING_CONFIG['optimizer']['learning_rate'][0],
-            max_value = PRE_TRAINING_CONFIG['optimizer']['learning_rate'][1],
-            step = PRE_TRAINING_CONFIG['optimizer']['learning_rate'][2]
-        )
-
-
-        momentum_rate = hp.Float(
-            name ='momentum_rate',
-            min_value = PRE_TRAINING_CONFIG['optimizer']['momentum_rate'][0],
-            max_value = PRE_TRAINING_CONFIG['optimizer']['momentum_rate'][1],
-            step = PRE_TRAINING_CONFIG['optimizer']['momentum_rate'][2]
-        )
-        
-
         nr_of_encoder_blocks = hp.Int(
             name ='nr_of_encoder_blocks',
             min_value = PRE_TRAINING_CONFIG['architecture']['nr_of_encoder_blocks'][0],
@@ -146,7 +124,70 @@ class hypermodel_pre_train(keras_tuner.HyperModel):
             fDropoutRate = dropout_rate, 
             iEncoderFfnUnits = nr_of_ffn_units_of_encoder,
             iEmbeddingDims = embedding_dims, 
-            sTaskType = self.sTaskType)
+            sTaskType = 'SPP'
+        )
+        
+
+        oModel.compile(
+                    loss = oModel.oLoss, 
+                    metrics = oModel.oMetric,
+                    optimizer= Adam(
+                        learning_rate=ExponentialDecay(
+                            initial_learning_rate=PRE_TRAINING_CONFIG['optimizer']['learning_rate'][0],
+                            decay_steps=10**2,
+                            decay_rate=0.9
+                        ),
+                        beta_1 = PRE_TRAINING_CONFIG['optimizer']['momentum_rate'][0]
+                    )
+                )
+
+        return oModel
+    
+    def fit(self, hp, model, *args, **kwargs):
+        return model.fit(
+            *args,
+            **kwargs,
+        )
+        
+    
+class optimizer_hypermodel(keras_tuner.HyperModel):
+    
+    def __init__(self, nr_of_encoder_blocks, nr_of_heads, dropout_rate, nr_of_ffn_units_of_encoder, embedding_dims, sTaskType = None):
+        super().__init__()
+        
+        self.nr_of_encoder_blocks = nr_of_encoder_blocks
+        self.nr_of_heads = nr_of_heads
+        self.dropout_rate = dropout_rate
+        self.nr_of_ffn_units_of_encoder = nr_of_ffn_units_of_encoder
+        self.embedding_dims = embedding_dims
+        self.sTaskType =sTaskType
+        
+    
+    def build(self, hp ):
+    
+        learning_rate = hp.Float(
+            name ='learning_rate',
+            min_value = PRE_TRAINING_CONFIG['optimizer']['learning_rate'][0],
+            max_value = PRE_TRAINING_CONFIG['optimizer']['learning_rate'][1],
+            step = PRE_TRAINING_CONFIG['optimizer']['learning_rate'][2]
+        )
+
+
+        momentum_rate = hp.Float(
+            name ='momentum_rate',
+            min_value = PRE_TRAINING_CONFIG['optimizer']['momentum_rate'][0],
+            max_value = PRE_TRAINING_CONFIG['optimizer']['momentum_rate'][1],
+            step = PRE_TRAINING_CONFIG['optimizer']['momentum_rate'][2]
+        )
+
+        oModel = general_pre_training(
+            iNrOfEncoderBlocks = self.nr_of_encoder_blocks,
+            iNrOfHeads = self.nr_of_heads,
+            fDropoutRate = self.dropout_rate, 
+            iEncoderFfnUnits = self.nr_of_ffn_units_of_encoder,
+            iEmbeddingDims = self.embedding_dims, 
+            sTaskType = self.sTaskType
+        )
         
 
         oModel.compile(
@@ -168,9 +209,99 @@ class hypermodel_pre_train(keras_tuner.HyperModel):
         return model.fit(
             *args,
             **kwargs,
+        )  
+    
+    
+def oGetArchitectureTuner(sLogsFolder):
+    oTunerArchitecture = keras_tuner.Hyperband(
+        architectural_hypermodel(),
+        objective=keras_tuner.Objective('val_auc', direction='max'),
+        max_epochs=NR_OF_EPOCHS,
+        factor = FACTOR,
+        directory=f'{sLogsFolder}\\architecture',
+        project_name = 'SPP'
+    )
+    
+    return oTunerArchitecture
+
+    
+def oGetOptimizerTuners(sLogsFolder, nr_of_encoder_blocks,nr_of_heads, dropout_rate, nr_of_ffn_units_of_encoder, embedding_dims ):
+        # tune optimizer hyperparamters for NPP
+        oTunerNpp = keras_tuner.Hyperband(
+            optimizer_hypermodel(
+                nr_of_encoder_blocks = nr_of_encoder_blocks, 
+                nr_of_heads = nr_of_heads, 
+                dropout_rate = dropout_rate, 
+                nr_of_ffn_units_of_encoder = nr_of_ffn_units_of_encoder, 
+                embedding_dims = embedding_dims, 
+                sTaskType = 'NPP'
+            ),
+            objective=keras_tuner.Objective('val_auc', direction='max'),
+            max_epochs=NR_OF_EPOCHS,
+            factor = FACTOR,
+            directory=f'{sLogsFolder}\\optimizer',
+            project_name = 'NPP'
+        )
+
+        
+        # tune optimizer hyperparamters for MPP
+        oTunerMpp = keras_tuner.Hyperband(
+            optimizer_hypermodel(
+                nr_of_encoder_blocks = nr_of_encoder_blocks, 
+                nr_of_heads = nr_of_heads, 
+                dropout_rate = dropout_rate, 
+                nr_of_ffn_units_of_encoder = nr_of_ffn_units_of_encoder, 
+                embedding_dims = embedding_dims, 
+                sTaskType = 'MPP'
+            ),
+            objective=keras_tuner.Objective('val_mean_absolute_error', direction='min'),
+            max_epochs=NR_OF_EPOCHS,
+            factor = FACTOR,
+            directory=f'{sLogsFolder}\\optimizer',
+            project_name = 'MPP'
+        )
+
+        
+        # tune optimizer hyperparamters for SPP
+        oTunerSpp = keras_tuner.Hyperband(
+            optimizer_hypermodel(
+                nr_of_encoder_blocks = nr_of_encoder_blocks, 
+                nr_of_heads = nr_of_heads, 
+                dropout_rate = dropout_rate, 
+                nr_of_ffn_units_of_encoder = nr_of_ffn_units_of_encoder, 
+                embedding_dims = embedding_dims, 
+                sTaskType = 'SPP'
+            ),
+            objective=keras_tuner.Objective('val_auc', direction='max'),
+            max_epochs=NR_OF_EPOCHS,
+            factor = FACTOR,
+            directory=f'{sLogsFolder}\\optimizer',
+            project_name = 'SPP'
+        )
+
+        
+        # tune optimizer hyperparamters for RPP
+        oTunerRpp = keras_tuner.Hyperband(
+            optimizer_hypermodel(
+                nr_of_encoder_blocks = nr_of_encoder_blocks, 
+                nr_of_heads = nr_of_heads, 
+                dropout_rate = dropout_rate, 
+                nr_of_ffn_units_of_encoder = nr_of_ffn_units_of_encoder, 
+                embedding_dims = embedding_dims, 
+                sTaskType = 'RPP'
+            ),
+            objective=keras_tuner.Objective('val_auc', direction='max'),
+            max_epochs=NR_OF_EPOCHS,
+            factor = FACTOR,
+            directory=f'{sLogsFolder}\\optimizer',
+            project_name = 'RPP'
         )
         
+        
+        return oTunerNpp, oTunerMpp, oTunerSpp, oTunerRpp
+
     
+            
 
 if __name__ == '__main__':
     
@@ -190,47 +321,78 @@ if __name__ == '__main__':
         if os.path.exists(sLogsFolder) == True:
             shutil.rmtree(sLogsFolder)
 
+        
+        # tune architecture based on SPP task
 
-        oTunerNpp = keras_tuner.Hyperband(
-            hypermodel_pre_train('NPP'),
-            objective=keras_tuner.Objective('val_auc', direction='max'),
-            max_epochs=NR_OF_EPOCHS,
-            factor = FACTOR,
-            directory=sLogsFolder,
-            project_name = 'NPP'
+        oTunerArchitecture = oGetArchitectureTuner(sLogsFolder)
+        oTunerArchitecture.search(
+            X_spp_train, 
+            Y_spp_train, 
+            epochs=NR_OF_EPOCHS,
+            batch_size = MINI_BATCH_SIZE, 
+            validation_data=(X_spp_test, Y_spp_test), 
+            callbacks=[oEarlyStop]
+        )
+        
+        
+        dicBestArchitecture = oTunerArchitecture.get_best_hyperparameters(num_trials=1)[0]
+        
+        
+        nr_of_encoder_blocks = dicBestArchitecture.get('nr_of_encoder_blocks')
+        nr_of_heads = dicBestArchitecture.get('nr_of_heads')
+        dropout_rate = dicBestArchitecture.get('dropout_rate')
+        nr_of_ffn_units_of_encoder = dicBestArchitecture.get('nr_of_ffn_units_of_encoder')
+        embedding_dims = dicBestArchitecture.get('embedding_dims')
+        
+        
+        oTunerNpp, oTunerMpp, oTunerSpp, oTunerRpp = oGetOptimizerTuners(
+            sLogsFolder  =sLogsFolder,
+            nr_of_encoder_blocks = nr_of_encoder_blocks, 
+            nr_of_heads = nr_of_heads, 
+            dropout_rate = dropout_rate, 
+            nr_of_ffn_units_of_encoder = nr_of_ffn_units_of_encoder, 
+            embedding_dims = embedding_dims
+        )
+        
+        # tune optimizer hyperparamters for NPP
+        oTunerNpp.search(
+            X_npp_train, 
+            Y_npp_train, 
+            epochs=NR_OF_EPOCHS,
+            batch_size = MINI_BATCH_SIZE, 
+            validation_data=(X_npp_test, Y_npp_test), 
+            callbacks=[oEarlyStop]
         )
 
-        oTunerNpp.search(X_npp_train, Y_npp_train, epochs=NR_OF_EPOCHS,batch_size = MINI_BATCH_SIZE, validation_data=(X_npp_test, Y_npp_test), callbacks=[oEarlyStop])
-
-
-        oTunerMpp = keras_tuner.Hyperband(
-            hypermodel_pre_train('MPP'),
-            objective=keras_tuner.Objective('val_mean_absolute_error', direction='min'),
-            max_epochs=NR_OF_EPOCHS,
-            factor = FACTOR,
-            directory=sLogsFolder,
-            project_name = 'MPP'
+        
+        # tune optimizer hyperparamters for MPP
+        oTunerMpp.search(
+            X_mpp_train, 
+            Y_mpp_train, 
+            epochs=NR_OF_EPOCHS,
+            batch_size = MINI_BATCH_SIZE, 
+            validation_data=(X_mpp_test, Y_mpp_test), 
+            callbacks=[oEarlyStop]
         )
-        oTunerMpp.search(X_mpp_train, Y_mpp_train, epochs=NR_OF_EPOCHS,batch_size = MINI_BATCH_SIZE, validation_data=(X_mpp_test, Y_mpp_test), callbacks=[oEarlyStop])
 
-
-        oTunerSpp = keras_tuner.Hyperband(
-            hypermodel_pre_train('SPP'),
-            objective=keras_tuner.Objective('val_auc', direction='max'),
-            max_epochs=NR_OF_EPOCHS,
-            factor = FACTOR,
-            directory=sLogsFolder,
-            project_name = 'SPP'
+        
+        # tune optimizer hyperparamters for SPP
+        oTunerSpp.search(
+            X_spp_train, 
+            Y_spp_train, 
+            epochs=NR_OF_EPOCHS,
+            batch_size = MINI_BATCH_SIZE, 
+            validation_data=(X_spp_test, Y_spp_test), 
+            callbacks=[oEarlyStop]
         )
-        oTunerSpp.search(X_spp_train, Y_spp_train, epochs=NR_OF_EPOCHS,batch_size = MINI_BATCH_SIZE, validation_data=(X_spp_test, Y_spp_test), callbacks=[oEarlyStop])
 
-
-        oTunerRpp = keras_tuner.Hyperband(
-            hypermodel_pre_train('RPP'),
-            objective=keras_tuner.Objective('val_auc', direction='max'),
-            max_epochs=NR_OF_EPOCHS,
-            factor = FACTOR,
-            directory=sLogsFolder,
-            project_name = 'RPP'
+        
+        # tune optimizer hyperparamters for RPP
+        oTunerRpp.search(
+            X_rpp_train, 
+            Y_rpp_train, 
+            epochs=NR_OF_EPOCHS,
+            batch_size = MINI_BATCH_SIZE, 
+            validation_data=(X_rpp_test, Y_rpp_test), 
+            callbacks=[oEarlyStop]
         )
-        oTunerRpp.search(X_rpp_train, Y_rpp_train, epochs=NR_OF_EPOCHS,batch_size = MINI_BATCH_SIZE, validation_data=(X_rpp_test, Y_rpp_test), callbacks=[oEarlyStop])
