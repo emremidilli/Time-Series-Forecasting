@@ -2,10 +2,10 @@ import sys
 sys.path.append( '../')
 
 import keras_tuner
-from hyperparameter_tuning.constants import PRE_TRAINING_CONFIG
+from hyperparameter_tuning.constants import PRE_TRAINING_CONFIG, NR_OF_EPOCHS, PATIENCE, FACTOR, SAMPLE_SIZE
 from preprocessing.constants import HYPERPARAMETER_TUNING_FOLDER, NEXT_PATCH_PREDICTION_DATA_FOLDER, MASKED_PATCH_PREDICTION_DATA_FOLDER, SIGN_OF_PATCH_PREDICTION_DATA_FOLDER, RANK_OF_PATCH_PREDICTION_DATA_FOLDER
 
-from training.constants import TEST_SIZE, BATCH_SIZE
+from training.constants import TEST_SIZE, MINI_BATCH_SIZE
 from models.general_pre_training import general_pre_training
 
 from tensorflow.data import Dataset
@@ -13,7 +13,7 @@ from tensorflow.keras.utils import split_dataset
 
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
-
+from tensorflow.keras.callbacks import EarlyStopping
 import numpy as np
 
 import os
@@ -22,7 +22,15 @@ import shutil
 
 
 '''
-    Hp tuning model is for an encoder representation based on.
+    Hp tuning model is for an encoder representation based on sampling a training dataset.
+    It takes too much time to perform hyperparameter tuning based on all training dataset.
+    That's why, a random sampling is done.
+    
+    Representation/Task pairs are searched.
+    Representation = {DisERT, TicERT, TreERT, SeaERT, KnoERT, ObsERT}
+    Tasks = {NPP, MPP, SPP, RPP}
+    Hyperband algorithm is used.
+    Hyperparameter optimization is done based on test dataset.
     
     Hyperparameters to optimize are:
         optimizer:
@@ -35,8 +43,6 @@ import shutil
             iNrOfFfnUnitsOfEncoder,
             iEmbeddingDims,
             fDropoutRate
-            
-    Write optimum configuration to a hyperparameter config file.
 '''
 
 def get_training_test_datasets(sDatasetName):
@@ -55,14 +61,17 @@ def get_training_test_datasets(sDatasetName):
     
     
     dataset = Dataset.from_tensor_slices((X_npp, Y_npp, X_mpp, Y_mpp, X_spp, Y_spp, X_rpp, Y_rpp))
-
+    
     train_dataset, test_dataset = split_dataset(
         dataset,
         right_size = TEST_SIZE,
         shuffle = False
     )
-    train_dataset = train_dataset.batch(BATCH_SIZE)
-    test_dataset = test_dataset.batch(TEST_SIZE)
+    
+    train_dataset =  train_dataset.shuffle(buffer_size=len(train_dataset))
+    train_dataset = train_dataset.take(SAMPLE_SIZE)
+    train_dataset= train_dataset.batch(len(train_dataset)).get_single_element()
+    test_dataset= test_dataset.batch(len(test_dataset)).get_single_element()
     
     return train_dataset, test_dataset
 
@@ -139,7 +148,6 @@ class hypermodel_pre_train(keras_tuner.HyperModel):
             iEmbeddingDims = embedding_dims, 
             sTaskType = self.sTaskType)
         
-        
 
         oModel.compile(
                     loss = oModel.oLoss, 
@@ -166,61 +174,63 @@ class hypermodel_pre_train(keras_tuner.HyperModel):
 
 if __name__ == '__main__':
     
+    oEarlyStop = EarlyStopping(monitor='val_loss', patience=PATIENCE)
+    
     for sDatasetName in ['dist', 'tic' ,'tre', 'sea' ,'known', 'observed']:
+        print(f'processing {sDatasetName}')
+        
         train_dataset, test_dataset = get_training_test_datasets(sDatasetName)
+        
+        X_npp_train, Y_npp_train, X_mpp_train, Y_mpp_train, X_spp_train, Y_spp_train, X_rpp_train, Y_rpp_train = train_dataset
+        X_npp_test, Y_npp_test, X_mpp_test, Y_mpp_test, X_spp_test, Y_spp_test, X_rpp_test, Y_rpp_test = test_dataset
+        
+        sRepresentationName = f'{sDatasetName.title()[:3]}ERT'
 
-        X_npp_test, Y_npp_test, X_mpp_test, Y_mpp_test, X_spp_test, Y_spp_test, X_rpp_test, Y_rpp_test = list(test_dataset)[0]
-
-        for iBatchNr, (X_npp_train, Y_npp_train, X_mpp_train, Y_mpp_train, X_spp_train, Y_spp_train, X_rpp_train, Y_rpp_train) in enumerate(train_dataset):
-
-            print(f'processing batch nr: {iBatchNr} for {sDatasetName}')
-
-            sRepresentationName = f'{sDatasetName.title()[:3]}ERT'
-
-            sLogsFolder = f'{HYPERPARAMETER_TUNING_FOLDER}\\Batch_{iBatchNr}\\{sRepresentationName}'
-            if os.path.exists(sLogsFolder) == True:
-                shutil.rmtree(sLogsFolder)
+        sLogsFolder = f'{HYPERPARAMETER_TUNING_FOLDER}\\{sRepresentationName}'
+        if os.path.exists(sLogsFolder) == True:
+            shutil.rmtree(sLogsFolder)
 
 
-            oTunerNpp = keras_tuner.RandomSearch(
-                hypermodel_pre_train('NPP'),
-                objective=keras_tuner.Objective('val_auc', direction='max'),
-                max_trials=3,
-                overwrite=False,
-                directory=sLogsFolder,
-                project_name = 'NPP'
-            )
-            oTunerNpp.search(X_npp_train, Y_npp_train, epochs=2,batch_size = BATCH_SIZE, validation_data=(X_npp_test, Y_npp_test))
+        oTunerNpp = keras_tuner.Hyperband(
+            hypermodel_pre_train('NPP'),
+            objective=keras_tuner.Objective('val_auc', direction='max'),
+            max_epochs=NR_OF_EPOCHS,
+            factor = FACTOR,
+            directory=sLogsFolder,
+            project_name = 'NPP'
+        )
+
+        oTunerNpp.search(X_npp_train, Y_npp_train, epochs=NR_OF_EPOCHS,batch_size = MINI_BATCH_SIZE, validation_data=(X_npp_test, Y_npp_test), callbacks=[oEarlyStop])
 
 
-            oTunerMpp = keras_tuner.RandomSearch(
-                hypermodel_pre_train('MPP'),
-                objective=keras_tuner.Objective('val_mean_absolute_error', direction='min'),
-                max_trials=3,
-                overwrite=False,
-                directory=sLogsFolder,
-                project_name = 'MPP'
-            )
-            oTunerMpp.search(X_mpp_train, Y_mpp_train, epochs=2,batch_size = BATCH_SIZE, validation_data=(X_mpp_test, Y_mpp_test))
+        oTunerMpp = keras_tuner.Hyperband(
+            hypermodel_pre_train('MPP'),
+            objective=keras_tuner.Objective('val_mean_absolute_error', direction='min'),
+            max_epochs=NR_OF_EPOCHS,
+            factor = FACTOR,
+            directory=sLogsFolder,
+            project_name = 'MPP'
+        )
+        oTunerMpp.search(X_mpp_train, Y_mpp_train, epochs=NR_OF_EPOCHS,batch_size = MINI_BATCH_SIZE, validation_data=(X_mpp_test, Y_mpp_test), callbacks=[oEarlyStop])
 
 
-            oTunerSpp = keras_tuner.RandomSearch(
-                hypermodel_pre_train('SPP'),
-                objective=keras_tuner.Objective('val_auc', direction='max'),
-                max_trials=3,
-                overwrite=False,
-                directory=sLogsFolder,
-                project_name = 'SPP'
-            )
-            oTunerSpp.search(X_spp_train, Y_spp_train, epochs=2,batch_size = BATCH_SIZE, validation_data=(X_spp_test, Y_spp_test))
+        oTunerSpp = keras_tuner.Hyperband(
+            hypermodel_pre_train('SPP'),
+            objective=keras_tuner.Objective('val_auc', direction='max'),
+            max_epochs=NR_OF_EPOCHS,
+            factor = FACTOR,
+            directory=sLogsFolder,
+            project_name = 'SPP'
+        )
+        oTunerSpp.search(X_spp_train, Y_spp_train, epochs=NR_OF_EPOCHS,batch_size = MINI_BATCH_SIZE, validation_data=(X_spp_test, Y_spp_test), callbacks=[oEarlyStop])
 
 
-            oTunerRpp = keras_tuner.RandomSearch(
-                hypermodel_pre_train('RPP'),
-                objective=keras_tuner.Objective('val_auc', direction='max'),
-                max_trials=3,
-                overwrite=False,
-                directory=sLogsFolder,
-                project_name = 'RPP'
-            )
-            oTunerRpp.search(X_rpp_train, Y_rpp_train, epochs=2,batch_size = BATCH_SIZE, validation_data=(X_rpp_test, Y_rpp_test))
+        oTunerRpp = keras_tuner.Hyperband(
+            hypermodel_pre_train('RPP'),
+            objective=keras_tuner.Objective('val_auc', direction='max'),
+            max_epochs=NR_OF_EPOCHS,
+            factor = FACTOR,
+            directory=sLogsFolder,
+            project_name = 'RPP'
+        )
+        oTunerRpp.search(X_rpp_train, Y_rpp_train, epochs=NR_OF_EPOCHS,batch_size = MINI_BATCH_SIZE, validation_data=(X_rpp_test, Y_rpp_test), callbacks=[oEarlyStop])

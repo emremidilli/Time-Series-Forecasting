@@ -1,6 +1,6 @@
 PRE_TRAINING_CONFIG = {
     'optimizer' : {
-        'learning_rate' : [1e-4,1e-2, 1e-1],
+        'learning_rate' : [0.0001,0.01, 0.001],
         'momentum_rate' : [0.1,0.9, 0.1]
     },
     'architecture' : {
@@ -11,3 +11,9 @@ PRE_TRAINING_CONFIG = {
         'dropout_rate':[0.01,0.9, 0.1]   
     }
 }
+
+
+NR_OF_EPOCHS = 10
+PATIENCE = 5
+FACTOR = 3
+SAMPLE_SIZE = 1000
