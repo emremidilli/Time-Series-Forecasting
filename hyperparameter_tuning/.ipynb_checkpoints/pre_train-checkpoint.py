@@ -14,9 +14,6 @@ from tensorflow.keras.utils import split_dataset
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
 
-from tensorflow.keras.losses import BinaryCrossentropy, MeanSquaredError
-from tensorflow.keras.metrics import AUC, MeanAbsoluteError
-
 import numpy as np
 
 import os
@@ -58,24 +55,22 @@ def get_training_test_datasets(sDatasetName):
     
     
     dataset = Dataset.from_tensor_slices((X_npp, Y_npp, X_mpp, Y_mpp, X_spp, Y_spp, X_rpp, Y_rpp))
-    
-    
+
     train_dataset, test_dataset = split_dataset(
         dataset,
         right_size = TEST_SIZE,
         shuffle = False
     )
     train_dataset = train_dataset.batch(BATCH_SIZE)
-
+    test_dataset = test_dataset.batch(TEST_SIZE)
     
     return train_dataset, test_dataset
 
 class hypermodel_pre_train(keras_tuner.HyperModel):
     
-    def __init__(self, oLoss,oMetrics, sTaskType = None):
+    def __init__(self, sTaskType = None):
         super().__init__()
-        self.oLoss = oLoss
-        self.oMetrics = oMetrics
+
         self.sTaskType =sTaskType
         
     
@@ -147,8 +142,8 @@ class hypermodel_pre_train(keras_tuner.HyperModel):
         
 
         oModel.compile(
-                    loss = self.oLoss, 
-                    metrics = self.oMetrics,
+                    loss = oModel.oLoss, 
+                    metrics = oModel.oMetric,
                     optimizer= Adam(
                         learning_rate=ExponentialDecay(
                             initial_learning_rate=learning_rate,
@@ -168,32 +163,64 @@ class hypermodel_pre_train(keras_tuner.HyperModel):
         )
         
     
-    
+
 if __name__ == '__main__':
     
-    sDatasetName = 'dist'
-    train_dataset, test_dataset = get_training_test_datasets(sDatasetName)
-        
-    (X_npp_test, Y_npp_test, X_mpp_test, Y_mpp_test, X_spp_test, Y_spp_test, X_rpp_test, Y_rpp_test) = enumerate(test_dataset)
+    for sDatasetName in ['dist', 'tic' ,'tre', 'sea' ,'known', 'observed']:
+        train_dataset, test_dataset = get_training_test_datasets(sDatasetName)
 
-    for iBatchNr, (X_npp_train, Y_npp_train, X_mpp_train, Y_mpp_train, X_spp_train, Y_spp_train, X_rpp_train, Y_rpp_train) in enumerate(train_dataset):
-                
-        print(f'processing batch nr: {iBatchNr}')
+        X_npp_test, Y_npp_test, X_mpp_test, Y_mpp_test, X_spp_test, Y_spp_test, X_rpp_test, Y_rpp_test = list(test_dataset)[0]
 
-        sRepresentationName = f'{sDatasetName.title()[:3]}ERT'
-        sLogsFolder = f'{HYPERPARAMETER_TUNING_FOLDER}\\Batch_{iBatchNr}'
-        if os.path.exists(sLogsFolder) == True:
-            shutil.rmtree(sLogsFolder)
-            
-            
-        tuner = keras_tuner.RandomSearch(
-            hypermodel_pre_train(BinaryCrossentropy(),AUC(), 'NPP'),
-            objective=keras_tuner.Objective("val_auc", direction="max"),
-            max_trials=3,
-            overwrite=False,
-            directory=sLogsFolder,
-            project_name = sRepresentationName
-        )
-        
-        
-        tuner.search(X_npp_train, Y_npp_train, epochs=2, validation_data=(X_npp_test, Y_npp_test))
+        for iBatchNr, (X_npp_train, Y_npp_train, X_mpp_train, Y_mpp_train, X_spp_train, Y_spp_train, X_rpp_train, Y_rpp_train) in enumerate(train_dataset):
+
+            print(f'processing batch nr: {iBatchNr} for {sDatasetName}')
+
+            sRepresentationName = f'{sDatasetName.title()[:3]}ERT'
+
+            sLogsFolder = f'{HYPERPARAMETER_TUNING_FOLDER}\\Batch_{iBatchNr}\\{sRepresentationName}'
+            if os.path.exists(sLogsFolder) == True:
+                shutil.rmtree(sLogsFolder)
+
+
+            oTunerNpp = keras_tuner.RandomSearch(
+                hypermodel_pre_train('NPP'),
+                objective=keras_tuner.Objective('val_auc', direction='max'),
+                max_trials=3,
+                overwrite=False,
+                directory=sLogsFolder,
+                project_name = 'NPP'
+            )
+            oTunerNpp.search(X_npp_train, Y_npp_train, epochs=2,batch_size = BATCH_SIZE, validation_data=(X_npp_test, Y_npp_test))
+
+
+            oTunerMpp = keras_tuner.RandomSearch(
+                hypermodel_pre_train('MPP'),
+                objective=keras_tuner.Objective('val_mean_absolute_error', direction='min'),
+                max_trials=3,
+                overwrite=False,
+                directory=sLogsFolder,
+                project_name = 'MPP'
+            )
+            oTunerMpp.search(X_mpp_train, Y_mpp_train, epochs=2,batch_size = BATCH_SIZE, validation_data=(X_mpp_test, Y_mpp_test))
+
+
+            oTunerSpp = keras_tuner.RandomSearch(
+                hypermodel_pre_train('SPP'),
+                objective=keras_tuner.Objective('val_auc', direction='max'),
+                max_trials=3,
+                overwrite=False,
+                directory=sLogsFolder,
+                project_name = 'SPP'
+            )
+            oTunerSpp.search(X_spp_train, Y_spp_train, epochs=2,batch_size = BATCH_SIZE, validation_data=(X_spp_test, Y_spp_test))
+
+
+            oTunerRpp = keras_tuner.RandomSearch(
+                hypermodel_pre_train('RPP'),
+                objective=keras_tuner.Objective('val_auc', direction='max'),
+                max_trials=3,
+                overwrite=False,
+                directory=sLogsFolder,
+                project_name = 'RPP'
+            )
+            oTunerRpp.search(X_rpp_train, Y_rpp_train, epochs=2,batch_size = BATCH_SIZE, validation_data=(X_rpp_test, Y_rpp_test))

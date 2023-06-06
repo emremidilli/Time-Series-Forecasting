@@ -25,6 +25,9 @@ import preprocessing.constants as c
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
 
+from tensorflow.keras.losses import BinaryCrossentropy, MeanSquaredError
+from tensorflow.keras.metrics import AUC, MeanAbsoluteError
+
 
 class general_pre_training(tf.keras.Model):
     
@@ -62,6 +65,25 @@ class general_pre_training(tf.keras.Model):
                 iFfnUnits = iEncoderFfnUnits
             )
             self.aTransformerEncoders.append(oToAdd)
+            
+            
+        self.SetLossAndMetrics()
+            
+            
+        
+    def SetLossAndMetrics(self):
+        if self.sTaskType == 'NPP':
+            self.oLoss = BinaryCrossentropy()
+            self.oMetric = AUC()
+        elif self.sTaskType == 'MPP':
+            self.oLoss = MeanSquaredError()
+            self.oMetric = MeanAbsoluteError()
+        elif self.sTaskType == 'SPP':
+            self.oLoss = BinaryCrossentropy()
+            self.oMetric = AUC()
+        elif self.sTaskType == 'RPP':
+            self.oLoss = BinaryCrossentropy()
+            self.oMetric = AUC()
         
     
     def build(self, input_shape):
@@ -69,19 +91,24 @@ class general_pre_training(tf.keras.Model):
             self.oDecoder = Npp_Decoder(
                 iFfnUnits = self.iNrOfChannels # there are binary classes for each channel.
             )
+            
+            
         elif self.sTaskType == 'MPP':
             self.oDecoder = Mpp_Decoder(
                 iFfnUnits = input_shape[-1]
             )
+
+            
         elif self.sTaskType == 'SPP':
             self.oDecoder = Spp_Decoder(
                 iFfnUnits = self.iNrOfQuantiles * 3 # due to quantiles. 3 means one-hot categories of signs {positive, negative and zero}
             )
+
         elif self.sTaskType == 'RPP':
             self.oDecoder = Rpp_Decoder(
                 iFfnUnits = self.iNrOfQuantiles * (self.iNrOfChannels + 1) # +1 is because 0 rank is assigned for the positions of special tokens.
             )
-                                        
+   
             
 
     def call(self, x):
@@ -111,12 +138,15 @@ class general_pre_training(tf.keras.Model):
         aNewWeights = self.get_weights()
         aNewWeights[:iIndexDecoder] = oModelFrom.get_weights()[:iIndexDecoder]
         self.set_weights(aNewWeights)
+        
+        
+    
 
 
-    def Train(self, X_train, Y_train, sArtifactsFolder, fLearningRate, iNrOfEpochs, iBatchSize ,oLoss, oMetrics):    
+    def Train(self, X_train, Y_train, sArtifactsFolder, fLearningRate, iNrOfEpochs, iBatchSize):    
         self.compile(
-            loss = oLoss, 
-            metrics = oMetrics,
+            loss = self.oLoss, 
+            metrics = self.oMetric,
             optimizer= Adam(
                 learning_rate=ExponentialDecay(
                     initial_learning_rate=fLearningRate,
