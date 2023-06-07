@@ -11,6 +11,7 @@ SIGN_OF_PATCH_PREDICTION_DATA_FOLDER = r'C:\Users\yunus\Desktop\TSF-bin\07 - Sig
 RANK_OF_PATCH_PREDICTION_DATA_FOLDER = r'C:\Users\yunus\Desktop\TSF-bin\08 - Rank of Patch Prediction Data'
 QUANTILE_PREDICTION_DATA_FOLDER = r'C:\Users\yunus\Desktop\TSF-bin\09 - Quantile Prediction Data'
 HYPERPARAMETER_TUNING_FOLDER = r'C:\Users\yunus\Desktop\TSF-bin\10 - Hyperparameter Tuning'
+ARTIFACTS_FOLDER = r'C:\Users\yunus\Desktop\TSF-bin\11 - Artifacts'
 
 THRESHOLD_STATIC_SENSITIVITY = 0.01
 

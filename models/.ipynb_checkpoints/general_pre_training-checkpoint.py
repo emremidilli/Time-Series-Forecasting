@@ -21,9 +21,11 @@ from layers.general_pre_training.rpp_decoder import Rpp_Decoder
 
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
+from tensorflow.keras.callbacks import EarlyStopping
 
 from tensorflow.keras.losses import BinaryCrossentropy, MeanSquaredError
 from tensorflow.keras.metrics import AUC, MeanAbsoluteError
+
 
 
 class general_pre_training(tf.keras.Model):
@@ -134,10 +136,11 @@ class general_pre_training(tf.keras.Model):
         self.set_weights(aNewWeights)
         
         
-    
 
-
-    def Train(self, X_train, Y_train, sArtifactsFolder, fLearningRate, fMomentumRate ,iNrOfEpochs, iBatchSize):    
+    def Train(self, X_train, Y_train, X_validation, Y_validation ,sArtifactsFolder, fLearningRate, fMomentumRate ,iNrOfEpochs, iMiniBatchSize, iPatience):
+        
+        oEarlyStop = EarlyStopping(monitor='val_loss', patience=iPatience, restore_best_weights = True)
+        
         self.compile(
             loss = self.oLoss, 
             metrics = self.oMetric,
@@ -146,17 +149,20 @@ class general_pre_training(tf.keras.Model):
                     initial_learning_rate=fLearningRate,
                     decay_steps=10**2,
                     decay_rate=0.9
-                )
-            ),
-            beta_1 = fMomentumRate
+                ),
+                beta_1 = fMomentumRate
+            )
         )
 
         self.fit(
             X_train, 
             Y_train, 
             epochs= iNrOfEpochs, 
-            batch_size=iBatchSize, 
-            verbose=1
+            batch_size=iMiniBatchSize, 
+            verbose=1,
+            validation_data = (X_validation, Y_validation),
+            validation_batch_size = iMiniBatchSize,
+            callbacks = [oEarlyStop]
         )
 
         sModelArtifactPath = f'{sArtifactsFolder}\\{self.sTaskType}\\'
