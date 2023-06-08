@@ -53,14 +53,8 @@ def get_training_test_datasets(sDatasetName):
     X_mpp = np.load(f'{MASKED_PATCH_PREDICTION_DATA_FOLDER}\\X_{sDatasetName}.npy')    
     Y_mpp = np.load(f'{MASKED_PATCH_PREDICTION_DATA_FOLDER}\\Y_{sDatasetName}.npy')
     
-    X_spp = np.load(f'{SIGN_OF_PATCH_PREDICTION_DATA_FOLDER}\\X_{sDatasetName}.npy')    
-    Y_spp = np.load(f'{SIGN_OF_PATCH_PREDICTION_DATA_FOLDER}\\Y_{sDatasetName}.npy')
-    
-    X_rpp = np.load(f'{RANK_OF_PATCH_PREDICTION_DATA_FOLDER}\\X_{sDatasetName}.npy')    
-    Y_rpp = np.load(f'{RANK_OF_PATCH_PREDICTION_DATA_FOLDER}\\Y_{sDatasetName}.npy')
-    
-    
-    dataset = Dataset.from_tensor_slices((X_npp, Y_npp, X_mpp, Y_mpp, X_spp, Y_spp, X_rpp, Y_rpp))
+
+    dataset = Dataset.from_tensor_slices((X_npp, Y_npp, X_mpp, Y_mpp))
     
     train_dataset, test_dataset = split_dataset(
         dataset,
@@ -124,7 +118,7 @@ class architectural_hypermodel(keras_tuner.HyperModel):
             fDropoutRate = dropout_rate, 
             iEncoderFfnUnits = nr_of_ffn_units_of_encoder,
             iEmbeddingDims = embedding_dims, 
-            sTaskType = 'SPP'
+            sTaskType = 'NPP'
         )
         
 
@@ -219,7 +213,7 @@ def oGetArchitectureTuner(sLogsFolder):
         max_epochs=NR_OF_EPOCHS,
         factor = FACTOR,
         directory=f'{sLogsFolder}\\architecture',
-        project_name = 'SPP'
+        project_name = 'NPP'
     )
     
     return oTunerArchitecture
@@ -260,45 +254,9 @@ def oGetOptimizerTuners(sLogsFolder, nr_of_encoder_blocks,nr_of_heads, dropout_r
             directory=f'{sLogsFolder}\\optimizer',
             project_name = 'MPP'
         )
-
-        
-        # tune optimizer hyperparamters for SPP
-        oTunerSpp = keras_tuner.Hyperband(
-            optimizer_hypermodel(
-                nr_of_encoder_blocks = nr_of_encoder_blocks, 
-                nr_of_heads = nr_of_heads, 
-                dropout_rate = dropout_rate, 
-                nr_of_ffn_units_of_encoder = nr_of_ffn_units_of_encoder, 
-                embedding_dims = embedding_dims, 
-                sTaskType = 'SPP'
-            ),
-            objective=keras_tuner.Objective('val_auc', direction='max'),
-            max_epochs=NR_OF_EPOCHS,
-            factor = FACTOR,
-            directory=f'{sLogsFolder}\\optimizer',
-            project_name = 'SPP'
-        )
-
-        
-        # tune optimizer hyperparamters for RPP
-        oTunerRpp = keras_tuner.Hyperband(
-            optimizer_hypermodel(
-                nr_of_encoder_blocks = nr_of_encoder_blocks, 
-                nr_of_heads = nr_of_heads, 
-                dropout_rate = dropout_rate, 
-                nr_of_ffn_units_of_encoder = nr_of_ffn_units_of_encoder, 
-                embedding_dims = embedding_dims, 
-                sTaskType = 'RPP'
-            ),
-            objective=keras_tuner.Objective('val_auc', direction='max'),
-            max_epochs=NR_OF_EPOCHS,
-            factor = FACTOR,
-            directory=f'{sLogsFolder}\\optimizer',
-            project_name = 'RPP'
-        )
         
         
-        return oTunerNpp, oTunerMpp, oTunerSpp, oTunerRpp
+        return oTunerNpp, oTunerMpp
 
     
             
@@ -312,8 +270,8 @@ if __name__ == '__main__':
         
         train_dataset, test_dataset = get_training_test_datasets(sDatasetName)
         
-        X_npp_train, Y_npp_train, X_mpp_train, Y_mpp_train, X_spp_train, Y_spp_train, X_rpp_train, Y_rpp_train = train_dataset
-        X_npp_test, Y_npp_test, X_mpp_test, Y_mpp_test, X_spp_test, Y_spp_test, X_rpp_test, Y_rpp_test = test_dataset
+        X_npp_train, Y_npp_train, X_mpp_train, Y_mpp_train = train_dataset
+        X_npp_test, Y_npp_test, X_mpp_test, Y_mpp_test = test_dataset
         
         sRepresentationName = f'{sDatasetName.title()[:3]}ERT'
 
@@ -345,7 +303,7 @@ if __name__ == '__main__':
         embedding_dims = dicBestArchitecture.get('embedding_dims')
         
         
-        oTunerNpp, oTunerMpp, oTunerSpp, oTunerRpp = oGetOptimizerTuners(
+        oTunerNpp, oTunerMpp = oGetOptimizerTuners(
             sLogsFolder  =sLogsFolder,
             nr_of_encoder_blocks = nr_of_encoder_blocks, 
             nr_of_heads = nr_of_heads, 
@@ -376,23 +334,3 @@ if __name__ == '__main__':
         )
 
         
-        # tune optimizer hyperparamters for SPP
-        oTunerSpp.search(
-            X_spp_train, 
-            Y_spp_train, 
-            epochs=NR_OF_EPOCHS,
-            batch_size = MINI_BATCH_SIZE, 
-            validation_data=(X_spp_test, Y_spp_test), 
-            callbacks=[oEarlyStop]
-        )
-
-        
-        # tune optimizer hyperparamters for RPP
-        oTunerRpp.search(
-            X_rpp_train, 
-            Y_rpp_train, 
-            epochs=NR_OF_EPOCHS,
-            batch_size = MINI_BATCH_SIZE, 
-            validation_data=(X_rpp_test, Y_rpp_test), 
-            callbacks=[oEarlyStop]
-        )

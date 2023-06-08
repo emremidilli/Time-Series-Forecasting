@@ -15,23 +15,36 @@ from layers.general_pre_training.npp_decoder import Npp_Decoder
 
 from layers.general_pre_training.mpp_decoder import Mpp_Decoder
 
-from layers.general_pre_training.spp_decoder import Spp_Decoder
-
-from layers.general_pre_training.rpp_decoder import Rpp_Decoder
-
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
-from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras.callbacks import CSVLogger
 
 from tensorflow.keras.losses import BinaryCrossentropy, MeanSquaredError
 from tensorflow.keras.metrics import AUC, MeanAbsoluteError
 
+import os
 
+class stopAtThreshold(tf.keras.callbacks.Callback):
+    def on_batch_end(self, batch, logs={}):
+        if self.model.sTaskType == 'NPP':
+            if logs.get('AUC') >= self.model.STOP_METRIC:
+                self.model.stop_training = True
+        elif self.model.sTaskType == 'MPP':
+            if logs.get('MAE') <= self.model.STOP_METRIC:
+                self.model.stop_training = True
 
 class general_pre_training(tf.keras.Model):
     
     def __init__(self, iNrOfEncoderBlocks,iNrOfHeads,fDropoutRate, iEncoderFfnUnits,iEmbeddingDims, sTaskType = None, **kwargs):
         super().__init__(**kwargs)
+        
+        
+        self.iNrOfEncoderBlocks = iNrOfEncoderBlocks
+        self.iNrOfHeads = iNrOfHeads
+        self.fDropoutRate = fDropoutRate
+        self.iEncoderFfnUnits = iEncoderFfnUnits
+        self.iEmbeddingDims = iEmbeddingDims
+        
         
         self.sTaskType = sTaskType
         self.iNrOfChannels = 3
@@ -65,7 +78,6 @@ class general_pre_training(tf.keras.Model):
             )
             self.aTransformerEncoders.append(oToAdd)
             
-            
         self.SetLossAndMetrics()
             
             
@@ -73,17 +85,12 @@ class general_pre_training(tf.keras.Model):
     def SetLossAndMetrics(self):
         if self.sTaskType == 'NPP':
             self.oLoss = BinaryCrossentropy()
-            self.oMetric = AUC()
+            self.oMetric = AUC(name = 'AUC')
+            self.STOP_METRIC = 0.95
         elif self.sTaskType == 'MPP':
             self.oLoss = MeanSquaredError()
-            self.oMetric = MeanAbsoluteError()
-        elif self.sTaskType == 'SPP':
-            self.oLoss = BinaryCrossentropy()
-            self.oMetric = AUC()
-        elif self.sTaskType == 'RPP':
-            self.oLoss = BinaryCrossentropy()
-            self.oMetric = AUC()
-        
+            self.oMetric = MeanAbsoluteError(name = 'MAE')
+            self.STOP_METRIC = 0.10
     
     def build(self, input_shape):
         if self.sTaskType == 'NPP':
@@ -94,16 +101,6 @@ class general_pre_training(tf.keras.Model):
         elif self.sTaskType == 'MPP':
             self.oDecoder = Mpp_Decoder(
                 iFfnUnits = input_shape[-1]
-            )
-
-        elif self.sTaskType == 'SPP':
-            self.oDecoder = Spp_Decoder(
-                iFfnUnits = self.iNrOfQuantiles * 3 # due to quantiles. 3 means one-hot categories of signs {positive, negative and zero}
-            )
-
-        elif self.sTaskType == 'RPP':
-            self.oDecoder = Rpp_Decoder(
-                iFfnUnits = self.iNrOfQuantiles * (self.iNrOfChannels + 1) # +1 is because 0 rank is assigned for the positions of special tokens.
             )
             
 
@@ -125,7 +122,7 @@ class general_pre_training(tf.keras.Model):
     def TransferLearningForEncoder(self, oModelFrom):
         iIndexDecoder = 0
         for s in oModelFrom.weights: 
-            if '__decoder' in s.name: #every layer until decoder is already common between models.
+            if ('__decoder' in s.name) or ('general_pre_training_' not in s.name): #every layer until decoder is already common between models.
                 break
             else:
                 iIndexDecoder = iIndexDecoder + 1
@@ -135,20 +132,24 @@ class general_pre_training(tf.keras.Model):
         aNewWeights[:iIndexDecoder] = oModelFrom.get_weights()[:iIndexDecoder]
         self.set_weights(aNewWeights)
         
-        
+    
+
 
     def Train(self, X_train, Y_train, X_validation, Y_validation ,sArtifactsFolder, fLearningRate, fMomentumRate ,iNrOfEpochs, iMiniBatchSize, iPatience):
+        sModelArtifactPath = f'{sArtifactsFolder}\\{self.sTaskType}\\'
+        os.makedirs(sModelArtifactPath)        
         
-        oEarlyStop = EarlyStopping(monitor='val_loss', patience=iPatience, restore_best_weights = True)
-        
+        oCsvLogger = CSVLogger(f'{sModelArtifactPath}logs.log', separator=";", append=False)
+        oStopAtThreshold = stopAtThreshold()
+
         self.compile(
             loss = self.oLoss, 
             metrics = self.oMetric,
             optimizer= Adam(
                 learning_rate=ExponentialDecay(
                     initial_learning_rate=fLearningRate,
-                    decay_steps=10**2,
-                    decay_rate=0.9
+                    decay_steps=100000,
+                    decay_rate=0.96
                 ),
                 beta_1 = fMomentumRate
             )
@@ -162,10 +163,10 @@ class general_pre_training(tf.keras.Model):
             verbose=1,
             validation_data = (X_validation, Y_validation),
             validation_batch_size = iMiniBatchSize,
-            callbacks = [oEarlyStop]
+            callbacks = [oCsvLogger, oStopAtThreshold]
         )
 
-        sModelArtifactPath = f'{sArtifactsFolder}\\{self.sTaskType}\\'
+        
         self.save_weights(
             sModelArtifactPath,
             save_format ='tf'
