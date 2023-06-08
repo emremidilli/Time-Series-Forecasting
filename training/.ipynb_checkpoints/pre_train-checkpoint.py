@@ -4,17 +4,11 @@
     There are 2 tasks: {NPP, MPP}
     There are 20 batches: {1...20}
 
-    Soluton 2:
-        We can pre-train only boosting models gradually.
-        A model: 
-            
-        get batch i
+    We can pre-train only boosting models gradually.
+    get batch i
 
         build 6 representation model
         hard train each model with NPP and MPP.
-
-        consider each of them as a bag.
-
 '''
 
 import sys

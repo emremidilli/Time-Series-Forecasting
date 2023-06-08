@@ -51,19 +51,19 @@ class bootstrap_aggregation(tf.keras.Model):
     def call(self, x):
         
         x_bootstrapped = []
-        for oDisERT in self.aDisERTs:
-            x_bootstrapped.append(oDisERT(x))
+        for oEncoderRepresentation in self.aEncoderRepresentations:
+            x_bootstrapped.append(oEncoderRepresentation(x))
             
         # (None, nr_of_positions, model_dims, nr_of_models)
         x_bootstrapped = tf.stack(x_bootstrapped, axis =  3) 
         
-        x_aggregated = oDenseAggregater(x_bootstrapped)
+        x_aggregated = self.oDenseAggregater(x_bootstrapped)
         
         x_aggregated = tf.squeeze(x_aggregated, 3)
         
-        y_spp = self.spp_decoder(x_aggregated)
+        y_spp = self.oSppDecoder(x_aggregated)
         
-        y_rpp = self.spp_decoder(x_aggregated)
+        y_rpp = self.oRppDecoder(x_aggregated)
         
         return [y_spp, y_rpp]
     

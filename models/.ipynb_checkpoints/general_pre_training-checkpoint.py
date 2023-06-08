@@ -17,7 +17,8 @@ from layers.general_pre_training.mpp_decoder import Mpp_Decoder
 
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
-from tensorflow.keras.callbacks import CSVLogger
+from tensorflow.keras.callbacks import CSVLogger, EarlyStopping, ReduceLROnPlateau
+
 
 from tensorflow.keras.losses import BinaryCrossentropy, MeanSquaredError
 from tensorflow.keras.metrics import AUC, MeanAbsoluteError
@@ -141,6 +142,19 @@ class general_pre_training(tf.keras.Model):
         
         oCsvLogger = CSVLogger(f'{sModelArtifactPath}logs.log', separator=";", append=False)
         oStopAtThreshold = stopAtThreshold()
+        
+        # only used for hard train
+        # in case there is no improvement on loss 3 epochs, try reducing learning rate.
+        # in cas there is no improvmeent on loss for 5 eochs stop training.
+        oReduceLr = ReduceLROnPlateau(
+            monitor='loss', 
+            factor=0.2, 
+            patience= 3, 
+            min_lr=0.0001
+        )
+        
+        oEarlyStopping = EarlyStopping( monitor='loss', patience=5, restore_best_weights=True)
+        
 
         self.compile(
             loss = self.oLoss, 
@@ -163,10 +177,9 @@ class general_pre_training(tf.keras.Model):
             verbose=1,
             validation_data = (X_validation, Y_validation),
             validation_batch_size = iMiniBatchSize,
-            callbacks = [oCsvLogger, oStopAtThreshold]
+            callbacks = [oCsvLogger, oStopAtThreshold, oReduceLr, oEarlyStopping]
         )
 
-        
         self.save_weights(
             sModelArtifactPath,
             save_format ='tf'
