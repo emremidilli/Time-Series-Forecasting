@@ -56,11 +56,10 @@ aObserveds = np.load(f'{TOKENIZIED_DATA_FOLDER}\\observed.npy')
 
 
 
-def aGetNspDatasets(aTrueInputs):
+def aGetNppDatasets(aTrueInputs):
     aFalseInputs = aTrueInputs.copy()
 
-    iNrOfTimePatches = iNrOfForecastPatches + iNrOfLookbackPatches
-    iNrOfFeaturesPerChannel = iNrOfTimePatches + 4 
+    iNrOfFeaturesPerChannel = iNrOfForecastPatches + iNrOfLookbackPatches
     iNrOfChannels = int(aTrueInputs.shape[1]/iNrOfFeaturesPerChannel)
 
     aFalseOutputs = np.ones(shape = (aTrueInputs.shape[0], iNrOfChannels))
@@ -72,16 +71,10 @@ def aGetNspDatasets(aTrueInputs):
 
     for i in range(iNrOfChannels):
         
-        # cls: beginning of each channel.
-        iFirstTokenIndex = i * iNrOfFeaturesPerChannel 
-        iLastTokenIndex = iFirstTokenIndex + iNrOfFeaturesPerChannel - 1 
-
-        # lookback window: after cls 
-        iLookbackStartIndex = iFirstTokenIndex+1
+        iLookbackStartIndex = i * iNrOfFeaturesPerChannel 
         iLookbackEndIndex = iLookbackStartIndex + iNrOfLookbackPatches - 1
 
-        # forecast window: 
-        iForecastStartIndex = iLookbackEndIndex+2 # (there is [SEP] between end of lookback and start of forecast)
+        iForecastStartIndex = iLookbackEndIndex+1 
         iForecastEndIndex = iForecastStartIndex + iNrOfForecastPatches - 1 
 
 
@@ -130,12 +123,12 @@ def aGetNspDatasets(aTrueInputs):
 
 
 
-X_dist, Y_dist = aGetNspDatasets(aDistribution)
-X_tic, Y_tic = aGetNspDatasets(aDynamicDigits)
-X_tre, Y_tre = aGetNspDatasets(aTrend)
-X_sea, Y_sea = aGetNspDatasets(aSeasonality)
-X_known, Y_known = aGetNspDatasets(aKnowns)
-X_observed, Y_observed = aGetNspDatasets(aObserveds)
+X_dist, Y_dist = aGetNppDatasets(aDistribution)
+X_tic, Y_tic = aGetNppDatasets(aDynamicDigits)
+X_tre, Y_tre = aGetNppDatasets(aTrend)
+X_sea, Y_sea = aGetNppDatasets(aSeasonality)
+X_known, Y_known = aGetNppDatasets(aKnowns)
+X_observed, Y_observed = aGetNppDatasets(aObserveds)
 
 
 

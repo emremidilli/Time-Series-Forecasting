@@ -61,8 +61,7 @@ aSignsOfDeltas = np.sign(aDeltas)
 def aGetSppDatasets(aTrueInput):
     aMaskedInput = aTrueInput.copy()
 
-    iNrOfTimePatches = iNrOfForecastPatches + iNrOfLookbackPatches
-    iNrOfFeaturesPerChannel = iNrOfTimePatches + 4 
+    iNrOfFeaturesPerChannel = iNrOfForecastPatches + iNrOfLookbackPatches
     iNrOfChannels = int(aTrueInput.shape[1]/iNrOfFeaturesPerChannel)
     iNrOfSamples = aTrueInput.shape[0]
 
@@ -81,17 +80,12 @@ def aGetSppDatasets(aTrueInput):
     for i in range(iNrOfChannels):
         aDeltasOfChannel = aSignsOfDeltas[:,:,:, i]
 
-        # cls: beginning of each channel.
-        iFirstTokenIndex = i * iNrOfFeaturesPerChannel 
-        iLastTokenIndex = iFirstTokenIndex + iNrOfFeaturesPerChannel - 1 
-
-        # lookback window: after cls 
-        iLookbackStartIndex = iFirstTokenIndex+1
+        iLookbackStartIndex = i * iNrOfFeaturesPerChannel 
         iLookbackEndIndex = iLookbackStartIndex + iNrOfLookbackPatches - 1
 
-        # forecast window: 
-        iForecastStartIndex = iLookbackEndIndex+2 # (there is [SEP] between end of lookback and start of forecast)
-        iForecastEndIndex = iForecastStartIndex + iNrOfForecastPatches - 1
+        iForecastStartIndex = iLookbackEndIndex+1 
+        iForecastEndIndex = iForecastStartIndex + iNrOfForecastPatches - 1 
+
 
 
         for j in range(iNrOfLookbackPatches):

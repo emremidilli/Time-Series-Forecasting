@@ -50,9 +50,8 @@ def aGetRepresentationModels(sRepresentationName):
                     
 
 if __name__ == '__main__':
-    
-    
-    for sDatasetName in ['dist', 'tic', 'tre', 'known', 'observed', 'sea']:
+     
+    for sDatasetName in ['dist', 'tic', 'tre','sea', 'known', 'observed', ]:
         sRepresentationName = f'{sDatasetName.title()[:3]}ERT'
         sModelArtifactPath = f'{ARTIFACTS_FOLDER}\\Aggregation\\{sRepresentationName}\\'
         if os.path.exists(sModelArtifactPath) == True:

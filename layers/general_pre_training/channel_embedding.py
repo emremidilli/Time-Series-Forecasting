@@ -16,7 +16,7 @@ class Channel_Embedding(tf.keras.layers.Layer):
         self.iNrOfChannels = iNrOfChannels
         self.iNrOfLookbackPatches = iNrOfLookbackPatches
         self.iNrOfForecastPatches = iNrOfForecastPatches
-        self.iNrOfFeaturesPerChannel = (iNrOfLookbackPatches  + iNrOfForecastPatches) + 4
+        self.iNrOfFeaturesPerChannel = (iNrOfLookbackPatches  + iNrOfForecastPatches)
         self.iNrOfPositions = self.iNrOfChannels * self.iNrOfFeaturesPerChannel
         
         

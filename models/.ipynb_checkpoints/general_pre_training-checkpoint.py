@@ -53,7 +53,7 @@ class general_pre_training(tf.keras.Model):
 
         iNrOfLookbackPatches = 16
         iNrOfForecastPatches = 4
-        iNrOfFeaturesPerChannel = (iNrOfLookbackPatches  + iNrOfForecastPatches) + 4
+        iNrOfFeaturesPerChannel = (iNrOfLookbackPatches  + iNrOfForecastPatches)
         iNrOfPositions = self.iNrOfChannels * iNrOfFeaturesPerChannel
         
         
@@ -155,7 +155,6 @@ class general_pre_training(tf.keras.Model):
         
         oEarlyStopping = EarlyStopping( monitor='loss', patience=5, restore_best_weights=True)
         
-
         self.compile(
             loss = self.oLoss, 
             metrics = self.oMetric,

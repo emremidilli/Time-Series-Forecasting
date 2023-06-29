@@ -55,8 +55,7 @@ def aGetMspDatasets(aTrueInputs):
     aMaskedInputs = aTrueInputs.copy()
     
     iNrOfSamples = aTrueInputs.shape[0]
-    iNrOfTimePatches = iNrOfForecastPatches + iNrOfLookbackPatches
-    iNrOfFeaturesPerChannel = iNrOfTimePatches + 4 
+    iNrOfFeaturesPerChannel = iNrOfForecastPatches + iNrOfLookbackPatches
     iNrOfChannels = int(aTrueInputs.shape[1]/iNrOfFeaturesPerChannel)
     
     aLookbackPatchesToMask = np.random.rand(iNrOfSamples, iNrOfLookbackPatches )
@@ -70,18 +69,12 @@ def aGetMspDatasets(aTrueInputs):
 
     for i in range(iNrOfChannels):
 
-        # cls: beginning of each channel.
-        iFirstTokenIndex = i * iNrOfFeaturesPerChannel 
-        iLastTokenIndex = iFirstTokenIndex + iNrOfFeaturesPerChannel - 1 
-
-        # lookback window: after cls 
-        iLookbackStartIndex = iFirstTokenIndex+1
+        iLookbackStartIndex = i * iNrOfFeaturesPerChannel 
         iLookbackEndIndex = iLookbackStartIndex + iNrOfLookbackPatches - 1
 
-        # forecast window: 
-        iForecastStartIndex = iLookbackEndIndex+2 # (there is [SEP] between end of lookback and start of forecast)
+        iForecastStartIndex = iLookbackEndIndex+1 
         iForecastEndIndex = iForecastStartIndex + iNrOfForecastPatches - 1 
-        
+
         
         for j in range(iNrOfLookbackPatches):
             ix = (aLookbackPatchesToMask == j).any(axis = 1)
