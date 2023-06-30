@@ -15,6 +15,12 @@ from layers.general_pre_training.npp_decoder import Npp_Decoder
 
 from layers.general_pre_training.mpp_decoder import Mpp_Decoder
 
+from layers.general_pre_training.rpp_decoder import Rpp_Decoder
+
+from layers.general_pre_training.spp_decoder import Spp_Decoder
+
+
+
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
 from tensorflow.keras.callbacks import CSVLogger, EarlyStopping, ReduceLROnPlateau
@@ -33,12 +39,11 @@ class stopAtThreshold(tf.keras.callbacks.Callback):
         elif self.model.sTaskType == 'MPP':
             if logs.get('MAE') <= self.model.STOP_METRIC:
                 self.model.stop_training = True
+                
 
-class general_pre_training(tf.keras.Model):
-    
-    def __init__(self, iNrOfEncoderBlocks,iNrOfHeads,fDropoutRate, iEncoderFfnUnits,iEmbeddingDims, sTaskType = None, **kwargs):
+class Representation(tf.keras.layers.Layer):
+    def __init__(self, iNrOfChannels , iNrOfQuantiles,iNrOfLookbackPatches, iNrOfForecastPatches  ,iNrOfEncoderBlocks,iNrOfHeads,fDropoutRate, iEncoderFfnUnits,iEmbeddingDims,  **kwargs):
         super().__init__(**kwargs)
-        
         
         self.iNrOfEncoderBlocks = iNrOfEncoderBlocks
         self.iNrOfHeads = iNrOfHeads
@@ -47,14 +52,12 @@ class general_pre_training(tf.keras.Model):
         self.iEmbeddingDims = iEmbeddingDims
         
         
-        self.sTaskType = sTaskType
-        self.iNrOfChannels = 3
-        self.iNrOfQuantiles = 3
+        self.iNrOfChannels = iNrOfChannels
+        self.iNrOfQuantiles = iNrOfQuantiles
 
-        iNrOfLookbackPatches = 16
-        iNrOfForecastPatches = 4
-        iNrOfFeaturesPerChannel = (iNrOfLookbackPatches  + iNrOfForecastPatches)
-        iNrOfPositions = self.iNrOfChannels * iNrOfFeaturesPerChannel
+        iNrOfLookbackPatches = iNrOfLookbackPatches
+        iNrOfForecastPatches = iNrOfForecastPatches
+        iNrOfPositions = self.iNrOfChannels * (iNrOfLookbackPatches  + iNrOfForecastPatches)
         
         
         self.ce = Channel_Embedding(
@@ -77,45 +80,68 @@ class general_pre_training(tf.keras.Model):
                 fDropoutRate = fDropoutRate, 
                 iFfnUnits = iEncoderFfnUnits
             )
-            self.aTransformerEncoders.append(oToAdd)
-            
-        self.SetLossAndMetrics()
-            
-            
-        
-    def SetLossAndMetrics(self):
-        if self.sTaskType == 'NPP':
-            self.oLoss = BinaryCrossentropy()
-            self.oMetric = AUC(name = 'AUC')
-            self.STOP_METRIC = 0.95
-        elif self.sTaskType == 'MPP':
-            self.oLoss = MeanSquaredError()
-            self.oMetric = MeanAbsoluteError(name = 'MAE')
-            self.STOP_METRIC = 0.10
-    
-    def build(self, input_shape):
-        if self.sTaskType == 'NPP':
-            self.oDecoder = Npp_Decoder(
-                iFfnUnits = self.iNrOfChannels # there are binary classes for each channel.
-            )
-            
-        elif self.sTaskType == 'MPP':
-            self.oDecoder = Mpp_Decoder(
-                iFfnUnits = input_shape[-1]
-            )
-            
-
+            self.aTransformerEncoders.append(oToAdd)    
+                
     def call(self, x):
         
         x = self.ce(x) + self.pe(x) + self.se(x)
 
         for oEncoder in self.aTransformerEncoders:
             x = oEncoder(x)
-                       
-        if self.sTaskType != None:
-            x = self.oDecoder(x)
 
-        return x
+        return x                
+
+    
+
+    
+
+class general_pre_training(tf.keras.Model):
+    def __init__(self,iNrOfChannels, iNrOfQuantiles, iNrOfEncoderBlocks,iNrOfHeads, iTokenSize , fDropoutRate, iEncoderFfnUnits,iEmbeddingDims, **kwargs):
+        super().__init__(**kwargs)
+        
+        iNrOfChannels = 3
+        iNrOfQuantiles = 3
+        iNrOfLookbackPatches = 16
+        iNrOfForecastPatches = 4
+        
+        self.oRepresentation = Representation(
+            iNrOfChannels , iNrOfQuantiles,iNrOfLookbackPatches, iNrOfForecastPatches  ,
+            iNrOfEncoderBlocks,iNrOfHeads,fDropoutRate, iEncoderFfnUnits,iEmbeddingDims
+        )
+
+        self.oNppDecoder = Npp_Decoder(
+            iFfnUnits = self.iNrOfChannels # there are binary classes for each channel.
+        )
+            
+        self.oMppDecoder = Mpp_Decoder(
+            iFfnUnits = iTokenSize
+        )
+
+        self.oRppDecoder = Rpp_Decoder(
+            iFfnUnits = iNrOfQuantiles * iNrOfChannels
+        )     
+            
+                    
+        self.oSppDecoder = Spp_Decoder(
+            iFfnUnits = iNrOfQuantiles * 3 # due to quantiles. 3 means one-hot categories of signs {positive, negative and zero}
+        )        
+
+
+
+    def call(self, x):
+        
+        x = self.oRepresentation(x)
+        
+        y_npp = self.oNppDecoder(x)
+        
+        y_mpp = self.oMppDecoder(x)
+        
+        y_rpp = self.oRppDecoder(x)
+        
+        y_spp = self.oSppDecoder(x)
+        
+
+        return [y_npp,  y_mpp, y_rpp, y_spp]
     
     
 
@@ -137,6 +163,9 @@ class general_pre_training(tf.keras.Model):
 
 
     def Train(self, X_train, Y_train, X_validation, Y_validation ,sArtifactsFolder, fLearningRate, fMomentumRate ,iNrOfEpochs, iMiniBatchSize, iPatience):
+        
+        
+        
         sModelArtifactPath = f'{sArtifactsFolder}\\{self.sTaskType}\\'
         os.makedirs(sModelArtifactPath)        
         

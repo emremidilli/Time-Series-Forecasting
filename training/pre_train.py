@@ -1,6 +1,6 @@
 '''
     There are 6 representations: {DisERT, TicERT, TreERT, SeaERT, KnoERT, ObsERT}
-    There are 2 tasks: {NPP, MPP}
+    There are 4 tasks: {NPP, MPP, RPP, SPP}
     
     build 6 representation model
     hard train each model with NPP and MPP.
@@ -9,7 +9,7 @@
 import sys
 sys.path.append( '../')
 
-from preprocessing.constants import NEXT_PATCH_PREDICTION_DATA_FOLDER, MASKED_PATCH_PREDICTION_DATA_FOLDER, HYPERPARAMETER_TUNING_FOLDER, ARTIFACTS_FOLDER
+from preprocessing.constants import NEXT_PATCH_PREDICTION_DATA_FOLDER, MASKED_PATCH_PREDICTION_DATA_FOLDER, HYPERPARAMETER_TUNING_FOLDER, ARTIFACTS_FOLDER, RANK_OF_PATCH_PREDICTION_FOLDER, SIGN_OF_PATCH_PREDICTION_FOLDER
 
 from models.general_pre_training import general_pre_training
 
@@ -62,13 +62,19 @@ if __name__ == '__main__':
         X_mpp = np.load(f'{MASKED_PATCH_PREDICTION_DATA_FOLDER}\\X_{sDatasetName}.npy')    
         Y_mpp = np.load(f'{MASKED_PATCH_PREDICTION_DATA_FOLDER}\\Y_{sDatasetName}.npy')
 
+        X_rpp = np.load(f'{RANK_OF_PATCH_PREDICTION_FOLDER}\\X_{sDatasetName}.npy')    
+        Y_rpp = np.load(f'{RANK_OF_PATCH_PREDICTION_FOLDER}\\Y_{sDatasetName}.npy')
+        
+        X_spp = np.load(f'{SIGN_OF_PATCH_PREDICTION_FOLDER}\\X_{sDatasetName}.npy')    
+        Y_spp = np.load(f'{SIGN_OF_PATCH_PREDICTION_FOLDER}\\Y_{sDatasetName}.npy')
 
+        
+        
+        
+        
+        
         dataset = Dataset.from_tensor_slices((X_npp, Y_npp, X_mpp, Y_mpp))
-        train_dataset, validation_dataset = split_dataset(
-            dataset,
-            right_size = TEST_SIZE,
-            shuffle = False
-        )
+
         train_dataset = train_dataset.batch(len(train_dataset)).get_single_element()
         validation_dataset = validation_dataset.batch(len(validation_dataset)).get_single_element()
         X_npp_train, Y_npp_train, X_mpp_train, Y_mpp_train = train_dataset
