@@ -1,17 +1,20 @@
+SERVER = '/home/yunusemre'
+BIN_FOLDER = f'{SERVER}/TSF-bin'
+
 # folder paths
-RAW_DATA_FOLDER = r'C:\Users\yunus\Desktop\TSF-bin\00 - Raw Data'
-CONVERTED_DATA_FOLDER = r'C:\Users\yunus\Desktop\TSF-bin\01 - Converted Data'
-SCALERS_FOLDER = r'C:\Users\yunus\Desktop\TSF-bin\02 - Scalers'
-SCALED_DATA_FOLDER = r'C:\Users\yunus\Desktop\TSF-bin\02 - Scaled Data'
-CONSOLIDATED_CHANNEL_DATA_FOLDER = r'C:\Users\yunus\Desktop\TSF-bin\03 - Consolidated Channel Data'
-TOKENIZIED_DATA_FOLDER = r'C:\Users\yunus\Desktop\TSF-bin\04 - Tokenized Data'
-NEXT_PATCH_PREDICTION_DATA_FOLDER = r'C:\Users\yunus\Desktop\TSF-bin\05 - Next Patch Prediction Data'
-MASKED_PATCH_PREDICTION_DATA_FOLDER = r'C:\Users\yunus\Desktop\TSF-bin\06 - Masked Patch Prediction Data'
-SIGN_OF_PATCH_PREDICTION_DATA_FOLDER = r'C:\Users\yunus\Desktop\TSF-bin\07 - Sign of Patch Prediction Data'
-RANK_OF_PATCH_PREDICTION_DATA_FOLDER = r'C:\Users\yunus\Desktop\TSF-bin\08 - Rank of Patch Prediction Data'
-QUANTILE_PREDICTION_DATA_FOLDER = r'C:\Users\yunus\Desktop\TSF-bin\09 - Quantile Prediction Data'
-HYPERPARAMETER_TUNING_FOLDER = r'C:\Users\yunus\Desktop\TSF-bin\10 - Hyperparameter Tuning'
-ARTIFACTS_FOLDER = r'C:\Users\yunus\Desktop\TSF-bin\11 - Artifacts'
+RAW_DATA_FOLDER = f'{BIN_FOLDER}/00 - Raw Data'
+CONVERTED_DATA_FOLDER = f'{BIN_FOLDER}/01 - Converted Data'
+SCALERS_FOLDER = f'{BIN_FOLDER}/02 - Scalers'
+SCALED_DATA_FOLDER = f'{BIN_FOLDER}/02 - Scaled Data'
+CONSOLIDATED_CHANNEL_DATA_FOLDER = f'{BIN_FOLDER}/03 - Consolidated Channel Data'
+TOKENIZIED_DATA_FOLDER = f'{BIN_FOLDER}/04 - Tokenized Data'
+NEXT_PATCH_PREDICTION_DATA_FOLDER = f'{BIN_FOLDER}/05 - Next Patch Prediction Data'
+MASKED_PATCH_PREDICTION_DATA_FOLDER = f'{BIN_FOLDER}/06 - Masked Patch Prediction Data'
+SIGN_OF_PATCH_PREDICTION_DATA_FOLDER = f'{BIN_FOLDER}/07 - Sign of Patch Prediction Data'
+RANK_OF_PATCH_PREDICTION_DATA_FOLDER = f'{BIN_FOLDER}/08 - Rank of Patch Prediction Data'
+QUANTILE_PREDICTION_DATA_FOLDER = f'{BIN_FOLDER}/09 - Quantile Prediction Data'
+HYPERPARAMETER_TUNING_FOLDER = f'{BIN_FOLDER}/10 - Hyperparameter Tuning'
+ARTIFACTS_FOLDER = f'{BIN_FOLDER}/11 - Artifacts'
 
 THRESHOLD_STATIC_SENSITIVITY = 0.01
 

@@ -162,7 +162,7 @@ def Train(
                     self.model.stop_training = True
                                     
                 
-    sArtifactsFolder = f'{sArtifactsFolder}\\'
+    sArtifactsFolder = f'{sArtifactsFolder}/'
     os.makedirs(sArtifactsFolder)
 
     oCsvLogger = CSVLogger(f'{sArtifactsFolder}logs.log', separator=";", append=False)
