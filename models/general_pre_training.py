@@ -31,17 +31,9 @@ from tensorflow.keras.metrics import AUC, MeanAbsoluteError
 
 import os
 
-class stopAtThreshold(tf.keras.callbacks.Callback):
-    def on_batch_end(self, batch, logs={}):
-        if self.model.sTaskType == 'NPP':
-            if logs.get('AUC') >= self.model.STOP_METRIC:
-                self.model.stop_training = True
-        elif self.model.sTaskType == 'MPP':
-            if logs.get('MAE') <= self.model.STOP_METRIC:
-                self.model.stop_training = True
-                
 
-class Representation(tf.keras.layers.Layer):
+
+class GPReT(tf.keras.layers.Layer):
     def __init__(self, iNrOfChannels , iNrOfQuantiles,iNrOfLookbackPatches, iNrOfForecastPatches  ,iNrOfEncoderBlocks,iNrOfHeads,fDropoutRate, iEncoderFfnUnits,iEmbeddingDims,  **kwargs):
         super().__init__(**kwargs)
         
@@ -95,120 +87,127 @@ class Representation(tf.keras.layers.Layer):
 
     
 
-class general_pre_training(tf.keras.Model):
-    def __init__(self,iNrOfChannels, iNrOfQuantiles, iNrOfEncoderBlocks,iNrOfHeads, iTokenSize , fDropoutRate, iEncoderFfnUnits,iEmbeddingDims, **kwargs):
+class masked_patch_prediction(tf.keras.Model):
+    def __init__(self,
+                 iNrOfChannels, 
+                 iNrOfQuantiles,
+                 iNrOfLookbackPatches,
+                 iNrOfForecastPatches,  
+                 iNrOfEncoderBlocks,
+                 iNrOfHeads, 
+                 iContextSize , 
+                 fDropoutRate, 
+                 iEncoderFfnUnits,
+                 iEmbeddingDims, 
+                 **kwargs):
         super().__init__(**kwargs)
-        
-        iNrOfChannels = 3
-        iNrOfQuantiles = 3
-        iNrOfLookbackPatches = 16
-        iNrOfForecastPatches = 4
-        
-        self.oRepresentation = Representation(
+                
+        self.oGPreT = GPReT(
             iNrOfChannels , iNrOfQuantiles,iNrOfLookbackPatches, iNrOfForecastPatches  ,
             iNrOfEncoderBlocks,iNrOfHeads,fDropoutRate, iEncoderFfnUnits,iEmbeddingDims
         )
 
-        self.oNppDecoder = Npp_Decoder(
-            iFfnUnits = self.iNrOfChannels # there are binary classes for each channel.
-        )
             
-        self.oMppDecoder = Mpp_Decoder(
-            iFfnUnits = iTokenSize
+        self.oDecoder = Mpp_Decoder(
+            iFfnUnits = iContextSize
         )
-
-        self.oRppDecoder = Rpp_Decoder(
-            iFfnUnits = iNrOfQuantiles * iNrOfChannels
-        )     
-            
-                    
-        self.oSppDecoder = Spp_Decoder(
-            iFfnUnits = iNrOfQuantiles * 3 # due to quantiles. 3 means one-hot categories of signs {positive, negative and zero}
-        )        
-
+        
+        self.oLoss = MeanSquaredError(name = 'mse')
+        self.oMetrics = MeanAbsoluteError(name = 'mae')
+        self.sMode = 'min'
+        self.fThreshold = 0.05
 
 
     def call(self, x):
         
-        x = self.oRepresentation(x)
+        x = self.oGPreT(x)
         
-        y_npp = self.oNppDecoder(x)
+        x = self.oDecoder(x)
         
-        y_mpp = self.oMppDecoder(x)
-        
-        y_rpp = self.oRppDecoder(x)
-        
-        y_spp = self.oSppDecoder(x)
-        
-
-        return [y_npp,  y_mpp, y_rpp, y_spp]
+        return x
     
     
 
+
     
-    def TransferLearningForEncoder(self, oModelFrom):
-        iIndexDecoder = 0
-        for s in oModelFrom.weights: 
-            if ('__decoder' in s.name) or ('general_pre_training_' not in s.name): #every layer until decoder is already common between models.
-                break
-            else:
-                iIndexDecoder = iIndexDecoder + 1
-        
-        
-        aNewWeights = self.get_weights()
-        aNewWeights[:iIndexDecoder] = oModelFrom.get_weights()[:iIndexDecoder]
-        self.set_weights(aNewWeights)
-        
-    
+def Train(
+    oModel, 
+    X_train, 
+    Y_train, 
+    sArtifactsFolder,
+    fLearningRate,
+    fMomentumRate ,
+    iNrOfEpochs, 
+    iMiniBatchSize
+):
 
+    class stopAtThreshold(tf.keras.callbacks.Callback):
+        
+        def __init__(self, sMonitor, fThreshold, sMode):
+            self.sMonitor = sMonitor
+            self.fThreshold = fThreshold
+            self.sMode = sMode
+            
+            
+        
+        def on_batch_end(self, batch, logs={}):
+            
+            print(logs)
+            if self.sMode == 'min':
+                if logs.get(self.sMonitor) <= self.fThreshold:
+                    self.model.stop_training = True
+                            
+            elif self.sMode == 'max':
+                if logs.get(self.sMonitor) >= self.fThreshold:
+                    self.model.stop_training = True
+                                    
+                
+    sArtifactsFolder = f'{sArtifactsFolder}\\'
+    os.makedirs(sArtifactsFolder)
 
-    def Train(self, X_train, Y_train, X_validation, Y_validation ,sArtifactsFolder, fLearningRate, fMomentumRate ,iNrOfEpochs, iMiniBatchSize, iPatience):
-        
-        
-        
-        sModelArtifactPath = f'{sArtifactsFolder}\\{self.sTaskType}\\'
-        os.makedirs(sModelArtifactPath)        
-        
-        oCsvLogger = CSVLogger(f'{sModelArtifactPath}logs.log', separator=";", append=False)
-        oStopAtThreshold = stopAtThreshold()
-        
-        # only used for hard train
-        # in case there is no improvement on loss 3 epochs, try reducing learning rate.
-        # in cas there is no improvmeent on loss for 5 eochs stop training.
-        oReduceLr = ReduceLROnPlateau(
-            monitor='loss', 
-            factor=0.2, 
-            patience= 3, 
-            min_lr=0.0001
-        )
-        
-        oEarlyStopping = EarlyStopping( monitor='loss', patience=5, restore_best_weights=True)
-        
-        self.compile(
-            loss = self.oLoss, 
-            metrics = self.oMetric,
-            optimizer= Adam(
-                learning_rate=ExponentialDecay(
-                    initial_learning_rate=fLearningRate,
-                    decay_steps=100000,
-                    decay_rate=0.96
-                ),
-                beta_1 = fMomentumRate
-            )
-        )
+    oCsvLogger = CSVLogger(f'{sArtifactsFolder}logs.log', separator=";", append=False)
+    oStopAtThreshold = stopAtThreshold(
+        sMonitor = oModel.oMetrics.name, 
+        fThreshold = oModel.fThreshold, 
+        sMode = oModel.sMode
+    )
 
-        self.fit(
-            X_train, 
-            Y_train, 
-            epochs= iNrOfEpochs, 
-            batch_size=iMiniBatchSize, 
-            verbose=1,
-            validation_data = (X_validation, Y_validation),
-            validation_batch_size = iMiniBatchSize,
-            callbacks = [oCsvLogger, oStopAtThreshold, oReduceLr, oEarlyStopping]
-        )
+    oReduceLr = ReduceLROnPlateau(
+        monitor='loss', 
+        factor=0.2, 
+        patience= 3, 
+        min_lr=0.0001
+    )
 
-        self.save_weights(
-            sModelArtifactPath,
-            save_format ='tf'
+    oEarlyStopping = EarlyStopping(
+        monitor='loss', 
+        patience=5, 
+        restore_best_weights=True
+    )
+
+    oModel.compile(
+        loss = oModel.oLoss,
+        metrics = oModel.oMetrics,
+        optimizer= Adam(
+            learning_rate=ExponentialDecay(
+                initial_learning_rate=fLearningRate,
+                decay_steps=100000,
+                decay_rate=0.96
+            ),
+            beta_1 = fMomentumRate
         )
+    )
+
+    oModel.fit(
+        X_train, 
+        Y_train, 
+        epochs= iNrOfEpochs, 
+        batch_size=iMiniBatchSize, 
+        verbose=1,
+        callbacks = [oCsvLogger, oStopAtThreshold, oReduceLr, oEarlyStopping]
+    )
+
+    oModel.save(
+        sArtifactsFolder, 
+        overwrite = True,
+        save_format = 'tf')
