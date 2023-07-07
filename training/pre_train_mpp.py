@@ -54,8 +54,6 @@ if __name__ == '__main__':
     import tensorflow as tf
     print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
     
-    
-
     # delete previously created artifacts
     sArtifactsFolder = f'{ARTIFACTS_FOLDER}/GPreT/{sRepresentationName}'
     if os.path.exists(sArtifactsFolder) == True:

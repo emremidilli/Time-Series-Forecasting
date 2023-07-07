@@ -3,23 +3,10 @@ import tensorflow as tf
 import sys
 sys.path.append( '../')
 
-from layers.general_pre_training.channel_embedding import Channel_Embedding
-
-from layers.general_pre_training.segment_embedding import Segment_Embedding
-
-from layers.general_pre_training.position_embedding import Position_Embedding
-
-from layers.general_pre_training.transformer_encoder import Transformer_Encoder
-
-from layers.general_pre_training.npp_decoder import Npp_Decoder
 
 from layers.general_pre_training.mpp_decoder import Mpp_Decoder
 
-from layers.general_pre_training.rpp_decoder import Rpp_Decoder
-
-from layers.general_pre_training.spp_decoder import Spp_Decoder
-
-
+from layers.general_pre_training.representation import Representation
 
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
@@ -33,61 +20,65 @@ import os
 
 
 
-class GPReT(tf.keras.layers.Layer):
-    def __init__(self, iNrOfChannels , iNrOfQuantiles,iNrOfLookbackPatches, iNrOfForecastPatches  ,iNrOfEncoderBlocks,iNrOfHeads,fDropoutRate, iEncoderFfnUnits,iEmbeddingDims,  **kwargs):
+class Tokenize_Distribution(tf.keras.layers.Layer):
+    
+    
+    def __init__(self, num_bins, fMin, fMax, **kwargs):
         super().__init__(**kwargs)
         
-        self.iNrOfEncoderBlocks = iNrOfEncoderBlocks
-        self.iNrOfHeads = iNrOfHeads
-        self.fDropoutRate = fDropoutRate
-        self.iEncoderFfnUnits = iEncoderFfnUnits
-        self.iEmbeddingDims = iEmbeddingDims
+        self.num_bins = num_bins
+        
+    '''
+        inputs: tuple of 3 elements:
+            1. x - original input (None, nr_of_patches, patch_size)
+            2. fMin - minimum boundary of bins
+            3. fMax - maximum boundary of bins
+        
+        returns: (None, nr_of_patches, num_bins)
+    '''    
+    def call(inputs):
+        
+        x, fMin, fMax = inputs
+        
+        bin_boundaries=tf.linspace(
+            start = fMin, 
+            stop = fMax, 
+            num = self.num_bins
+        )
+        
+        oDiscritizer = tf.keras.layers.Discretization(bin_boundaries = bin_boundaries)
         
         
-        self.iNrOfChannels = iNrOfChannels
-        self.iNrOfQuantiles = iNrOfQuantiles
+        # iNrOfPatches = inputs.shape[1]
+        
+        y = oDiscritizer(x)
+        
+        return y
+            
+            
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
 
-        iNrOfLookbackPatches = iNrOfLookbackPatches
-        iNrOfForecastPatches = iNrOfForecastPatches
-        iNrOfPositions = self.iNrOfChannels * (iNrOfLookbackPatches  + iNrOfForecastPatches)
         
         
-        self.ce = Channel_Embedding(
-            iEmbeddingDims = iEmbeddingDims,
-            iNrOfChannels = self.iNrOfChannels, 
-            iNrOfLookbackPatches = iNrOfLookbackPatches, 
-            iNrOfForecastPatches = iNrOfForecastPatches
-            )
         
-        self.pe = Position_Embedding(iNrOfPositions, iEmbeddingDims)
         
-        self.se = Segment_Embedding(iEmbeddingDims, self.iNrOfChannels, iNrOfLookbackPatches, iNrOfForecastPatches)
         
-        self.aTransformerEncoders = []
-        for i in range(iNrOfEncoderBlocks):
-            oToAdd = Transformer_Encoder(
-                iNrOfPositions = iNrOfPositions, 
-                iKeyDims = iEmbeddingDims, 
-                iNrOfHeads = iNrOfHeads, 
-                fDropoutRate = fDropoutRate, 
-                iFfnUnits = iEncoderFfnUnits
-            )
-            self.aTransformerEncoders.append(oToAdd)    
-                
-    def call(self, x):
-        
-        x = self.ce(x) + self.pe(x) + self.se(x)
 
-        for oEncoder in self.aTransformerEncoders:
-            x = oEncoder(x)
-
-        return x                
-
-    
-
-    
-
-class masked_patch_prediction(tf.keras.Model):
+class MaskedAutoEncoder(tf.keras.Model):
     def __init__(self,
                  iNrOfChannels, 
                  iNrOfQuantiles,
@@ -102,7 +93,7 @@ class masked_patch_prediction(tf.keras.Model):
                  **kwargs):
         super().__init__(**kwargs)
                 
-        self.oGPreT = GPReT(
+        self.oGPreT = Representation(
             iNrOfChannels , iNrOfQuantiles,iNrOfLookbackPatches, iNrOfForecastPatches  ,
             iNrOfEncoderBlocks,iNrOfHeads,fDropoutRate, iEncoderFfnUnits,iEmbeddingDims
         )
@@ -156,10 +147,12 @@ def Train(
             if self.sMode == 'min':
                 if logs.get(self.sMonitor) <= self.fThreshold:
                     self.model.stop_training = True
+                    print('Stopping because threshold is achived succesfully...')
                             
             elif self.sMode == 'max':
                 if logs.get(self.sMonitor) >= self.fThreshold:
                     self.model.stop_training = True
+                    print('Stopping because threshold is achived succesfully...')
                                     
                 
     sArtifactsFolder = f'{sArtifactsFolder}/'
