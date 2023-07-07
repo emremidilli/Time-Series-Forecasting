@@ -22,6 +22,45 @@ class PatchTokenizer(tf.keras.layers.Layer):
         y = tf.reshape(x, (x.shape[0], -1, self.patch_size))
         
         return y
+    
+
+
+class LookbackNormalizer(tf.keras.layers.Layer):
+    '''
+        relaxiation_rate: represents how much the forecast horizon boundaries will exceed the lookback boundaries.
+            by default 0. All the values that fall beyond the minimum and maximum of lookback window, will be set 0 and 1 respectively.
+    '''
+
+    def __init__(self, relaxiation_rate = 0, **kwargs):
+        super().__init__(**kwargs)
+        self.relaxiation_rate = relaxiation_rate
+
+
+    '''
+        inputs: tuple of 2 elements.
+            1. original lookback series (None, nr_of_lookback_time_steps)
+            2. series to normalize (None, nr_of_time_steps)
+
+        outputs: the normalized series (None, nr_of_time_steps)
+    '''
+    def call(self, inputs):
+
+        x_lb, x = inputs
+
+
+        
+
+        
+
+
+
+
+
+
+
+
+
+
         
         
 
