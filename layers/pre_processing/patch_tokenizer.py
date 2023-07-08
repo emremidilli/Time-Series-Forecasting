@@ -6,6 +6,65 @@ from preprocessing.constants import *
 
 
 
+class LookbackNormalizer(tf.keras.layers.Layer):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.trainable = False
+
+    '''
+        inputs: tuple of 2 elements.
+            1. original lookback series (None, nr_of_lookback_time_steps)
+            2. series to normalize (None, nr_of_time_steps)
+
+        outputs: the normalized series (None, nr_of_time_steps)
+    '''
+    def call(self, inputs):
+
+        x_lb, x = inputs
+
+        aMin = tf.math.reduce_min(x_lb, axis =1)
+        aMax = tf.math.reduce_max(x_lb, axis =1)
+        y = tf.subtract(aMax, aMin)
+        z = tf.subtract(x, tf.expand_dims(aMin, axis = 1))
+        r = tf.divide(z, tf.expand_dims(y, axis = 1))
+
+        return r
+    
+class DigitNormalizer(tf.keras.layers.Layer):
+    def __init__(self, iStaticDigits, **kwargs):
+        super().__init__(**kwargs)
+        self.iStaticDigits = iStaticDigits
+        self.trainable = False
+    
+    '''
+        inputs: tuple of 2 elements.
+            1. original lookback series (None, nr_of_lookback_time_steps)
+            2. series to normalize (None, nr_of_time_steps)
+
+        outputs: tuple of 3 elements.
+            1. the normalized series (None, nr_of_time_steps)
+            2. static digits of series (None, 1)
+            3. number of transitions within the series (None, 1)
+    '''
+    def call(self, inputs):
+
+        x_lb, x = inputs
+
+        multiplier = tf.constant(10**self.iStaticDigits, dtype=x.dtype)
+
+        x_static = tf.round(x * multiplier) / multiplier
+
+        x_dynamic = tf.subtract(x, x_static)
+
+        x_nr_of_transitions = tf.subtract(tf.math.reduce_max(x_static, axis = 1) , tf.math.reduce_min(x_static, axis = 1))
+        x_nr_of_transitions = tf.divide( x_nr_of_transitions , tf.constant(10**-self.iStaticDigits, dtype=x.dtype))
+        x_nr_of_transitions = tf.round(x_nr_of_transitions, 0)
+
+        return (x_dynamic, x_static, x_nr_of_transitions)
+
+
+
 class PatchTokenizer(tf.keras.layers.Layer):
     def __init__(self, patch_size, **kwargs):
         super().__init__(**kwargs)
@@ -23,81 +82,53 @@ class PatchTokenizer(tf.keras.layers.Layer):
         
         return y
     
-
-
-class LookbackNormalizer(tf.keras.layers.Layer):
-    '''
-        relaxiation_rate: represents how much the forecast horizon boundaries will exceed the lookback boundaries.
-            by default 0. All the values that fall beyond the minimum and maximum of lookback window, will be set 0 and 1 respectively.
-    '''
-
-    def __init__(self, relaxiation_rate = 0, **kwargs):
-        super().__init__(**kwargs)
-        self.relaxiation_rate = relaxiation_rate
-
-
-    '''
-        inputs: tuple of 2 elements.
-            1. original lookback series (None, nr_of_lookback_time_steps)
-            2. series to normalize (None, nr_of_time_steps)
-
-        outputs: the normalized series (None, nr_of_time_steps)
-    '''
-    def call(self, inputs):
-
-        x_lb, x = inputs
-
-
-        
-
-        
-
-
-
-
-
-
-
-
-
-
-        
-        
-
-
-
 class DistributionTokenizer(tf.keras.layers.Layer):
-    
-    def __init__(self, num_bins, **kwargs):
+    def __init__(self, iNrOfBins, fMin, fMax, **kwargs):
         super().__init__(**kwargs)
         
-        self.num_bins = num_bins
+        self.iNrOfBins = iNrOfBins
+
+
+        self.bin_boundaries = tf.linspace(
+            start = fMin, 
+            stop = fMax, 
+            num = self.iNrOfBins
+        )
+
+        
+        self.oDiscritizer = tf.keras.layers.Discretization(bin_boundaries = self.bin_boundaries)
+
         
     '''
-        inputs: tuple of 3 elements:
-            1. x - original input (None, nr_of_patches, patch_size)
-            2. fMin - minimum boundary of bins
-            3. fMax - maximum boundary of bins
+        inputs: lookback normalized input (None, nr_of_patches, patch_size)
         
         returns: (None, nr_of_patches, num_bins)
     '''    
-    def call(self, inputs):
+    def call(self, x):
         
-        x, fMin, fMax = inputs
+        y = self.oDiscritizer(x)
+
+        output_list = []
+        for i in range(1, self.iNrOfBins+1):
+            output_list.append(tf.math.count_nonzero(y == i, axis = 2) )
+
         
-        bin_boundaries=tf.linspace(
-            start = fMin, 
-            stop = fMax, 
-            num = self.num_bins
-        )
-        
-        oDiscritizer = tf.keras.layers.Discretization(bin_boundaries = bin_boundaries)
-        
-        y = oDiscritizer(x)
-        
-        return y
+        z = tf.stack(output_list, axis = 2)
+        return z
     
-    
+class TickerTokenizer(tf.keras.layers.Layer):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
+
+    '''
+        inputs: lookback normalized input (None, nr_of_patches, patch_size)
+
+        returns: (None, nr_of_patches, num_bins)
+    '''
+    def call(self, x):
+        ...
     
             
             
@@ -109,12 +140,14 @@ if __name__ == '__main__':
     
     import numpy as np
     
+ 
 
     aFileNames = os.listdir(RAW_DATA_FOLDER)
     
     
     aSampleIds = [3500, 6500]
     aLookback = np.zeros((len(aSampleIds),FORECAST_HORIZON * LOOKBACK_COEFFICIENT, len(aFileNames) ))
+    aForecast = np.zeros((len(aSampleIds),FORECAST_HORIZON, len(aFileNames) ))
     
     
     
@@ -141,26 +174,50 @@ if __name__ == '__main__':
         
         
         for j, k in enumerate(aSampleIds):
-            df = dfRaw.iloc[k-(FORECAST_HORIZON * LOOKBACK_COEFFICIENT):k]
-            
-            arr = df.loc[:, 'TICKER'].to_numpy()
-            
 
-            aLookback[j, :, i] = arr
+            aLookback[j, :, i] = dfRaw.iloc[k-(FORECAST_HORIZON * LOOKBACK_COEFFICIENT):k].loc[:, 'TICKER'].to_numpy()
+            aForecast[j, :, i] = dfRaw.iloc[k:k+FORECAST_HORIZON].loc[:, 'TICKER'].to_numpy()
+
+
                         
 
         
+    oDigitNormalizer = DigitNormalizer(2)
+    oLookbackNormalizer = LookbackNormalizer()
+    oPatchTokenizer = PatchTokenizer(PATCH_SIZE)
+    oDistTokenizer = DistributionTokenizer(
+        iNrOfBins=NR_OF_BINS,
+        fMin=0,
+        fMax=1 #relaxation can be applied. (eg. tredinding series)
+        )
     
-    oLookbackTokenizer = PatchTokenizer(PATCH_SIZE)
-    oDistTokenizer = DistributionTokenizer(NR_OF_BINS)
-    
-    x = aLookback[:,:,0].copy()
-    x = oLookbackTokenizer(x)
-    
-    x = oDistTokenizer(x)
     
     
-    print(x.shape)
+    x_lb = aLookback[:,:,0].copy()
+    x_fc = aForecast[:,:,0].copy()
+
+
+    x_lb_dynamic, x_lb_static, x_lb_nr_of_transitions = oDigitNormalizer(x_lb)    
+    
+    """     
+    x_fc = oLookbackNormalizer((x_lb,x_fc))
+    x_lb = oLookbackNormalizer((x_lb,x_lb))
+    
+    x_lb = oPatchTokenizer(x_lb)
+    x_fc = oPatchTokenizer(x_fc)
+
+    x_lb_dist = oDistTokenizer(x_lb)
+    x_fc_dist = oDistTokenizer(x_fc)
+    """
+
+
+
+
+
+
+
+
+    print('successful !')
     
     
     
