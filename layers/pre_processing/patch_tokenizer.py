@@ -31,40 +31,6 @@ class LookbackNormalizer(tf.keras.layers.Layer):
 
         return r
     
-class DigitNormalizer(tf.keras.layers.Layer):
-    def __init__(self, iStaticDigits, **kwargs):
-        super().__init__(**kwargs)
-        self.iStaticDigits = iStaticDigits
-        self.trainable = False
-    
-    '''
-        inputs: tuple of 2 elements.
-            1. original lookback series (None, nr_of_lookback_time_steps)
-            2. series to normalize (None, nr_of_time_steps)
-
-        outputs: tuple of 3 elements.
-            1. the normalized series (None, nr_of_time_steps)
-            2. static digits of series (None, 1)
-            3. number of transitions within the series (None, 1)
-    '''
-    def call(self, inputs):
-
-        x_lb, x = inputs
-
-        multiplier = tf.constant(10**self.iStaticDigits, dtype=x.dtype)
-
-        x_static = tf.round(x * multiplier) / multiplier
-
-        x_dynamic = tf.subtract(x, x_static)
-
-        x_nr_of_transitions = tf.subtract(tf.math.reduce_max(x_static, axis = 1) , tf.math.reduce_min(x_static, axis = 1))
-        x_nr_of_transitions = tf.divide( x_nr_of_transitions , tf.constant(10**-self.iStaticDigits, dtype=x.dtype))
-        x_nr_of_transitions = tf.round(x_nr_of_transitions, 0)
-
-        return (x_dynamic, x_static, x_nr_of_transitions)
-
-
-
 class PatchTokenizer(tf.keras.layers.Layer):
     def __init__(self, patch_size, **kwargs):
         super().__init__(**kwargs)
@@ -114,24 +80,115 @@ class DistributionTokenizer(tf.keras.layers.Layer):
 
         
         z = tf.stack(output_list, axis = 2)
+
+        z = tf.math.divide(z  , tf.expand_dims(tf.reduce_sum(z, axis = 2), 2))
+
         return z
     
-class TickerTokenizer(tf.keras.layers.Layer):
+class TrendSeasonalityTokenizer(tf.keras.layers.Layer):
+    def __init__(self, iPoolSizeSampling, **kwargs):
+        super().__init__(**kwargs)
+        
+
+        self.oAvgPool = tf.keras.layers.AveragePooling1D(pool_size = iPoolSizeSampling, strides=1, padding='same', data_format='channels_first')
+
+
+    '''
+        inputs: lookback normalized series that is patched (None, nr_of_patches, patch_size)
+
+        for each patch
+            calculate the trend component
+            calculate thte seasonality componenet by subtracting the trend componenet from sampled
+            
+
+        returns:  tuple of 2 elements
+            1. trend component - (None, nr_of_patches, patch_size)
+            2. seasonality component - (None, nr_of_patches, patch_size)
+    '''
+    def call(self, x):
+
+        y_trend = self.oAvgPool(x)
+
+        y_seasonality = tf.subtract(y_trend, x)
+
+        return (y_trend, y_seasonality)
+        
+class PatchMasker(tf.keras.layers.Layer):
+
+    def __init__(self, fMaskingRate, fMskScalar, **kwargs):
+        super().__init__(**kwargs)
+
+        self.fMaskingRate = fMaskingRate
+        self.fMskScalar = fMskScalar
+
+
+    '''
+        inputs: single channel tokenized aspect. (None, nr_of_patches, feature_size)
+
+        maskes some patches randomly.
+        
+
+        outputs: masked tokenized aspect. (None, nr_of_patches, feature_size)
+    '''
+    def call(self, x):
+        
+        
+        iNrOfSamples=  x.shape[0]
+        iNrOfPatches = x.shape[1]
+        iNrOfPatchesToMsk = int(self.fMaskingRate * iNrOfPatches)
+
+        aPatchesToMask = tf.random.uniform([iNrOfPatches])
+
+        aPatchesToMask = tf.argsort( aPatchesToMask)[:iNrOfPatchesToMsk]
+        aPatchesToMask = tf.sort(aPatchesToMask, axis= 0)
+
+        
+        y = tf.add(tf.zeros_like(x),  self.fMskScalar) 
+
+        z = []
+        for i in range(iNrOfPatches):
+            
+            r = tf.constant([])
+            if i in aPatchesToMask:
+                r = y[:, i]
+            else:
+                r = x[:, i]
+
+
+            z.append(r)
+                
+
+        z= tf.stack(z, axis =1)
+
+        return z
+
+
+class PatchShifter(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
 
 
     '''
-        inputs: lookback normalized input (None, nr_of_patches, patch_size)
+        inputs: patched input (None, nr_of_patches, feature_size)
 
-        returns: (None, nr_of_patches, num_bins)
+        outputs: randomly shifted version (None, nr_of_patches, feature_size)
     '''
     def call(self, x):
-        ...
-    
-            
-            
+        
+        iNrOfPatches = x.shape[1]
+
+        i = tf.random.uniform(shape=(), minval=1, maxval=iNrOfPatches-1, dtype=tf.int32)
+
+        y = tf.roll(x, shift = i ,axis = 1)
+
+        return y
+
+
+
+
+
+
             
 if __name__ == '__main__':
     
@@ -182,7 +239,7 @@ if __name__ == '__main__':
                         
 
         
-    oDigitNormalizer = DigitNormalizer(2)
+    
     oLookbackNormalizer = LookbackNormalizer()
     oPatchTokenizer = PatchTokenizer(PATCH_SIZE)
     oDistTokenizer = DistributionTokenizer(
@@ -191,26 +248,47 @@ if __name__ == '__main__':
         fMax=1 #relaxation can be applied. (eg. tredinding series)
         )
     
+    oTsTokenizer = TrendSeasonalityTokenizer(int(PATCH_SAMPLE_RATE * PATCH_SIZE))
+
+    oPatchMasker = PatchMasker(fMaskingRate=MASK_RATE, fMskScalar=MSK_SCALAR)
+
+    oPatchShifter = PatchShifter()
+    
     
     
     x_lb = aLookback[:,:,0].copy()
     x_fc = aForecast[:,:,0].copy()
 
-
-    x_lb_dynamic, x_lb_static, x_lb_nr_of_transitions = oDigitNormalizer(x_lb)    
-    
-    """     
+    # normalize
     x_fc = oLookbackNormalizer((x_lb,x_fc))
     x_lb = oLookbackNormalizer((x_lb,x_lb))
     
+    # tokenize
     x_lb = oPatchTokenizer(x_lb)
     x_fc = oPatchTokenizer(x_fc)
 
     x_lb_dist = oDistTokenizer(x_lb)
     x_fc_dist = oDistTokenizer(x_fc)
-    """
+    
+    x_lb_tre,x_lb_sea  = oTsTokenizer(x_lb)
+    x_fc_tre,x_fc_sea  = oTsTokenizer(x_fc)
+    
+
+    # mask
+    x_lb_dist_msk = oPatchMasker(x_lb_dist)
+    x_fc_dist_msk = oPatchMasker(x_fc_dist)
+
+    x_lb_tre_msk = oPatchMasker(x_lb_tre)
+    x_fc_tre_msk = oPatchMasker(x_fc_tre)   
+
+    x_lb_sea_msk = oPatchMasker(x_lb_sea)
+    x_fc_sea_msk = oPatchMasker(x_fc_sea)   
 
 
+    # shift
+    x_fc_dist_sft = oPatchShifter(x_fc_dist)
+    x_fc_tre_sft = oPatchShifter(x_fc_tre)
+    x_fc_sea_sft = oPatchShifter(x_fc_sea)
 
 
 

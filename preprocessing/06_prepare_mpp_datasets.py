@@ -63,7 +63,7 @@ def aGetMspDatasets(aTrueInputs):
     aLookbackPatchesToMask.sort(axis = 1)
     
     
-    aForecastPatchesToMask = np.random.rand(iNrOfSamples, iNrOfForecastPatches )
+    aForecastPatchesToMask = np.random.rand(iNrOfSamples, iNrOfForecastPatches)
     aForecastPatchesToMask = aForecastPatchesToMask.argsort()[:, :int((MASK_RATE) * (iNrOfForecastPatches - 1))] #latest forecast doesn't have delta. 
     aForecastPatchesToMask.sort(axis = 1)
 
