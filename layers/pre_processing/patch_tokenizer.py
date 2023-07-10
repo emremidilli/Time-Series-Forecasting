@@ -162,7 +162,6 @@ class PatchMasker(tf.keras.layers.Layer):
 
         return z
 
-
 class PatchShifter(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -183,9 +182,6 @@ class PatchShifter(tf.keras.layers.Layer):
         y = tf.roll(x, shift = i ,axis = 1)
 
         return y
-
-
-
 
 
 
