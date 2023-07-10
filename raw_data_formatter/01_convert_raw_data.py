@@ -1,12 +1,16 @@
+import sys
+sys.path.append( '/home/yunusemre/Time-Series-Forecasting/')
+from preprocessing.constants import *
+
 import pandas as pd
 
 import numpy as np
 
-from constants import *
-
 import os
 
 import shutil
+
+
 
 '''
     reads the channel files and identifies the common timestamps accross each channel.
@@ -44,8 +48,11 @@ def aGetCommonTimeStampsAccrossChannels():
     returns - converted pandas dataframe.
 '''
 def dfConvertToTimeSeriesDataset(aCommonTimeStamps):
+
+    dfTsDataset  = pd.DataFrame(columns = ['value', 'group_id', 'time_idx'])
+
     aLookbackTimeSteps = list(range(-(LOOKBACK_COEFFICIENT*FORECAST_HORIZON) , 0))
-    aForecastTimeSteps = list(range(1, FORECAST_HORIZON + 1))
+    aForecastTimeSteps = list(range(0, FORECAST_HORIZON))
     aFileNames = os.listdir(RAW_DATA_FOLDER)
     for sFileName in aFileNames:
         
@@ -135,7 +142,7 @@ def dfConvertToTimeSeriesDataset(aCommonTimeStamps):
 
 
 
-        dfTsDataset  = pd.DataFrame(columns = ['value', 'group_id', 'time_idx'])
+        
         aTimeStamps = np.reshape(dfTimeStamps.to_numpy(dtype = np.datetime64), (-1,))
         aTickers = np.reshape(dfTickers.to_numpy(dtype = np.float64), (-1,))
         aObserveds = np.reshape(dfObserveds.to_numpy(dtype = np.float64), (-1,))
@@ -156,13 +163,16 @@ def dfConvertToTimeSeriesDataset(aCommonTimeStamps):
                 'time_idx':aTimeStamps
                 }
             )
+        dfTsDataset = pd.concat([dfTsDataset, df])
 
 
         
         for sDatePart in DATETIME_FEATURES:
-            arr = None
-            exec(f'arr = pd.DatetimeIndex(aTimeStamps).{sDatePart}')
-
+            arr = pd.DatetimeIndex(aTimeStamps)
+            lcls = locals()
+            exec(f'arr = arr.{sDatePart}', globals(),lcls )
+            arr = lcls['arr']
+            
             df = pd.DataFrame(
                 data = {
                     'value': arr, 
@@ -184,6 +194,13 @@ if __name__ == '__main__' :
 
     aCommonTxs = aGetCommonTimeStampsAccrossChannels()
     dfTsDataset = dfConvertToTimeSeriesDataset(aCommonTxs)
+
+    arr = dfTsDataset.loc[:, 'time_idx'].to_numpy(dtype = np.datetime64)
+    arr = arr - arr.min()
+    arr= (arr / np.timedelta64(1, RAW_FREQUENCY_NUMPY)).astype(int)
+    dfTsDataset.loc[:, 'time_idx'] = arr
+
+
     os.makedirs(CONVERTED_DATA_FOLDER)
 
     dfTsDataset.to_csv(f'{CONVERTED_DATA_FOLDER}/TimeSeriesDataset.csv', index= None, sep = ';')
