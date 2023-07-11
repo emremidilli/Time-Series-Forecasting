@@ -204,3 +204,5 @@ if __name__ == '__main__' :
     os.makedirs(CONVERTED_DATA_FOLDER)
 
     dfTsDataset.to_csv(f'{CONVERTED_DATA_FOLDER}/TimeSeriesDataset.csv', index= None, sep = ';')
+
+    

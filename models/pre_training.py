@@ -1,82 +1,23 @@
 import tensorflow as tf
 
 import sys
-sys.path.append( '../')
+sys.path.append( '/home/yunusemre/Time-Series-Forecasting/')
 
-
+from layers.pre_processing.preprocessor import *
 from layers.general_pre_training.mpp_decoder import Mpp_Decoder
 
 from layers.general_pre_training.representation import Representation
 
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.optimizers.schedules import ExponentialDecay
-from tensorflow.keras.callbacks import CSVLogger, EarlyStopping, ReduceLROnPlateau
+from keras.optimizers import Adam
+from keras.optimizers.schedules import ExponentialDecay
+from keras.callbacks import CSVLogger, EarlyStopping, ReduceLROnPlateau
 
 
-from tensorflow.keras.losses import BinaryCrossentropy, MeanSquaredError
-from tensorflow.keras.metrics import AUC, MeanAbsoluteError
+from keras.losses import BinaryCrossentropy, MeanSquaredError
+from keras.metrics import AUC, MeanAbsoluteError
 
 import os
 
-
-
-class Tokenize_Distribution(tf.keras.layers.Layer):
-    
-    
-    def __init__(self, num_bins, fMin, fMax, **kwargs):
-        super().__init__(**kwargs)
-        
-        self.num_bins = num_bins
-        
-    '''
-        inputs: tuple of 3 elements:
-            1. x - original input (None, nr_of_patches, patch_size)
-            2. fMin - minimum boundary of bins
-            3. fMax - maximum boundary of bins
-        
-        returns: (None, nr_of_patches, num_bins)
-    '''    
-    def call(inputs):
-        
-        x, fMin, fMax = inputs
-        
-        bin_boundaries=tf.linspace(
-            start = fMin, 
-            stop = fMax, 
-            num = self.num_bins
-        )
-        
-        oDiscritizer = tf.keras.layers.Discretization(bin_boundaries = bin_boundaries)
-        
-        
-        # iNrOfPatches = inputs.shape[1]
-        
-        y = oDiscritizer(x)
-        
-        return y
-            
-            
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
-        
-        
-        
-        
-        
 
 class MaskedAutoEncoder(tf.keras.Model):
     def __init__(self,
@@ -89,10 +30,30 @@ class MaskedAutoEncoder(tf.keras.Model):
                  iContextSize , 
                  fDropoutRate, 
                  iEncoderFfnUnits,
-                 iEmbeddingDims, 
+                 iEmbeddingDims,
+                 iPatchSize,
+                 fPatchSampleRate,
+                 fMskRate,
+                 fMskScalar,
+                 iNrOfBins,
                  **kwargs):
         super().__init__(**kwargs)
-                
+
+
+        self.oLookbackNormalizer = LookbackNormalizer()
+        self.oPatchTokenizer = PatchTokenizer(iPatchSize)
+        self.oDistTokenizer = DistributionTokenizer(
+            iNrOfBins=iNrOfBins,
+            fMin=0,
+            fMax=1 #relaxation can be applied. (eg. tredinding series)
+            )
+        
+        self.oTsTokenizer = TrendSeasonalityTokenizer(int(fPatchSampleRate * iPatchSize))
+
+        self.oPatchMasker = PatchMasker(fMaskingRate=fMskRate, fMskScalar=fMskScalar)
+
+        self.oPatchShifter = PatchShifter()
+        
         self.oGPreT = Representation(
             iNrOfChannels , iNrOfQuantiles,iNrOfLookbackPatches, iNrOfForecastPatches  ,
             iNrOfEncoderBlocks,iNrOfHeads,fDropoutRate, iEncoderFfnUnits,iEmbeddingDims
@@ -111,6 +72,41 @@ class MaskedAutoEncoder(tf.keras.Model):
 
     def call(self, x):
         
+        x_lb, x_fc = x
+
+        # normalize
+        x_fc = self.oLookbackNormalizer((x_lb,x_fc))
+        x_lb = self.oLookbackNormalizer((x_lb,x_lb))
+        
+        # tokenize
+        x_lb = self.oPatchTokenizer(x_lb)
+        x_fc = self.oPatchTokenizer(x_fc)
+
+        x_lb_dist = self.oDistTokenizer(x_lb)
+        x_fc_dist = self.oDistTokenizer(x_fc)
+        
+        x_lb_tre,x_lb_sea  = self.oTsTokenizer(x_lb)
+        x_fc_tre,x_fc_sea  = self.oTsTokenizer(x_fc)
+        
+
+        # mask
+        x_lb_dist_msk = self.oPatchMasker(x_lb_dist)
+        x_fc_dist_msk = self.oPatchMasker(x_fc_dist)
+
+        x_lb_tre_msk = self.oPatchMasker(x_lb_tre)
+        x_fc_tre_msk = self.oPatchMasker(x_fc_tre)   
+
+        x_lb_sea_msk = self.oPatchMasker(x_lb_sea)
+        x_fc_sea_msk = self.oPatchMasker(x_fc_sea)   
+
+
+        # shift
+        x_fc_dist_sft = self.oPatchShifter(x_fc_dist)
+        x_fc_tre_sft = self.oPatchShifter(x_fc_tre)
+        x_fc_sea_sft = self.oPatchShifter(x_fc_sea)
+
+
+       
         x = self.oGPreT(x)
         
         x = self.oDecoder(x)
@@ -204,3 +200,5 @@ def Train(
         sArtifactsFolder, 
         overwrite = True,
         save_format = 'tf')
+
+

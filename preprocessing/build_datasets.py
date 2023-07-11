@@ -6,33 +6,38 @@ import pandas as pd
 
 import numpy as np
 
+import os
+import shutil
+
 '''
     inputs - expected to have data formatten in a dataframe with the columns of [target], [group_id] and [target_idx]
 
     outputs - 
-        lb_train - (None, nr_of_lb_time_steps, nr_of_channels)
-        fc_train - (None, nr_of_fc_time_steps, nr_of_channels)
-        lb_test - (None, nr_of_lb_time_steps, nr_of_channels)
-        lb_test - (None, nr_of_lb_time_steps, nr_of_channels)
+        lb - (None, nr_of_lb_time_steps, nr_of_channels)
+        fc - (None, nr_of_fc_time_steps, nr_of_channels)
+        known_lb - (None, nr_of_lb_time_steps, nr_of_features ,nr_of_channels)
+        known_lb - (None, nr_of_fc_time_steps, nr_of_features ,nr_of_channels)
+        ix_train - (None)
+        ix_test - (None)
 '''
 if __name__ == '__main__':
-
-
-    dfTsDataset = pd.read_csv(
-        f'{CONVERTED_DATA_FOLDER}/TimeSeriesDataset.csv',
-        delimiter=';'
-    )
-
-
-    iNrOfLookbackSteps = LOOKBACK_COEFFICIENT*FORECAST_HORIZON
-    iNrOfForecastSteps = FORECAST_HORIZON
-
 
     aTickerGroups = ['EURUSD_ticker', 'GBPUSD_ticker', 'USDCAD_ticker']
     aKnownGroups = []
     aObservedGroups = []
 
+    iNrOfLookbackSteps = LOOKBACK_COEFFICIENT*FORECAST_HORIZON
+    iNrOfForecastSteps = FORECAST_HORIZON
 
+
+
+    if os.path.exists(CONSOLIDATED_CHANNEL_DATA_FOLDER) == True:
+        shutil.rmtree(CONSOLIDATED_CHANNEL_DATA_FOLDER)
+
+    dfTsDataset = pd.read_csv(
+        f'{CONVERTED_DATA_FOLDER}/TimeSeriesDataset.csv',
+        delimiter=';'
+    )
 
     aTimeIxs = np.arange(
         start= dfTsDataset.loc[:, 'time_idx'].to_numpy(int).min() + iNrOfLookbackSteps , 
@@ -75,12 +80,6 @@ if __name__ == '__main__':
     arr = np.stack(arr )
     fc = np.transpose(arr , (2,1,0))
 
-    
-
-
-
-    print('done !')
-
-
-
-
+    os.makedirs(CONSOLIDATED_CHANNEL_DATA_FOLDER)
+    np.save(f'{CONSOLIDATED_CHANNEL_DATA_FOLDER}/lookback.npy', lb)
+    np.save(f'{CONSOLIDATED_CHANNEL_DATA_FOLDER}/forecast.npy', fc)

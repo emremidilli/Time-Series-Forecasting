@@ -183,9 +183,7 @@ class PatchShifter(tf.keras.layers.Layer):
 
         return y
 
-
-
-            
+      
 if __name__ == '__main__':
     
     import os
@@ -235,59 +233,7 @@ if __name__ == '__main__':
                         
 
         
-    
-    oLookbackNormalizer = LookbackNormalizer()
-    oPatchTokenizer = PatchTokenizer(PATCH_SIZE)
-    oDistTokenizer = DistributionTokenizer(
-        iNrOfBins=NR_OF_BINS,
-        fMin=0,
-        fMax=1 #relaxation can be applied. (eg. tredinding series)
-        )
-    
-    oTsTokenizer = TrendSeasonalityTokenizer(int(PATCH_SAMPLE_RATE * PATCH_SIZE))
-
-    oPatchMasker = PatchMasker(fMaskingRate=MASK_RATE, fMskScalar=MSK_SCALAR)
-
-    oPatchShifter = PatchShifter()
-    
-    
-    
-    x_lb = aLookback[:,:,0].copy()
-    x_fc = aForecast[:,:,0].copy()
-
-    # normalize
-    x_fc = oLookbackNormalizer((x_lb,x_fc))
-    x_lb = oLookbackNormalizer((x_lb,x_lb))
-    
-    # tokenize
-    x_lb = oPatchTokenizer(x_lb)
-    x_fc = oPatchTokenizer(x_fc)
-
-    x_lb_dist = oDistTokenizer(x_lb)
-    x_fc_dist = oDistTokenizer(x_fc)
-    
-    x_lb_tre,x_lb_sea  = oTsTokenizer(x_lb)
-    x_fc_tre,x_fc_sea  = oTsTokenizer(x_fc)
-    
-
-    # mask
-    x_lb_dist_msk = oPatchMasker(x_lb_dist)
-    x_fc_dist_msk = oPatchMasker(x_fc_dist)
-
-    x_lb_tre_msk = oPatchMasker(x_lb_tre)
-    x_fc_tre_msk = oPatchMasker(x_fc_tre)   
-
-    x_lb_sea_msk = oPatchMasker(x_lb_sea)
-    x_fc_sea_msk = oPatchMasker(x_fc_sea)   
-
-
-    # shift
-    x_fc_dist_sft = oPatchShifter(x_fc_dist)
-    x_fc_tre_sft = oPatchShifter(x_fc_tre)
-    x_fc_sea_sft = oPatchShifter(x_fc_sea)
-
-
-
+  
 
 
 
