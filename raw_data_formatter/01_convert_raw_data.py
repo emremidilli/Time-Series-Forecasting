@@ -12,14 +12,14 @@ import shutil
 
 
 
-'''
-    reads the channel files and identifies the common timestamps accross each channel.
 
-    inputs - raw data in channel files.
-    returns - common time stamps in format of numpy array.
-'''
 def aGetCommonTimeStampsAccrossChannels():
+    '''
+        reads the channel files and identifies the common timestamps accross each channel.
 
+        inputs - raw data in channel files.
+        returns - common time stamps in format of numpy array.
+    '''
     arr = None
     aFileNames = os.listdir(RAW_DATA_FOLDER)
     for sFileName in aFileNames:
@@ -40,15 +40,15 @@ def aGetCommonTimeStampsAccrossChannels():
 
     return arr
 
-'''
-    identifies time stamps in way that they don't contain any gap within lookback and forecast horizons.
-    in case a gap exists, that horizon is dropped.
-    converts the dataset into a dataframe with the columns of [value], [group_id] and [time_idx]
 
-    returns - converted pandas dataframe.
-'''
 def dfConvertToTimeSeriesDataset(aCommonTimeStamps):
+    '''
+        identifies time stamps in way that they don't contain any gap within lookback and forecast horizons.
+        in case a gap exists, that horizon is dropped.
+        converts the dataset into a dataframe with the columns of [value], [group_id] and [time_idx]
 
+        returns - converted pandas dataframe.
+    '''
     dfTsDataset  = pd.DataFrame(columns = ['value', 'group_id', 'time_idx'])
 
     aLookbackTimeSteps = list(range(-(LOOKBACK_COEFFICIENT*FORECAST_HORIZON) , 0))
@@ -82,12 +82,10 @@ def dfConvertToTimeSeriesDataset(aCommonTimeStamps):
         dfRaw.query('TIME_STAMP in @aCommonTimeStamps', inplace = True)
 
 
-        
-
         ix = pd.date_range(
             start = dfRaw.loc[:, 'TIME_STAMP'].min()+ pd.Timedelta(f'{-1}{RAW_FREQUENCY}'),
             end = dfRaw.loc[:, 'TIME_STAMP'].max()+ pd.Timedelta(f'{-1}{RAW_FREQUENCY}'),
-            freq=f'{FORECAST_HORIZON * (LOOKBACK_COEFFICIENT + 1)}{RAW_FREQUENCY}'
+            freq=f'{PATCH_SIZE}{RAW_FREQUENCY}'
         )
 
         dfObserveds = pd.DataFrame(index = ix, columns  = (aLookbackTimeSteps + aForecastTimeSteps), dtype = 'float64')
@@ -141,12 +139,11 @@ def dfConvertToTimeSeriesDataset(aCommonTimeStamps):
         dfTickers = dfLookbackTickers.merge(right= dfForecastTickers, left_index = True, right_index = True, how=  'inner')
 
 
-
-        
         aTimeStamps = np.reshape(dfTimeStamps.to_numpy(dtype = np.datetime64), (-1,))
         aTickers = np.reshape(dfTickers.to_numpy(dtype = np.float64), (-1,))
         aObserveds = np.reshape(dfObserveds.to_numpy(dtype = np.float64), (-1,))
         
+        # tickers
         df = pd.DataFrame(
             data = {
                 'value': aTickers, 
@@ -156,6 +153,8 @@ def dfConvertToTimeSeriesDataset(aCommonTimeStamps):
             )
         dfTsDataset = pd.concat([dfTsDataset, df])
 
+
+        # observeds
         df = pd.DataFrame(
             data = {
                 'value': aObserveds, 
@@ -166,7 +165,7 @@ def dfConvertToTimeSeriesDataset(aCommonTimeStamps):
         dfTsDataset = pd.concat([dfTsDataset, df])
 
 
-        
+        # datetime features
         for sDatePart in DATETIME_FEATURES:
             arr = pd.DatetimeIndex(aTimeStamps)
             lcls = locals()

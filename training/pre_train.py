@@ -3,7 +3,7 @@ sys.path.append( '../')
 
 from preprocessing.constants import *
 
-from models.general_pre_training import masked_patch_prediction,Train
+from models.pre_training import *
 
 from training.constants import *
 import numpy as np
@@ -41,21 +41,17 @@ import shutil
 
 
 if __name__ == '__main__':
-    
-    sDatasetName = sys.argv[1] # ['dist', 'tic', 'tre', 'sea', 'known', 'observed']
-    iNrOfEpochs = int(sys.argv[2])
 
-    sRepresentationName = f'{sDatasetName.title()[:3]}ERT'
-    
+
     # load datasets
-    X_mpp = np.load(f'{MASKED_PATCH_PREDICTION_DATA_FOLDER}/X_{sDatasetName}.npy')    
-    Y_mpp = np.load(f'{MASKED_PATCH_PREDICTION_DATA_FOLDER}/Y_{sDatasetName}.npy')
+    X_lb = np.load(f'{CONSOLIDATED_CHANNEL_DATA_FOLDER}/lb.npy')    
+    X_fc = np.load(f'{CONSOLIDATED_CHANNEL_DATA_FOLDER}/fc.npy')
     
     import tensorflow as tf
     print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
     
     # delete previously created artifacts
-    sArtifactsFolder = f'{ARTIFACTS_FOLDER}/GPreT/{sRepresentationName}'
+    sArtifactsFolder = f'{ARTIFACTS_FOLDER}/pre-train/{sRepresentationName}'
     if os.path.exists(sArtifactsFolder) == True:
         shutil.rmtree(sArtifactsFolder)
 
@@ -71,7 +67,7 @@ if __name__ == '__main__':
     fMomentumRate = 0.85
     
     # build model
-    oModelMpp = masked_patch_prediction(
+    oModel = MaskedAutoEncoder(
         iNrOfChannels = 3,
         iNrOfQuantiles = 3,
         iNrOfLookbackPatches = 16,
