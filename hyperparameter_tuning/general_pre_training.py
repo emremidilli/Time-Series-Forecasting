@@ -3,9 +3,9 @@ sys.path.append( '../')
 
 import keras_tuner
 from hyperparameter_tuning.constants import PRE_TRAINING_CONFIG, NR_OF_EPOCHS, PATIENCE, FACTOR, SAMPLE_SIZE
-from preprocessing.constants import HYPERPARAMETER_TUNING_FOLDER, NEXT_PATCH_PREDICTION_DATA_FOLDER, MASKED_PATCH_PREDICTION_DATA_FOLDER, SIGN_OF_PATCH_PREDICTION_DATA_FOLDER, RANK_OF_PATCH_PREDICTION_DATA_FOLDER
+from settings import HYPERPARAMETER_TUNING_FOLDER, NEXT_PATCH_PREDICTION_DATA_FOLDER, MASKED_PATCH_PREDICTION_DATA_FOLDER, SIGN_OF_PATCH_PREDICTION_DATA_FOLDER, RANK_OF_PATCH_PREDICTION_DATA_FOLDER
 
-from training.constants import TEST_SIZE, MINI_BATCH_SIZE
+from settings import TEST_SIZE, MINI_BATCH_SIZE
 from models.general_pre_training import general_pre_training
 
 from tensorflow.data import Dataset

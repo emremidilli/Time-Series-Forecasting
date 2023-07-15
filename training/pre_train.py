@@ -1,95 +1,53 @@
-import sys
-sys.path.append( '../')
+'''
+    Trains a pre-training model for a single channel.
 
-from preprocessing.constants import *
+    Inputs:
+        lb_train, fc_train datasets.
+'''
+
+
+import sys
+sys.path.append( './')
+
+from settings import *
 
 from models.pre_training import *
 
-from training.constants import *
 import numpy as np
-import os
-import shutil
-
-# # from hyperparameter_tuning.general_pre_training import oGetArchitectureTuner, oGetOptimizerTuners
-
-#     sOptimumHyperparametersFolder = f'{HYPERPARAMETER_TUNING_FOLDER}\\{sRepresentationName}'
-
-#     oTunerArchitecture = oGetArchitectureTuner(
-#         sLogsFolder = sOptimumHyperparametersFolder
-#     )
-
-    
-#     oBestArchitecture = oTunerArchitecture.get_best_hyperparameters(1)[0]
-
-#     nr_of_encoder_blocks = oBestArchitecture.get('nr_of_encoder_blocks')
-#     nr_of_heads = oBestArchitecture.get('nr_of_heads')
-#     dropout_rate = oBestArchitecture.get('dropout_rate')
-#     nr_of_ffn_units_of_encoder = oBestArchitecture.get('nr_of_ffn_units_of_encoder')
-#     embedding_dims = oBestArchitecture.get('embedding_dims')
-    
-#     _ , oTunerMpp = oGetOptimizerTuners(
-#                 sLogsFolder  = sOptimumHyperparametersFolder,
-#                 nr_of_encoder_blocks = nr_of_encoder_blocks, 
-#                 nr_of_heads = nr_of_heads, 
-#                 dropout_rate = dropout_rate, 
-#                 nr_of_ffn_units_of_encoder = nr_of_ffn_units_of_encoder, 
-#                 embedding_dims = embedding_dims
-#             )
-
-#     oBestNpp = oTunerNpp.get_best_hyperparameters(1)[0]
-#     oBestMpp = oTunerMpp.get_best_hyperparameters(1)[0]
 
 
 if __name__ == '__main__':
+    '''
+        loads training datasets
+        builds a pre-training model
+        trains and saves pre-training logs
+    '''
 
 
-    # load datasets
-    X_lb = np.load(f'{CONSOLIDATED_CHANNEL_DATA_FOLDER}/lb.npy')    
-    X_fc = np.load(f'{CONSOLIDATED_CHANNEL_DATA_FOLDER}/fc.npy')
-    
-    import tensorflow as tf
-    print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
-    
-    # delete previously created artifacts
-    sArtifactsFolder = f'{ARTIFACTS_FOLDER}/pre-train/{sRepresentationName}'
-    if os.path.exists(sArtifactsFolder) == True:
-        shutil.rmtree(sArtifactsFolder)
+    sChannel = 'EURUSD'
+
+    lb_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/lb_train.npy')[: 256]
+    fc_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/fc_train.npy')[: 256]
 
     
-    # get hyperparameters
-    nr_of_encoder_blocks = 4
-    nr_of_heads = 6
-    dropout_rate = 0.01
-    nr_of_ffn_units_of_encoder = 128
-    embedding_dims = 64
     
-    fLearningRate = 1e-4
-    fMomentumRate = 0.85
-    
-    # build model
-    oModel = MaskedAutoEncoder(
-        iNrOfChannels = 3,
-        iNrOfQuantiles = 3,
-        iNrOfLookbackPatches = 16,
-        iNrOfForecastPatches = 4,
-        iNrOfEncoderBlocks = nr_of_encoder_blocks,
-        iNrOfHeads = nr_of_heads,
-        iContextSize = X_mpp.shape[-1],
-        fDropoutRate = dropout_rate, 
-        iEncoderFfnUnits = nr_of_ffn_units_of_encoder,
-        iEmbeddingDims = embedding_dims
+    oModel = PreTraining(
+                 iNrOfEncoderBlocks = 3,
+                 iNrOfHeads = 5, 
+                 fDropoutRate = 0.10, 
+                 iEncoderFfnUnits = 64,
+                 iEmbeddingDims = 64,
+                 iPatchSize = PATCH_SIZE,
+                 fPatchSampleRate = PATCH_SAMPLE_RATE,
+                 fMskRate = MASK_RATE,
+                 fMskScalar = MSK_SCALAR,
+                 iNrOfBins = NR_OF_BINS
     )
-    
-    # train & save the model
-    Train(
-        oModelMpp, 
-        X_mpp, 
-        Y_mpp, 
-        f'{sArtifactsFolder}/mpp',
-        fLearningRate,
-        fMomentumRate ,
-        iNrOfEpochs, 
-        MINI_BATCH_SIZE
-    )
-    
 
+
+    y = oModel((lb_train,fc_train ))
+
+
+
+    ...
+    

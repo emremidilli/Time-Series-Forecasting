@@ -12,7 +12,7 @@ import numpy as np
 
 import os
 
-from preprocessing.constants import SIGN_OF_PATCH_PREDICTION_DATA_FOLDER, RANK_OF_PATCH_PREDICTION_DATA_FOLDER, HYPERPARAMETER_TUNING_FOLDER, ARTIFACTS_FOLDER
+from settings import SIGN_OF_PATCH_PREDICTION_DATA_FOLDER, RANK_OF_PATCH_PREDICTION_DATA_FOLDER, HYPERPARAMETER_TUNING_FOLDER, ARTIFACTS_FOLDER
 
 from tensorflow.data import Dataset
 from tensorflow.keras.models import load_model

@@ -4,8 +4,8 @@ from models.temporal_fusion_transformer import temporal_fusion_transformer
 
 from models.general_pre_training import general_pre_training
 
-from preprocessing.constants import QUANTILE_PREDICTION_DATA_FOLDER
-from preprocessing.constants import TARGET_QUANTILES
+from settings import QUANTILE_PREDICTION_DATA_FOLDER
+from settings import TARGET_QUANTILES
 
 import numpy as np
 
@@ -14,7 +14,7 @@ from tensorflow.data import Dataset
 from tensorflow.keras.utils import split_dataset
 
 
-import constants as train_c
+from settings import *
 
 from tensorflow.keras.metrics import MeanAbsoluteError
 
@@ -53,10 +53,10 @@ if __name__ == '__main__':
     dataset = Dataset.from_tensor_slices((X_dist, X_tre, X_sea, X_tic, X_known, X_observed, X_static, Y))
     train_dataset, _ = split_dataset(
         dataset,
-        right_size = train_c.TEST_SIZE,
+        right_size = TEST_SIZE,
         shuffle = False
     )
-    train_dataset = train_dataset.batch(train_c.BATCH_SIZE)
+    train_dataset = train_dataset.batch(BATCH_SIZE)
     
     # process with pre-trained models
     oDisERT = general_pre_training()
@@ -92,7 +92,7 @@ if __name__ == '__main__':
         x_f = tf.transpose(x_f, (0,1, 3,2))
         
 
-        sArtifactsFolder = f'{train_c.ARTIFACTS_FOLDER}\\Batch_{iBatchNr}\\TFT'
+        sArtifactsFolder = f'{ARTIFACTS_FOLDER}\\Batch_{iBatchNr}\\TFT'
         if os.path.exists(sArtifactsFolder) == True:
             shutil.rmtree(sArtifactsFolder)
 
@@ -109,8 +109,8 @@ if __name__ == '__main__':
             Y_train = Y,
             sArtifactsFolder = sArtifactsFolder,
             fLearningRate = 0.01,
-            iNrOfEpochs =  train_c.NR_OF_EPOCHS, 
-            iBatchSize = train_c.MINI_BATCH_SIZE,
+            iNrOfEpochs =  NR_OF_EPOCHS, 
+            iBatchSize = MINI_BATCH_SIZE,
             oLoss = oTft.quantile_loss,
             oMetrics = MeanAbsoluteError()
         )

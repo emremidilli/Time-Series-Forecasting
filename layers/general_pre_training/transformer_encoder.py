@@ -3,7 +3,7 @@ import tensorflow as tf
 
 class Transformer_Encoder(tf.keras.layers.Layer):
     
-    def __init__(self,iNrOfPositions, iKeyDims, iNrOfHeads, fDropoutRate, iFfnUnits , **kwargs):
+    def __init__(self, iKeyDims, iNrOfHeads, fDropoutRate, iFfnUnits, iFeatureSize , **kwargs):
         super().__init__(**kwargs)
         
         
@@ -18,7 +18,7 @@ class Transformer_Encoder(tf.keras.layers.Layer):
         self.oDropOut_2 = tf.keras.layers.Dropout(fDropoutRate)
         
         # 3rd oart of the encoder is to connect an encoder block to the next one.
-        self.oDense_3 = tf.keras.layers.Dense(units=iKeyDims) 
+        self.oDense_3 = tf.keras.layers.Dense(units=iFeatureSize)
     
 
 

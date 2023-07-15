@@ -1,6 +1,6 @@
 import sys
 sys.path.append( '/home/yunusemre/Time-Series-Forecasting/')
-from preprocessing.constants import *
+from settings import *
 
 import pandas as pd
 
@@ -33,7 +33,7 @@ if __name__ == '__main__':
     if os.path.exists(TRAINING_DATA_FOLDER) == True:
         shutil.rmtree(TRAINING_DATA_FOLDER)
 
-    os.makedirs(TRAINING_DATA_FOLDER)
+    
 
     for sFileName in os.listdir(CONVERTED_DATA_FOLDER):
 
@@ -80,11 +80,12 @@ if __name__ == '__main__':
         fc = dfFc.to_numpy()
         ix = dfLb.index.to_numpy()
 
-        
-        np.save(f'{TRAINING_DATA_FOLDER}/lb_train.npy', lb[:-TEST_SIZE])
-        np.save(f'{TRAINING_DATA_FOLDER}/fc_train.npy', fc[:-TEST_SIZE])
-        np.save(f'{TRAINING_DATA_FOLDER}/ix_train.npy', ix[:-TEST_SIZE])
+        sSubDirectory = f'{TRAINING_DATA_FOLDER}/{sFileName[:-4]}'
+        os.makedirs(sSubDirectory)
+        np.save(f'{sSubDirectory}/lb_train.npy', lb[:-TEST_SIZE])
+        np.save(f'{sSubDirectory}/fc_train.npy', fc[:-TEST_SIZE])
+        np.save(f'{sSubDirectory}/ix_train.npy', ix[:-TEST_SIZE])
 
-        np.save(f'{TRAINING_DATA_FOLDER}/lb_test.npy', lb[-TEST_SIZE:])
-        np.save(f'{TRAINING_DATA_FOLDER}/fc_test.npy', fc[-TEST_SIZE:])
-        np.save(f'{TRAINING_DATA_FOLDER}/ix_test.npy', ix[-TEST_SIZE:])
+        np.save(f'{sSubDirectory}/lb_test.npy', lb[-TEST_SIZE:])
+        np.save(f'{sSubDirectory}/fc_test.npy', fc[-TEST_SIZE:])
+        np.save(f'{sSubDirectory}/ix_test.npy', ix[-TEST_SIZE:])

@@ -1,6 +1,6 @@
 import sys
 sys.path.append( '/home/yunusemre/Time-Series-Forecasting/')
-from preprocessing.constants import *
+from settings import *
 
 import pandas as pd
 
