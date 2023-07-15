@@ -4,7 +4,7 @@
 import tensorflow as tf
 
 
-class Position_Embedding(tf.keras.layers.Layer):
+class PositionEmbedding(tf.keras.layers.Layer):
     
     def __init__(self, iUnits,**kwargs):
         

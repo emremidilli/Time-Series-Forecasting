@@ -3,10 +3,7 @@ import tensorflow as tf
 import sys
 sys.path.append( '../')
 
-from layers.general_pre_training.embedding import Position_Embedding
-
-from layers.general_pre_training.transformer_encoder import Transformer_Encoder
-
+from layers.general_pre_training import *
 
 class Representation(tf.keras.layers.Layer):
     def __init__(
@@ -20,15 +17,15 @@ class Representation(tf.keras.layers.Layer):
               ):
         super().__init__(**kwargs)
         
-        self.pe_dist_temporal = Position_Embedding(iUnits=iEmbeddingDims)
-        self.pe_tre_temporal = Position_Embedding(iUnits=iEmbeddingDims)
-        self.pe_sea_temporal = Position_Embedding(iUnits=iEmbeddingDims)
+        self.pe_dist_temporal = PositionEmbedding(iUnits=iEmbeddingDims)
+        self.pe_tre_temporal = PositionEmbedding(iUnits=iEmbeddingDims)
+        self.pe_sea_temporal = PositionEmbedding(iUnits=iEmbeddingDims)
 
         self.temporal_to_contextual = tf.keras.layers.Permute((2, 1))
 
-        self.pe_dist_contextual = Position_Embedding(iUnits=iEmbeddingDims)
-        self.pe_tre_contextual = Position_Embedding(iUnits=iEmbeddingDims)
-        self.pe_sea_contextual = Position_Embedding(iUnits=iEmbeddingDims)
+        self.pe_dist_contextual = PositionEmbedding(iUnits=iEmbeddingDims)
+        self.pe_tre_contextual = PositionEmbedding(iUnits=iEmbeddingDims)
+        self.pe_sea_contextual = PositionEmbedding(iUnits=iEmbeddingDims)
         
 
         self.concat_temporals = tf.keras.layers.Concatenate(axis = 2)
@@ -38,7 +35,7 @@ class Representation(tf.keras.layers.Layer):
         self.encoders_temporal = []
         for i in range(iNrOfEncoderBlocks):
             self.encoders_temporal.append(
-                Transformer_Encoder(
+                TransformerEncoder(
                 iKeyDims =iEmbeddingDims , 
                 iNrOfHeads =iNrOfHeads , 
                 fDropoutRate = fDropoutRate, 
@@ -50,7 +47,7 @@ class Representation(tf.keras.layers.Layer):
         self.encoders_contextual = []
         for i in range(iNrOfEncoderBlocks):
             self.encoders_contextual.append(
-                Transformer_Encoder(
+                TransformerEncoder(
                 iKeyDims =iEmbeddingDims , 
                 iNrOfHeads =iNrOfHeads , 
                 fDropoutRate = fDropoutRate, 
@@ -70,7 +67,7 @@ class Representation(tf.keras.layers.Layer):
         self.encoders_cont_temp = []
         for i in range(iNrOfEncoderBlocks):
             self.encoders_cont_temp.append(
-                Transformer_Encoder(
+                TransformerEncoder(
                 iKeyDims =iEmbeddingDims , 
                 iNrOfHeads =iNrOfHeads , 
                 fDropoutRate = fDropoutRate, 

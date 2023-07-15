@@ -19,23 +19,12 @@ class PreTraining(tf.keras.Model):
                  iEncoderFfnUnits,
                  iEmbeddingDims,
                  iPatchSize,
-                 fPatchSampleRate,
                  fMskRate,
                  fMskScalar,
                  iNrOfBins,
+                 iNrOfPatches,
                  **kwargs):
         super().__init__(**kwargs)
-
-
-        self.lookback_normalizer = LookbackNormalizer()
-        self.patch_tokenizer = PatchTokenizer(iPatchSize)
-        self.distribution_tokenizer = DistributionTokenizer(
-            iNrOfBins=iNrOfBins,
-            fMin=0,
-            fMax=1
-            )
-        
-        self.trend_seasonality_tokenizer = TrendSeasonalityTokenizer(int(fPatchSampleRate * iPatchSize))
 
         self.patch_masker = PatchMasker(fMaskingRate=fMskRate, fMskScalar=fMskScalar)
 
@@ -52,45 +41,30 @@ class PreTraining(tf.keras.Model):
 
         self.lookback_forecast_concatter = tf.keras.layers.Concatenate(axis = 1)
 
-        
 
-    def call(self, x):
+        self.decoder_dist = MppDecoder(iNrOfBins, iNrOfPatches)
+        self.decoder_tre = MppDecoder(iPatchSize, iNrOfPatches)
+        self.decoder_sea = MppDecoder(iPatchSize, iNrOfPatches)
+ 
+
+    def call(self, inputs):
         '''
-        input: tuple of 2 elements
-            x_lb: (None, timesteps)
-            x_fc: (None, timesteps)
+        input: tuple of 6 elements
+            x_lb_dist: (None, timesteps, feature)
+            x_lb_tre: (None, timesteps, feature)
+            x_lb_sea: (None, timesteps, feature)
+            x_fc_dist: (None, timesteps, feature)
+            x_fc_tre: (None, timesteps, feature)
+            x_fc_sea: (None, timesteps, feature)
         '''
         
-        x_lb, x_fc = x
+        x_lb_dist,x_lb_tre, x_lb_sea,x_fc_dist, x_fc_tre , x_fc_sea = inputs
 
-        # normalize
-        x_fc = self.lookback_normalizer((x_lb,x_fc))
-        x_lb = self.lookback_normalizer((x_lb,x_lb))
         
-        # tokenize
-        x_lb = self.patch_tokenizer(x_lb)
-        x_fc = self.patch_tokenizer(x_fc)
-
-        x_lb_dist = self.distribution_tokenizer(x_lb)
-        x_fc_dist = self.distribution_tokenizer(x_fc)
-        
-        x_lb_tre,x_lb_sea  = self.trend_seasonality_tokenizer(x_lb)
-        x_fc_tre,x_fc_sea  = self.trend_seasonality_tokenizer(x_fc)
-        
-        # normalize saesonality
-        x_lb_sea = self.lookback_normalizer((x_lb_sea,x_lb_sea))
-        x_fc_sea = self.lookback_normalizer((x_fc_sea,x_fc_sea))
-
         
         # mask
-        x_lb_dist_msk = self.patch_masker(x_lb_dist)
-        x_fc_dist_msk = self.patch_masker(x_fc_dist)
-
-        x_lb_tre_msk = self.patch_masker(x_lb_tre)
-        x_fc_tre_msk = self.patch_masker(x_fc_tre)   
-
-        x_lb_sea_msk = self.patch_masker(x_lb_sea)
-        x_fc_sea_msk = self.patch_masker(x_fc_sea)
+        x_lb_dist_msk, x_lb_tre_msk, x_lb_sea_msk = self.patch_masker((x_lb_dist, x_lb_tre, x_lb_sea))
+        x_fc_dist_msk, x_fc_tre_msk, x_fc_sea_msk = self.patch_masker((x_fc_dist,x_fc_tre , x_fc_sea))
 
 
         x_dist_msk = self.lookback_forecast_concatter([x_lb_dist_msk, x_fc_dist_msk])
@@ -106,9 +80,10 @@ class PreTraining(tf.keras.Model):
         x_cont_temp = self.encoder_representation((x_dist_msk, x_tre_msk, x_sea_msk))
 
 
+        y_dist = self.decoder_dist(x_cont_temp)
+        y_tre = self.decoder_tre(x_cont_temp)
+        y_sea = self.decoder_sea(x_cont_temp)
+
+
         
-
-
-
-        
-        return x_lb
+        return (y_dist, y_tre, y_sea)

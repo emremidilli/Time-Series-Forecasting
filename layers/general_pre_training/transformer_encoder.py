@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-class Transformer_Encoder(tf.keras.layers.Layer):
+class TransformerEncoder(tf.keras.layers.Layer):
     
     def __init__(self, iKeyDims, iNrOfHeads, fDropoutRate, iFfnUnits, iFeatureSize , **kwargs):
         super().__init__(**kwargs)
