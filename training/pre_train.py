@@ -30,8 +30,8 @@ from keras.metrics import  MeanAbsoluteError
 if __name__ == '__main__':
     sChannel = 'EURUSD'
 
-    lb_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/lb_train.npy')[: 256]
-    fc_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/fc_train.npy')[: 256]
+    lb_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/lb_train.npy')[: 1500]
+    fc_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/fc_train.npy')[: 1500]
     
     oPreProcessor = PreProcessor(
         iPatchSize = PATCH_SIZE,
@@ -44,13 +44,15 @@ if __name__ == '__main__':
     tre = oPreProcessor.concat_lb_fc((lb_tre, fc_tre))
     sea = oPreProcessor.concat_lb_fc((lb_sea, fc_sea))
 
+
     
     oModel = PreTraining(
-                 iNrOfEncoderBlocks = 3,
-                 iNrOfHeads = 5, 
+                 iNrOfEncoderBlocks = 2,
+                 iNrOfHeads = 2, 
                  fDropoutRate = 0.10, 
-                 iEncoderFfnUnits = 64,
-                 iEmbeddingDims = 64,
+                 iEncoderFfnUnits = 32,
+                 iEmbeddingDims = 32,
+                 iProjectionHeadUnits = 32,
                  iPatchSize = PATCH_SIZE,
                  fMskRate = MASK_RATE,
                  fMskScalar = MSK_SCALAR,
@@ -60,15 +62,22 @@ if __name__ == '__main__':
 
 
     oModel.compile(
-        loss = MeanSquaredError(name = 'mse'),
-        metrics = MeanAbsoluteError(name = 'mae'),
-        optimizer= Adam(
-            learning_rate=1e-4,
+        masked_autoencoder_optimizer= Adam(
+            learning_rate=1e-5,
+            beta_1 = 0.85
+        ),
+        contrastive_optimizer= Adam(
+            learning_rate=1e-5,
             beta_1 = 0.85
         )
     )
 
-    
+    lb_dist = tf.cast(lb_dist, tf.float64)
+    lb_tre = tf.cast(lb_tre, tf.float64)
+    lb_sea = tf.cast(lb_sea, tf.float64)
+    fc_dist = tf.cast(fc_dist, tf.float64)
+    fc_tre = tf.cast(fc_tre, tf.float64)
+    fc_sea = tf.cast(fc_sea, tf.float64)
 
     oModel.fit(
         (lb_dist,lb_tre, lb_sea,fc_dist, fc_tre , fc_sea), 
@@ -77,5 +86,3 @@ if __name__ == '__main__':
         batch_size=MINI_BATCH_SIZE, 
         verbose=1
     )
-
-    ...

@@ -69,7 +69,7 @@ class PreProcessor(tf.keras.Model):
         
         # normalize saesonality
         x_lb_sea = self.lookback_normalizer((x_lb_sea,x_lb_sea))
-        x_fc_sea = self.lookback_normalizer((x_fc_sea,x_fc_sea))
+        x_fc_sea = self.lookback_normalizer((x_lb_sea,x_fc_sea))
 
 
 

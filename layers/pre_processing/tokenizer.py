@@ -29,7 +29,7 @@ class DistributionTokenizer(tf.keras.layers.Layer):
         self.bin_boundaries = tf.linspace(
             start = fMin, 
             stop = fMax, 
-            num = self.iNrOfBins
+            num = self.iNrOfBins - 1
         )
 
         
@@ -39,14 +39,14 @@ class DistributionTokenizer(tf.keras.layers.Layer):
        
     def call(self, x):
         '''
-        inputs: lookback normalized input (None, nr_of_patches, patch_size)
+        inputs: lookback normalized input (None, timesteps, feature)
         
-        returns: (None, nr_of_patches, num_bins)
+        returns: (None, timesteps, feature)
         ''' 
         y = self.oDiscritizer(x)
 
         output_list = []
-        for i in range(1, self.iNrOfBins+1):
+        for i in range(0, self.iNrOfBins):
             output_list.append(tf.math.count_nonzero(y == i, axis = 2) )
 
         

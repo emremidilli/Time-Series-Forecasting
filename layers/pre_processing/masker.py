@@ -19,20 +19,14 @@ class PatchMasker(tf.keras.layers.Layer):
 
         maskes some patches randomly. Each aspect is masked in the same 
         
-        outputs: tuple of 3 masked elements:
+        outputs: tuple of 3 masked elements
         '''
         
         x_dist, x_tre, x_sea = inputs
 
         iNrOfPatches = x_dist.shape[1]
         iNrOfPatchesToMsk = int(self.fMaskingRate * iNrOfPatches)
-
-        aPatchesToMask = tf.random.uniform([iNrOfPatches])
-
-        aPatchesToMask = tf.argsort( aPatchesToMask)[:iNrOfPatchesToMsk]
-        aPatchesToMask = tf.sort(aPatchesToMask, axis= 0)
-
-        
+       
         y_dist = tf.add(tf.zeros_like(x_dist),  self.fMskScalar) 
         y_tre = tf.add(tf.zeros_like(x_tre),  self.fMskScalar) 
         y_sea = tf.add(tf.zeros_like(x_sea),  self.fMskScalar) 
@@ -45,7 +39,11 @@ class PatchMasker(tf.keras.layers.Layer):
             r_dist = tf.constant([])
             r_tre = tf.constant([])
             r_sea = tf.constant([])
-            if i in aPatchesToMask:
+
+            
+            if tf.random.uniform(shape = [], minval=0, maxval = 1, dtype = tf.float32) <= self.fMaskingRate:
+
+
                 r_dist = y_dist[:, i]
                 r_tre = y_tre[:, i]
                 r_sea = y_sea[:, i]

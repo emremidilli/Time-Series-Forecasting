@@ -1,23 +1,29 @@
 import tensorflow as tf
 
 class PatchShifter(tf.keras.layers.Layer):
-    def __init__(self, **kwargs):
+    def __init__(self ,**kwargs):
         super().__init__(**kwargs)
+        
 
 
 
-
-    def call(self, x):
+    def call(self, inputs):
         '''
-        inputs: patched input (None, nr_of_patches, feature_size)
+        inputs: tuple of 4 elements
+            1. x_dist: (None, timesteps, feature)
+            2. x_tre: (None, timesteps, feature)
+            3. x_sea: (None, timesteps, feature)
+            4. shift: integer
 
-        outputs: randomly shifted version (None, nr_of_patches, feature_size)
+        shifts the patch with roll operation.
+        
+        outputs: tuple of 3 shifted elements
         '''       
-        iNrOfPatches = x.shape[1]
+        x_dist, x_tre, x_sea, shift = inputs
 
-        i = tf.random.uniform(shape=(), minval=1, maxval=iNrOfPatches-1, dtype=tf.int32)
+        y_dist = tf.roll(x_dist, shift = shift ,axis = 1)
+        y_tre = tf.roll(x_tre, shift = shift ,axis = 1)
+        y_sea = tf.roll(x_sea, shift = shift ,axis = 1)
 
-        y = tf.roll(x, shift = i ,axis = 1)
-
-        return y
+        return (y_dist, y_tre, y_sea)
 
