@@ -39,7 +39,7 @@ class ProjectionHead(tf.keras.layers.Layer):
 
         self.flatten = tf.keras.layers.Flatten()
         
-        self.dense = tf.keras.layers.Dense(units=iFfnUnits)
+        self.dense = tf.keras.layers.Dense(units=iFfnUnits, activation='tanh')
 
 
 

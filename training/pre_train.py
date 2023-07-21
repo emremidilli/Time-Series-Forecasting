@@ -86,3 +86,6 @@ if __name__ == '__main__':
         batch_size=MINI_BATCH_SIZE, 
         verbose=1
     )
+
+
+    

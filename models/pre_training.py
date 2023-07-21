@@ -211,7 +211,10 @@ class PreTraining(tf.keras.Model):
             similarities  = (
                 tf.matmul(y_logits, y_logits, transpose_b=True)/self.temperature
             )
-            loss_cl = tf.keras.losses.sparse_categorical_crossentropy(y_pred=similarities, y_true = labels_aug, from_logits = True)
+            similarities = tf.math.sigmoid(similarities)
+            similarities = tf.nn.softmax(similarities , axis = 1)
+
+            loss_cl = tf.keras.losses.sparse_categorical_crossentropy(y_pred=similarities, y_true = labels_aug, from_logits = False)
 
         # compute gradients
         trainable_vars = self.trainable_variables
