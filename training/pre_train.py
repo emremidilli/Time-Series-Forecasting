@@ -19,12 +19,10 @@ from models import *
 
 import numpy as np
 
-
 from keras.optimizers import Adam
 
-from keras.losses import  MeanSquaredError
-from keras.metrics import  MeanAbsoluteError
-
+import os
+import shutil
 
 
 if __name__ == '__main__':
@@ -45,7 +43,6 @@ if __name__ == '__main__':
     sea = oPreProcessor.concat_lb_fc((lb_sea, fc_sea))
 
 
-    
     oModel = PreTraining(
                  iNrOfEncoderBlocks = 2,
                  iNrOfHeads = 2, 
@@ -57,7 +54,8 @@ if __name__ == '__main__':
                  fMskRate = MASK_RATE,
                  fMskScalar = MSK_SCALAR,
                  iNrOfBins = NR_OF_BINS,
-                 iNrOfPatches= lb.shape[1] + fc.shape[1]
+                 iNrOfLookbackPatches= NR_OF_LOOKBACK_PATCHES,
+                 iNrOfForecastPatches= NR_OF_FORECAST_PATCHES
     )
 
 
@@ -79,13 +77,52 @@ if __name__ == '__main__':
     fc_tre = tf.cast(fc_tre, tf.float64)
     fc_sea = tf.cast(fc_sea, tf.float64)
 
-    oModel.fit(
-        (lb_dist,lb_tre, lb_sea,fc_dist, fc_tre , fc_sea), 
-        (dist, tre, sea), 
-        epochs= NR_OF_EPOCHS, 
-        batch_size=MINI_BATCH_SIZE, 
-        verbose=1
+
+    sArtifactsDirectory = f'{ARTIFACTS_FOLDER}/{sChannel}/pre_train'
+    
+    shutil.rmtree(sArtifactsDirectory, ignore_errors = True)
+    os.makedirs(sArtifactsDirectory)
+
+    checkpoint_filepath = f'{sArtifactsDirectory}/tmp/checkpoint'
+    model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+        filepath=checkpoint_filepath,
+        save_weights_only=True,
+        monitor='loss_cl',
+        mode='min',
+        save_best_only=True
+        )
+    
+    csv_logger_callback = tf.keras.callbacks.CSVLogger(
+        f'{sArtifactsDirectory}/logs.log',
+        separator=';',
+        append=True
     )
 
+    class StopAtThreshold(tf.keras.callbacks.Callback):
+        def on_batch_end(self, batch, logs={}):
+            if logs.get('mae_dist') <= 0.05 and logs.get('mae_tre') <= 0.05 and logs.get('mae_sea') <= 0.05 :
+                self.model.stop_training = True
+                print('Stopping because threshold is achived succesfully...')
 
+    stop_at_thershold_callback = StopAtThreshold()
+
+    oModel.fit(
+        (dist, tre, sea), 
+        (dist, tre, sea), 
+        epochs= 5, #NR_OF_EPOCHS
+        batch_size=MINI_BATCH_SIZE, 
+        verbose=1,
+        callbacks = [
+            model_checkpoint_callback,
+            csv_logger_callback,
+            stop_at_thershold_callback
+        ]
+    )
+
+    oModel.save(
+        sArtifactsDirectory, 
+        overwrite = True,
+        save_format = 'tf'
+        )
     
+    shutil.rmtree(model_checkpoint_callback, ignore_errors = True)

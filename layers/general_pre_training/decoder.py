@@ -41,6 +41,8 @@ class ProjectionHead(tf.keras.layers.Layer):
         
         self.dense = tf.keras.layers.Dense(units=iFfnUnits, activation='tanh')
 
+        
+
 
 
     
