@@ -4,7 +4,7 @@
     builds a pre-training model
     trains and saves pre-training logs
 
-    inputs: 
+    inputs:
         lb_train: (None, timesteps)
         fc_train: (None, timesteps)
 '''
@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
     lb_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/lb_train.npy')[: 1500]
     fc_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/fc_train.npy')[: 1500]
-    
+
     oPreProcessor = PreProcessor(
         iPatchSize = PATCH_SIZE,
         fPatchSampleRate = PATCH_SAMPLE_RATE,
@@ -45,8 +45,8 @@ if __name__ == '__main__':
 
     oModel = PreTraining(
                  iNrOfEncoderBlocks = 2,
-                 iNrOfHeads = 2, 
-                 fDropoutRate = 0.10, 
+                 iNrOfHeads = 2,
+                 fDropoutRate = 0.10,
                  iEncoderFfnUnits = 32,
                  iEmbeddingDims = 32,
                  iProjectionHeadUnits = 32,
@@ -79,7 +79,7 @@ if __name__ == '__main__':
 
 
     sArtifactsDirectory = f'{ARTIFACTS_FOLDER}/{sChannel}/pre_train'
-    
+
     shutil.rmtree(sArtifactsDirectory, ignore_errors = True)
     os.makedirs(sArtifactsDirectory)
 
@@ -91,7 +91,7 @@ if __name__ == '__main__':
         mode='min',
         save_best_only=True
         )
-    
+
     csv_logger_callback = tf.keras.callbacks.CSVLogger(
         f'{sArtifactsDirectory}/logs.log',
         separator=';',
@@ -107,10 +107,10 @@ if __name__ == '__main__':
     stop_at_thershold_callback = StopAtThreshold()
 
     oModel.fit(
-        (dist, tre, sea), 
-        (dist, tre, sea), 
+        (dist, tre, sea),
+        (dist, tre, sea),
         epochs= 5, #NR_OF_EPOCHS
-        batch_size=MINI_BATCH_SIZE, 
+        batch_size=MINI_BATCH_SIZE,
         verbose=1,
         callbacks = [
             model_checkpoint_callback,
@@ -120,9 +120,9 @@ if __name__ == '__main__':
     )
 
     oModel.save(
-        sArtifactsDirectory, 
+        sArtifactsDirectory,
         overwrite = True,
         save_format = 'tf'
         )
-    
+
     shutil.rmtree(model_checkpoint_callback, ignore_errors = True)

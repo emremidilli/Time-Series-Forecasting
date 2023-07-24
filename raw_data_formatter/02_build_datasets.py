@@ -12,14 +12,14 @@ import shutil
 
 if __name__ == '__main__':
     '''
-        inputs - expected to have data formatten in a dataframe with the columns of [target], [group_id] and [target_idx] 
+        inputs - expected to have data formatten in a dataframe with the columns of [target], [group_id] and [target_idx]
             in the folder CONVERTED_DATA_FOLDER.
 
         outputs - for each channel in CONVERTED_DATA_FOLDER
             lb_train- (None, nr_of_lb_time_steps)
             fc_train - (None, nr_of_fc_time_steps)
             ix_train - (None)
-            
+
             lb_test- (None, nr_of_lb_time_steps)
             fc_test - (None, nr_of_fc_time_steps)
             ix_test - (None)
@@ -33,7 +33,7 @@ if __name__ == '__main__':
     if os.path.exists(TRAINING_DATA_FOLDER) == True:
         shutil.rmtree(TRAINING_DATA_FOLDER)
 
-    
+
 
     for sFileName in os.listdir(CONVERTED_DATA_FOLDER):
 
@@ -43,7 +43,7 @@ if __name__ == '__main__':
         )
 
         aTimeIxs = np.arange(
-            start= dfTsDataset.loc[:, 'time_idx'].to_numpy(int).min() + iNrOfLookbackSteps , 
+            start= dfTsDataset.loc[:, 'time_idx'].to_numpy(int).min() + iNrOfLookbackSteps ,
             stop = dfTsDataset.loc[:, 'time_idx'].to_numpy(int).max(),
             step = PATCH_SIZE
             )
@@ -51,7 +51,7 @@ if __name__ == '__main__':
         aTimeIxs = np.intersect1d(aTimeIxs , dfTsDataset.loc[:, 'time_idx'].to_numpy(int))
         dfSearch = dfTsDataset.query('(group_id == @sTickerGroup)')[['time_idx', 'value']].copy()
 
-        
+
         dfLb = pd.DataFrame(index = aTimeIxs)
         for i in range(-iNrOfLookbackSteps,0):
             dfFound = dfSearch.query('time_idx in (@aTimeIxs + @i)').copy()

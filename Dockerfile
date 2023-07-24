@@ -1,9 +1,25 @@
-FROM python:latest
+FROM tensorflow/tensorflow:latest-gpu-jupyter
 
-WORKDIR './'
+LABEL maintainer="yunusemremidilli@gmail.com"
 
-CMD ["Python", "hyperparameter_tuning/general_pre_training.py"]
+ENV PYTHONUNBUFFERED 1
 
-CMD ["Python", "training/general_pre_training.py"]
+COPY ./requirements.txt /tmp/requirements.txt
 
+COPY ./app /app
+WORKDIR /app
 
+EXPOSE 8000
+
+RUN python -m venv /py && \
+    /py/bin/pip install --upgrade pip && \
+    /py/bin/pip install -r /tmp/requirements.txt && \
+    rm -rf /tmp && \
+    adduser \
+        --disabled-password \
+        --no-create-home \
+        tsf-user
+
+USER tsf-user
+
+CMD ["python", "./training/pre_train.py"]

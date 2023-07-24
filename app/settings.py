@@ -1,4 +1,4 @@
-SERVER = '/home/yunusemre'
+SERVER = '' #/home/yunusemre
 BIN_FOLDER = f'{SERVER}/TSF-bin'
 
 # folder paths

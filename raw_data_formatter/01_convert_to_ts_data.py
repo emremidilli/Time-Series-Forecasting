@@ -24,7 +24,7 @@ def aGetCommonTimeStampsAccrossChannels():
     aFileNames = os.listdir(RAW_DATA_FOLDER)
     for sFileName in aFileNames:
         dfRaw = pd.read_csv(
-            f'{RAW_DATA_FOLDER}/{sFileName}', 
+            f'{RAW_DATA_FOLDER}/{sFileName}',
             delimiter='\t',
             usecols=['<DATE>', '<TIME>']
             )
@@ -49,13 +49,13 @@ def dfConvertToTimeSeriesDataset(aCommonTimeStamps, sFileName):
 
         returns - converted pandas dataframe.
     '''
-    
+
 
     aLookbackTimeSteps = list(range(-(LOOKBACK_COEFFICIENT*FORECAST_HORIZON) , 0))
     aForecastTimeSteps = list(range(0, FORECAST_HORIZON))
 
     dfRaw = pd.read_csv(
-        f'{RAW_DATA_FOLDER}/{sFileName}', 
+        f'{RAW_DATA_FOLDER}/{sFileName}',
         delimiter='\t',
         usecols=['<DATE>', '<TIME>','<HIGH>', '<VOL>']
     )
@@ -66,8 +66,8 @@ def dfConvertToTimeSeriesDataset(aCommonTimeStamps, sFileName):
     dfRaw.rename(columns = {'<HIGH>':'TICKER',
                         '<VOL>':'OBSERVED'
                         }, inplace = True)
-    
-    
+
+
     ixOutlierVolume = dfRaw.query('OBSERVED > 180000000').index
     dfRaw.loc[ixOutlierVolume, 'OBSERVED'] = 180000000
     dfRaw.loc[:, 'TIME_STAMP'] = pd.to_datetime(dfRaw.loc[:,'TIME_STAMP'])
@@ -113,8 +113,8 @@ def dfConvertToTimeSeriesDataset(aCommonTimeStamps, sFileName):
 
         dfTimeStamps.loc[msk, i] = dfFound.loc[:, 'TIME_STAMP'].to_numpy(ix.dtype)
 
-        
-        
+
+
     # handle missing data
     dfLookbackTickers.dropna(inplace = True)
     dfForecastTickers.dropna(inplace = True)
@@ -140,7 +140,7 @@ def dfConvertToTimeSeriesDataset(aCommonTimeStamps, sFileName):
     # tickers
     df = pd.DataFrame(
         data = {
-            'value': aTickers, 
+            'value': aTickers,
             'group_id': 'ticker' ,
             'time_idx':aTimeIdx
             }
@@ -152,7 +152,7 @@ def dfConvertToTimeSeriesDataset(aCommonTimeStamps, sFileName):
     # observeds
     df = pd.DataFrame(
         data = {
-            'value': aObserveds, 
+            'value': aObserveds,
             'group_id': 'observed' ,
             'time_idx':aTimeIdx
             }

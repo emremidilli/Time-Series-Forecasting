@@ -47,8 +47,8 @@ if __name__ == '__main__':
     X_observed = np.load(f'{QUANTILE_PREDICTION_DATA_FOLDER}\\X_observed.npy')
     X_static = np.load(f'{QUANTILE_PREDICTION_DATA_FOLDER}\\X_static.npy')
     Y = np.load(f'{QUANTILE_PREDICTION_DATA_FOLDER}\\Y.npy')
-    
-    
+
+
     # convert to dataset
     dataset = Dataset.from_tensor_slices((X_dist, X_tre, X_sea, X_tic, X_known, X_observed, X_static, Y))
     train_dataset, _ = split_dataset(
@@ -57,7 +57,7 @@ if __name__ == '__main__':
         shuffle = False
     )
     train_dataset = train_dataset.batch(BATCH_SIZE)
-    
+
     # process with pre-trained models
     oDisERT = general_pre_training()
     oTreERT = general_pre_training()
@@ -65,9 +65,9 @@ if __name__ == '__main__':
     oTicERT = general_pre_training()
     oKnoERT = general_pre_training()
     oObsERT = general_pre_training()
-    
+
     for iBatchNr, (X_dist, X_tre, X_sea, X_tic, X_known, X_observed, X_static, Y) in enumerate(train_dataset):
-        
+
         c_dist = oDisERT(X_dist)
         c_tre = oTreERT(X_tre)
         c_sea = oSeaERT(X_sea)
@@ -75,7 +75,7 @@ if __name__ == '__main__':
         c_known = oKnoERT(X_known)
         c_observed = oObsERT(X_observed)
 
-        
+
         c_dist_l, c_dist_f = aReturnLookbackAndForecast(c_dist)
         c_tre_l, c_tre_f = aReturnLookbackAndForecast(c_tre)
         c_sea_l, c_sea_f = aReturnLookbackAndForecast(c_sea)
@@ -90,14 +90,14 @@ if __name__ == '__main__':
         x_f =  tf.stack([c_dist_f, c_tre_f, c_sea_f, c_tic_f, c_known_f, c_observed_f], axis = 2)
         x_f = tf.reshape(x_f, (x_f.shape[0],x_f.shape[1],-1, x_f.shape[-1]))
         x_f = tf.transpose(x_f, (0,1, 3,2))
-        
+
 
         sArtifactsFolder = f'{ARTIFACTS_FOLDER}\\Batch_{iBatchNr}\\TFT'
         if os.path.exists(sArtifactsFolder) == True:
             shutil.rmtree(sArtifactsFolder)
 
         oTft = temporal_fusion_transformer(
-            iNrOfLookbackPatches, 
+            iNrOfLookbackPatches,
             iNrOfForecastPatches,
             TARGET_QUANTILES,
             fDropout = 0.1,
@@ -105,11 +105,11 @@ if __name__ == '__main__':
             iNrOfChannels = 3
         )
         oTft.Train(
-            X_train = (x_l, x_f, X_static), 
+            X_train = (x_l, x_f, X_static),
             Y_train = Y,
             sArtifactsFolder = sArtifactsFolder,
             fLearningRate = 0.01,
-            iNrOfEpochs =  NR_OF_EPOCHS, 
+            iNrOfEpochs =  NR_OF_EPOCHS,
             iBatchSize = MINI_BATCH_SIZE,
             oLoss = oTft.quantile_loss,
             oMetrics = MeanAbsoluteError()
