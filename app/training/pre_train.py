@@ -26,6 +26,8 @@ import shutil
 
 
 if __name__ == '__main__':
+
+
     sChannel = 'EURUSD'
 
     lb_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/lb_train.npy')[: 1500]
@@ -119,6 +121,8 @@ if __name__ == '__main__':
         ]
     )
 
+    print('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+    '''
     oModel.save(
         sArtifactsDirectory,
         overwrite = True,
@@ -126,3 +130,4 @@ if __name__ == '__main__':
         )
 
     shutil.rmtree(model_checkpoint_callback, ignore_errors = True)
+    '''

@@ -8,8 +8,8 @@ services:
       resources:
         reservations:
           devices:
-          - driver: "nvidia"
-            device_ids: ["0"]
+          - driver: nvidia
+            count: 1
             capabilities: [gpu]
     ports:
       - "8000:8000"
