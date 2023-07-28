@@ -3,7 +3,7 @@ import tensorflow as tf
 class PatchShifter(tf.keras.layers.Layer):
     def __init__(self ,**kwargs):
         super().__init__(**kwargs)
-        
+        self.trainable = False
 
 
 
@@ -16,9 +16,9 @@ class PatchShifter(tf.keras.layers.Layer):
             4. shift: integer
 
         shifts the patch with roll operation.
-        
+
         outputs: tuple of 3 shifted elements
-        '''       
+        '''
         x_dist, x_tre, x_sea, shift = inputs
 
         y_dist = tf.roll(x_dist, shift = shift ,axis = 1)

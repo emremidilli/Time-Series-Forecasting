@@ -11,7 +11,12 @@
 
 
 import sys
-sys.path.append( './')
+
+import os
+import shutil
+
+# sys.path.append( '../')
+sys.path.append(os.path.join(sys.path[0], '..'))
 
 from settings import *
 
@@ -21,30 +26,27 @@ import numpy as np
 
 from keras.optimizers import Adam
 
-import os
-import shutil
-
 
 if __name__ == '__main__':
 
 
     sChannel = 'EURUSD'
 
-    lb_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/lb_train.npy')[: 1500]
-    fc_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/fc_train.npy')[: 1500]
+    lb_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/lb_train.npy')[: 160]
+    fc_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/fc_train.npy')[: 160]
+
+    ds_lb_train = tf.data.Dataset.from_tensor_slices(lb_train)
+    ds_fc_train = tf.data.Dataset.from_tensor_slices(fc_train)
 
     oPreProcessor = PreProcessor(
         iPatchSize = PATCH_SIZE,
         fPatchSampleRate = PATCH_SAMPLE_RATE,
         iNrOfBins = NR_OF_BINS
     )
+    dist, tre,shape = oPreProcessor((ds_lb_train,ds_fc_train))
+    print(dist)
 
-    lb, lb_dist, lb_tre, lb_sea, fc, fc_dist, fc_tre, fc_sea = oPreProcessor((lb_train,fc_train))
-    dist = oPreProcessor.concat_lb_fc((lb_dist, fc_dist))
-    tre = oPreProcessor.concat_lb_fc((lb_tre, fc_tre))
-    sea = oPreProcessor.concat_lb_fc((lb_sea, fc_sea))
-
-
+    '''
     oModel = PreTraining(
                  iNrOfEncoderBlocks = 2,
                  iNrOfHeads = 2,
@@ -72,12 +74,12 @@ if __name__ == '__main__':
         )
     )
 
-    lb_dist = tf.cast(lb_dist, tf.float64)
-    lb_tre = tf.cast(lb_tre, tf.float64)
-    lb_sea = tf.cast(lb_sea, tf.float64)
-    fc_dist = tf.cast(fc_dist, tf.float64)
-    fc_tre = tf.cast(fc_tre, tf.float64)
-    fc_sea = tf.cast(fc_sea, tf.float64)
+    lb_dist = tf.cast(lb_dist, tf.float32)
+    lb_tre = tf.cast(lb_tre, tf.float32)
+    lb_sea = tf.cast(lb_sea, tf.float32)
+    fc_dist = tf.cast(fc_dist, tf.float32)
+    fc_tre = tf.cast(fc_tre, tf.float32)
+    fc_sea = tf.cast(fc_sea, tf.float32)
 
 
     sArtifactsDirectory = f'{ARTIFACTS_FOLDER}/{sChannel}/pre_train'
@@ -121,8 +123,7 @@ if __name__ == '__main__':
         ]
     )
 
-    print('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
-    '''
+
     oModel.save(
         sArtifactsDirectory,
         overwrite = True,
@@ -131,3 +132,4 @@ if __name__ == '__main__':
 
     shutil.rmtree(model_checkpoint_callback, ignore_errors = True)
     '''
+

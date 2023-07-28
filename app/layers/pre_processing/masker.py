@@ -8,8 +8,8 @@ class PatchMasker(tf.keras.layers.Layer):
 
         self.fMaskingRate = fMaskingRate
         self.fMskScalar = fMskScalar
+        self.trainable = False
 
-    
     def call(self, inputs):
         '''
         inputs: tuple of 3 elements
@@ -17,30 +17,30 @@ class PatchMasker(tf.keras.layers.Layer):
             2. x_tre: (None, timesteps, feature)
             3. x_sea: (None, timesteps, feature)
 
-        maskes some patches randomly. Each aspect is masked in the same 
-        
+        maskes some patches randomly. Each aspect is masked in the same
+
         outputs: tuple of 3 masked elements
         '''
-        
+
         x_dist, x_tre, x_sea = inputs
 
         iNrOfPatches = x_dist.shape[1]
         iNrOfPatchesToMsk = int(self.fMaskingRate * iNrOfPatches)
-       
-        y_dist = tf.add(tf.zeros_like(x_dist),  self.fMskScalar) 
-        y_tre = tf.add(tf.zeros_like(x_tre),  self.fMskScalar) 
-        y_sea = tf.add(tf.zeros_like(x_sea),  self.fMskScalar) 
+
+        y_dist = tf.add(tf.zeros_like(x_dist),  self.fMskScalar)
+        y_tre = tf.add(tf.zeros_like(x_tre),  self.fMskScalar)
+        y_sea = tf.add(tf.zeros_like(x_sea),  self.fMskScalar)
 
         z_dist = []
         z_tre = []
         z_sea = []
         for i in range(iNrOfPatches):
-            
+
             r_dist = tf.constant([])
             r_tre = tf.constant([])
             r_sea = tf.constant([])
 
-            
+
             if tf.random.uniform(shape = [], minval=0, maxval = 1, dtype = tf.float32) <= self.fMaskingRate:
 
 
@@ -56,7 +56,7 @@ class PatchMasker(tf.keras.layers.Layer):
             z_dist.append(r_dist)
             z_tre.append(r_tre)
             z_sea.append(r_sea)
-                
+
 
         z_dist= tf.stack(z_dist, axis =1)
         z_tre= tf.stack(z_tre, axis =1)

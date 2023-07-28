@@ -12,8 +12,8 @@ class PreTraining(tf.keras.Model):
     '''
     def __init__(self,
                  iNrOfEncoderBlocks,
-                 iNrOfHeads, 
-                 fDropoutRate, 
+                 iNrOfHeads,
+                 fDropoutRate,
                  iEncoderFfnUnits,
                  iEmbeddingDims,
                  iProjectionHeadUnits,
@@ -30,15 +30,15 @@ class PreTraining(tf.keras.Model):
 
         self.nr_of_lookback_patches = iNrOfLookbackPatches
         self.nr_of_forecast_patches = iNrOfForecastPatches
-        
+
         self.patch_masker = PatchMasker(fMaskingRate=fMskRate, fMskScalar=fMskScalar)
 
         self.patch_shifter = PatchShifter()
-        
+
         self.encoder_representation = Representation(
             iNrOfEncoderBlocks,
             iNrOfHeads,
-            fDropoutRate, 
+            fDropoutRate,
             iEncoderFfnUnits,
             iEmbeddingDims
         )
@@ -95,7 +95,7 @@ class PreTraining(tf.keras.Model):
             returns: tuples of 6 elements. Each element contains merged lookback and forecast patches.
         '''
         x_lb_dist,x_lb_tre, x_lb_sea,x_fc_dist, x_fc_tre , x_fc_sea = data
-        
+
         iNrOfForecastPatches = tf.shape(x_fc_dist)[1]
 
         # mask
@@ -113,14 +113,14 @@ class PreTraining(tf.keras.Model):
 
         return (x_dist_true, x_tre_true, x_sea_true, x_dist_false, x_tre_false, x_sea_false)
 
-    @tf.function
+    @tf.function(jit_compile=True)
     def train_step(self, data):
         '''
             trains a step in two phases:
                 1. masked patch prediction
                 2. contrastive learning
         '''
-        inputs, outputs = data 
+        inputs, outputs = data
 
         dist_anchor,tre_anchor, sea_anchor = inputs
         x_lb_dist = dist_anchor[:, :self.nr_of_lookback_patches]
@@ -143,7 +143,7 @@ class PreTraining(tf.keras.Model):
             loss_sea = tf.keras.losses.mean_squared_error(y_pred=y_pred_sea, y_true=y_true_sea)
 
             loss_mpp = loss_dist + loss_tre + loss_sea
-            
+
 
         # compute gradients
         trainable_vars = self.trainable_variables
@@ -157,8 +157,8 @@ class PreTraining(tf.keras.Model):
         self.mae_dist.update_state(y_pred= y_pred_dist ,y_true= y_true_dist)
         self.mae_tre.update_state(y_pred= y_pred_tre ,y_true= y_true_tre)
         self.mae_sea.update_state(y_pred= y_pred_sea ,y_true= y_true_sea)
-        
-        
+
+
 
         # contrastive learning
         dist_true, tre_true, sea_true, dist_false, tre_false, sea_false = self.augment_pairs((x_lb_dist, x_lb_tre, x_lb_sea, x_fc_dist, x_fc_tre, x_fc_sea))
@@ -181,7 +181,7 @@ class PreTraining(tf.keras.Model):
         # compute gradients
         trainable_vars = self.trainable_variables
         gradients = tape.gradient(loss_cl, trainable_vars)
-        
+
         # update weights
         self.contrastive_optimizer.apply_gradients(zip(gradients, trainable_vars))
 
@@ -201,7 +201,7 @@ class PreTraining(tf.keras.Model):
         }
 
         return dic
-    
+
     @property
     def metrics(self):
         # We list our `Metric` objects here so that `reset_states()` can be
@@ -210,15 +210,15 @@ class PreTraining(tf.keras.Model):
         # If you don't implement this property, you have to call
         # `reset_states()` yourself at the time of your choosing.
         return [
-            self.loss_tracker_mpp, 
+            self.loss_tracker_mpp,
             self.loss_tracker_cl ,
-            self.mae_dist, 
+            self.mae_dist,
             self.mae_tre,
             self.mae_sea,
             self.cos_true,
             self.cos_false
             ]
-    
+
 
     def call(self, inputs):
         y_cont_temp = self.encoder_representation(inputs)

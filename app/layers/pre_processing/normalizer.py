@@ -25,4 +25,3 @@ class LookbackNormalizer(tf.keras.layers.Layer):
         r = tf.divide(z, tf.expand_dims(y, axis = 1))
 
         return r
-    
