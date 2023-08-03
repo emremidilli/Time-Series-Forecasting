@@ -15,7 +15,6 @@ class LookbackNormalizer(tf.keras.layers.Layer):
 
             outputs: the normalized series (None, nr_of_time_steps)
         '''
-
         x_lb, x = inputs
 
         aMin = tf.math.reduce_min(x_lb, axis =1)

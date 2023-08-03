@@ -26,27 +26,22 @@ import numpy as np
 
 from keras.optimizers import Adam
 
-
 if __name__ == '__main__':
-
 
     sChannel = 'EURUSD'
 
-    lb_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/lb_train.npy')[: 160]
-    fc_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/fc_train.npy')[: 160]
-
-    ds_lb_train = tf.data.Dataset.from_tensor_slices(lb_train)
-    ds_fc_train = tf.data.Dataset.from_tensor_slices(fc_train)
+    lb_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/lb_train.npy')[:128]
+    fc_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/fc_train.npy')[:128]
 
     oPreProcessor = PreProcessor(
         iPatchSize = PATCH_SIZE,
         fPatchSampleRate = PATCH_SAMPLE_RATE,
         iNrOfBins = NR_OF_BINS
     )
-    dist, tre,shape = oPreProcessor((ds_lb_train,ds_fc_train))
-    print(dist)
+    dist, tre,sea = oPreProcessor.pre_process((lb_train,fc_train))
 
-    '''
+    ds_train = tf.data.Dataset.from_tensor_slices((dist, tre, sea)).batch(MINI_BATCH_SIZE)
+
     oModel = PreTraining(
                  iNrOfEncoderBlocks = 2,
                  iNrOfHeads = 2,
@@ -74,62 +69,52 @@ if __name__ == '__main__':
         )
     )
 
-    lb_dist = tf.cast(lb_dist, tf.float32)
-    lb_tre = tf.cast(lb_tre, tf.float32)
-    lb_sea = tf.cast(lb_sea, tf.float32)
-    fc_dist = tf.cast(fc_dist, tf.float32)
-    fc_tre = tf.cast(fc_tre, tf.float32)
-    fc_sea = tf.cast(fc_sea, tf.float32)
+    # sArtifactsDirectory = f'{ARTIFACTS_FOLDER}/{sChannel}/pre_train'
 
+    # shutil.rmtree(sArtifactsDirectory, ignore_errors = True)
+    # os.makedirs(sArtifactsDirectory)
 
-    sArtifactsDirectory = f'{ARTIFACTS_FOLDER}/{sChannel}/pre_train'
+    # checkpoint_filepath = f'{sArtifactsDirectory}/tmp/checkpoint'
+    # model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+    #     filepath=checkpoint_filepath,
+    #     save_weights_only=True,
+    #     monitor='loss_cl',
+    #     mode='min',
+    #     save_best_only=True
+    #     )
 
-    shutil.rmtree(sArtifactsDirectory, ignore_errors = True)
-    os.makedirs(sArtifactsDirectory)
+    # csv_logger_callback = tf.keras.callbacks.CSVLogger(
+    #     f'{sArtifactsDirectory}/logs.log',
+    #     separator=';',
+    #     append=True
+    # )
 
-    checkpoint_filepath = f'{sArtifactsDirectory}/tmp/checkpoint'
-    model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-        filepath=checkpoint_filepath,
-        save_weights_only=True,
-        monitor='loss_cl',
-        mode='min',
-        save_best_only=True
-        )
+    # class StopAtThreshold(tf.keras.callbacks.Callback):
+    #     def on_batch_end(self, batch, logs={}):
+    #         if logs.get('mae_dist') <= 0.05 and logs.get('mae_tre') <= 0.05 and logs.get('mae_sea') <= 0.05 :
+    #             self.model.stop_training = True
+    #             print('Stopping because threshold is achived succesfully...')
 
-    csv_logger_callback = tf.keras.callbacks.CSVLogger(
-        f'{sArtifactsDirectory}/logs.log',
-        separator=';',
-        append=True
-    )
-
-    class StopAtThreshold(tf.keras.callbacks.Callback):
-        def on_batch_end(self, batch, logs={}):
-            if logs.get('mae_dist') <= 0.05 and logs.get('mae_tre') <= 0.05 and logs.get('mae_sea') <= 0.05 :
-                self.model.stop_training = True
-                print('Stopping because threshold is achived succesfully...')
-
-    stop_at_thershold_callback = StopAtThreshold()
+    # stop_at_thershold_callback = StopAtThreshold()
 
     oModel.fit(
-        (dist, tre, sea),
-        (dist, tre, sea),
-        epochs= 5, #NR_OF_EPOCHS
-        batch_size=MINI_BATCH_SIZE,
+        ds_train,
+        epochs= 10 , #NR_OF_EPOCHS,
         verbose=1,
-        callbacks = [
-            model_checkpoint_callback,
-            csv_logger_callback,
-            stop_at_thershold_callback
-        ]
+        # callbacks = [
+        #     model_checkpoint_callback,
+        #     csv_logger_callback,
+        #     stop_at_thershold_callback
+        # ]
     )
 
+    print(oModel.summary())
 
-    oModel.save(
-        sArtifactsDirectory,
-        overwrite = True,
-        save_format = 'tf'
-        )
 
-    shutil.rmtree(model_checkpoint_callback, ignore_errors = True)
-    '''
+    # oModel.save(
+    #     sArtifactsDirectory,
+    #     overwrite = True,
+    #     save_format = 'tf'
+    #     )
 
+    # shutil.rmtree(model_checkpoint_callback, ignore_errors = True)

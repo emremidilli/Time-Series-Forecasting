@@ -7,16 +7,16 @@ from layers.general_pre_training import *
 
 class Representation(tf.keras.layers.Layer):
     def __init__(
-            self, 
+            self,
             iNrOfEncoderBlocks,
             iNrOfHeads,
-            fDropoutRate, 
+            fDropoutRate,
             iEncoderFfnUnits,
-            iEmbeddingDims, 
+            iEmbeddingDims,
               **kwargs
               ):
         super().__init__(**kwargs)
-        
+
         self.pe_dist_temporal = PositionEmbedding(iUnits=iEmbeddingDims)
         self.pe_tre_temporal = PositionEmbedding(iUnits=iEmbeddingDims)
         self.pe_sea_temporal = PositionEmbedding(iUnits=iEmbeddingDims)
@@ -26,7 +26,7 @@ class Representation(tf.keras.layers.Layer):
         self.pe_dist_contextual = PositionEmbedding(iUnits=iEmbeddingDims)
         self.pe_tre_contextual = PositionEmbedding(iUnits=iEmbeddingDims)
         self.pe_sea_contextual = PositionEmbedding(iUnits=iEmbeddingDims)
-        
+
 
         self.concat_temporals = tf.keras.layers.Concatenate(axis = 2)
         self.concat_contextuals = tf.keras.layers.Concatenate(axis = 1)
@@ -36,10 +36,10 @@ class Representation(tf.keras.layers.Layer):
         for i in range(iNrOfEncoderBlocks):
             self.encoders_temporal.append(
                 TransformerEncoder(
-                iKeyDims =iEmbeddingDims , 
-                iNrOfHeads =iNrOfHeads , 
-                fDropoutRate = fDropoutRate, 
-                iFfnUnits = iEncoderFfnUnits, 
+                iKeyDims =iEmbeddingDims ,
+                iNrOfHeads =iNrOfHeads ,
+                fDropoutRate = fDropoutRate,
+                iFfnUnits = iEncoderFfnUnits,
                 iFeatureSize= iEmbeddingDims*3 # one for each aspect
                 )
             )
@@ -48,37 +48,33 @@ class Representation(tf.keras.layers.Layer):
         for i in range(iNrOfEncoderBlocks):
             self.encoders_contextual.append(
                 TransformerEncoder(
-                iKeyDims =iEmbeddingDims , 
-                iNrOfHeads =iNrOfHeads , 
-                fDropoutRate = fDropoutRate, 
+                iKeyDims =iEmbeddingDims ,
+                iNrOfHeads =iNrOfHeads ,
+                fDropoutRate = fDropoutRate,
                 iFfnUnits = iEncoderFfnUnits,
                 iFeatureSize = iEmbeddingDims
                 )
             )
 
-
-        self.dense_contextual = tf.keras.layers.Dense(iEmbeddingDims*3) # to make it allign with temporal encoders
-        
+        self.dense_temporal = tf.keras.layers.Dense(iEmbeddingDims) # to reduce the concatted aspects back to the model dims.
 
         self.concat_temporal_contextual  = tf.keras.layers.Concatenate(axis=1)
 
-
-        
         self.encoders_cont_temp = []
         for i in range(iNrOfEncoderBlocks):
             self.encoders_cont_temp.append(
                 TransformerEncoder(
-                iKeyDims =iEmbeddingDims , 
-                iNrOfHeads =iNrOfHeads , 
-                fDropoutRate = fDropoutRate, 
+                iKeyDims =iEmbeddingDims ,
+                iNrOfHeads =iNrOfHeads ,
+                fDropoutRate = fDropoutRate,
                 iFfnUnits = iEncoderFfnUnits,
-                iFeatureSize = iEmbeddingDims*3 # to make it allign with temporal encoders
+                iFeatureSize = iEmbeddingDims # to make it allign with temporal encoders
                 )
             )
 
 
 
-        
+
 
     def call(self, x):
         '''
@@ -87,7 +83,7 @@ class Representation(tf.keras.layers.Layer):
             trend - tuple of 3 elements (None, timesteps, feature)
             seasonality - tuple of 3 elements (None, timesteps, feature)
         '''
-        
+
         x_dist_temp, x_tre_temp, x_sea_temp = x
 
         x_dist_cont = self.temporal_to_contextual(x_dist_temp)
@@ -113,13 +109,12 @@ class Representation(tf.keras.layers.Layer):
         for encoder in self.encoders_temporal:
             x_temp = encoder(x_temp)
 
+        x_temp = self.dense_temporal(x_temp)
 
         for encoder in self.encoders_contextual:
             x_cont = encoder(x_cont)
 
-        x_cont = self.dense_contextual(x_cont)
-
-        x_cont_temp = self.concat_temporal_contextual([x_temp,x_cont ])
+        x_cont_temp = self.concat_temporal_contextual([x_temp,x_cont])
 
         for encoder in self.encoders_cont_temp:
             x_cont_temp = encoder(x_cont_temp)

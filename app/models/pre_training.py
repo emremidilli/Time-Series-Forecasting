@@ -35,6 +35,7 @@ class PreTraining(tf.keras.Model):
 
         self.patch_shifter = PatchShifter()
 
+        self.encoder_representation = tf.keras.layers.Concatenate(axis = 2)
         self.encoder_representation = Representation(
             iNrOfEncoderBlocks,
             iNrOfHeads,
@@ -43,7 +44,6 @@ class PreTraining(tf.keras.Model):
             iEmbeddingDims
         )
 
-
         self.lookback_forecast_concatter = tf.keras.layers.Concatenate(axis = 1)
 
         self.decoder_dist = MppDecoder(iNrOfBins, iNrOfLookbackPatches+iNrOfForecastPatches)
@@ -51,7 +51,6 @@ class PreTraining(tf.keras.Model):
         self.decoder_sea = MppDecoder(iPatchSize, iNrOfLookbackPatches+iNrOfForecastPatches)
 
         self.projection_head = ProjectionHead(iProjectionHeadUnits)
-
 
     def compile(self, contrastive_optimizer, masked_autoencoder_optimizer , **kwargs):
         super().compile(**kwargs)
@@ -69,13 +68,20 @@ class PreTraining(tf.keras.Model):
         self.cos_true = tf.keras.metrics.CosineSimilarity(name = 'cos_true')
         self.cos_false = tf.keras.metrics.CosineSimilarity(name = 'cos_false')
 
-    @tf.function
+    # @tf.function
     def mask_patches(self,data):
         '''
             Masks both lookback and forecast patches.
             Patch steps to mask are determined randomly.
         '''
-        x_lb_dist,x_lb_tre, x_lb_sea,x_fc_dist, x_fc_tre , x_fc_sea = data
+        x_dist,x_tre, x_sea= data
+        x_lb_dist = x_dist[:, :self.nr_of_lookback_patches]
+        x_lb_tre = x_tre[:, :self.nr_of_lookback_patches]
+        x_lb_sea = x_sea[:, :self.nr_of_lookback_patches]
+        x_fc_dist = x_dist[:, self.nr_of_lookback_patches:]
+        x_fc_tre = x_tre[:, self.nr_of_lookback_patches:]
+        x_fc_sea = x_sea[:, self.nr_of_lookback_patches:]
+
         x_lb_dist_msk, x_lb_tre_msk, x_lb_sea_msk = self.patch_masker((x_lb_dist, x_lb_tre, x_lb_sea))
         x_fc_dist_msk, x_fc_tre_msk, x_fc_sea_msk = self.patch_masker((x_fc_dist, x_fc_tre, x_fc_sea))
 
@@ -85,7 +91,7 @@ class PreTraining(tf.keras.Model):
 
         return (x_dist_msk, x_tre_msk, x_sea_msk)
 
-    @tf.function
+    # @tf.function
     def augment_pairs(self,data):
         '''
             Augments an input. In each augmentation, different patches are masked & shifted randomly.
@@ -94,7 +100,13 @@ class PreTraining(tf.keras.Model):
 
             returns: tuples of 6 elements. Each element contains merged lookback and forecast patches.
         '''
-        x_lb_dist,x_lb_tre, x_lb_sea,x_fc_dist, x_fc_tre , x_fc_sea = data
+        x_dist,x_tre, x_sea= data
+        x_lb_dist = x_dist[:, :self.nr_of_lookback_patches]
+        x_lb_tre = x_tre[:, :self.nr_of_lookback_patches]
+        x_lb_sea = x_sea[:, :self.nr_of_lookback_patches]
+        x_fc_dist = x_dist[:, self.nr_of_lookback_patches:]
+        x_fc_tre = x_tre[:, self.nr_of_lookback_patches:]
+        x_fc_sea = x_sea[:, self.nr_of_lookback_patches:]
 
         iNrOfForecastPatches = tf.shape(x_fc_dist)[1]
 
@@ -113,34 +125,26 @@ class PreTraining(tf.keras.Model):
 
         return (x_dist_true, x_tre_true, x_sea_true, x_dist_false, x_tre_false, x_sea_false)
 
-    @tf.function(jit_compile=True)
+    @tf.function()
     def train_step(self, data):
         '''
             trains a step in two phases:
                 1. masked patch prediction
                 2. contrastive learning
         '''
-        inputs, outputs = data
-
-        dist_anchor,tre_anchor, sea_anchor = inputs
-        x_lb_dist = dist_anchor[:, :self.nr_of_lookback_patches]
-        x_fc_dist = dist_anchor[:, self.nr_of_lookback_patches:]
-        x_lb_tre = tre_anchor[:, :self.nr_of_lookback_patches]
-        x_fc_tre = tre_anchor[:, self.nr_of_lookback_patches:]
-        x_lb_sea = sea_anchor[:, :self.nr_of_lookback_patches]
-        x_fc_sea = sea_anchor[:, self.nr_of_lookback_patches:]
-
-        y_true_dist, y_true_tre, y_true_sea = outputs
+        inputs = data
+        dist_anchor, tre_anchor, sea_anchor = inputs
 
         # masked auto-encoder
-        x_msk = self.mask_patches((x_lb_dist, x_lb_tre, x_lb_sea, x_fc_dist, x_fc_tre, x_fc_sea))
+        x_msk = self.mask_patches(inputs)
+
         with tf.GradientTape() as tape:
             y_pred_dist, y_pred_tre, y_pred_sea = self(x_msk)
 
             # compute the loss value
-            loss_dist = tf.keras.losses.mean_squared_error(y_pred=y_pred_dist, y_true=y_true_dist)
-            loss_tre = tf.keras.losses.mean_squared_error(y_pred=y_pred_tre, y_true=y_true_tre)
-            loss_sea = tf.keras.losses.mean_squared_error(y_pred=y_pred_sea, y_true=y_true_sea)
+            loss_dist = tf.keras.losses.mean_squared_error(y_pred=y_pred_dist, y_true=dist_anchor)
+            loss_tre = tf.keras.losses.mean_squared_error(y_pred=y_pred_tre, y_true=tre_anchor)
+            loss_sea = tf.keras.losses.mean_squared_error(y_pred=y_pred_sea, y_true=sea_anchor)
 
             loss_mpp = loss_dist + loss_tre + loss_sea
 
@@ -154,20 +158,18 @@ class PreTraining(tf.keras.Model):
 
         # compute own metrics
         self.loss_tracker_mpp.update_state(loss_mpp)
-        self.mae_dist.update_state(y_pred= y_pred_dist ,y_true= y_true_dist)
-        self.mae_tre.update_state(y_pred= y_pred_tre ,y_true= y_true_tre)
-        self.mae_sea.update_state(y_pred= y_pred_sea ,y_true= y_true_sea)
-
+        self.mae_dist.update_state(y_pred= y_pred_dist ,y_true= dist_anchor)
+        self.mae_tre.update_state(y_pred= y_pred_tre ,y_true= tre_anchor)
+        self.mae_sea.update_state(y_pred= y_pred_sea ,y_true= sea_anchor)
 
 
         # contrastive learning
-        dist_true, tre_true, sea_true, dist_false, tre_false, sea_false = self.augment_pairs((x_lb_dist, x_lb_tre, x_lb_sea, x_fc_dist, x_fc_tre, x_fc_sea))
+        dist_true, tre_true, sea_true, dist_false, tre_false, sea_false = self.augment_pairs(inputs)
 
         with tf.GradientTape() as tape:
             x_cont_temp_true =self.encoder_representation((dist_true, tre_true, sea_true))
             x_cont_temp_false =self.encoder_representation((dist_false, tre_false, sea_false))
             x_cont_temp_anchor =self.encoder_representation((dist_anchor, tre_anchor, sea_anchor))
-
 
             y_logits_false = self.projection_head(x_cont_temp_false)
             y_logits_true = self.projection_head(x_cont_temp_true)
@@ -219,14 +221,15 @@ class PreTraining(tf.keras.Model):
             self.cos_false
             ]
 
-
     def call(self, inputs):
+        '''
+            input should be in array format. Not in tf.data.Dataset.
+        '''
+
         y_cont_temp = self.encoder_representation(inputs)
 
         y_pred_dist = self.decoder_dist(y_cont_temp)
         y_pred_tre = self.decoder_tre(y_cont_temp)
         y_pred_sea = self.decoder_sea(y_cont_temp)
 
-
         return (y_pred_dist, y_pred_tre, y_pred_sea)
-
