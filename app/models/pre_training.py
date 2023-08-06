@@ -159,7 +159,7 @@ class PreTraining(tf.keras.Model):
                 x_tre_false,
                 x_sea_false)
 
-    @tf.function()
+    # @tf.function()
     def train_step(self, data):
         '''
             trains a step in two phases:
@@ -186,7 +186,10 @@ class PreTraining(tf.keras.Model):
             loss_mpp = loss_dist + loss_tre + loss_sea
 
         # compute gradients
-        trainable_vars = self.trainable_variables
+        trainable_vars = self.encoder_representation.trainable_variables + \
+            self.decoder_dist.trainable_variables + \
+            self.decoder_tre.trainable_variables + \
+            self.decoder_sea.trainable_variables
         gradients = tape.gradient(loss_mpp, trainable_vars)
 
         # update weights
@@ -224,7 +227,8 @@ class PreTraining(tf.keras.Model):
                 distance_true - distance_false + self.margin, 0.0)
 
         # compute gradients
-        trainable_vars = self.trainable_variables
+        trainable_vars = self.encoder_representation.trainable_variables + \
+            self.projection_head.trainable_variables
         gradients = tape.gradient(loss_cl, trainable_vars)
 
         # update weights

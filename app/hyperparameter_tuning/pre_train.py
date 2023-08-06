@@ -3,8 +3,11 @@
     There are 2 phases of hyperparameter tuning:
         1st phase - tuning the architectural hyperparameters.
         2nd phase - tuning the optimizer hyperparameters.
-    Both masked patch prediction and contrastive loss are set as objective of
-        hyperparameter optimization.
+    Lowest values of optimizer hyperparameters are used in 1st phase.
+    The best hyperparameters of 1st phase is selected as
+        arguments of second phase.
+    Both masked patch prediction and contrastive loss are set
+        as objective of hyperparameter optimization.
 '''
 import tensorflow as tf
 
@@ -108,6 +111,10 @@ class architectural_hypermodel(keras_tuner.HyperModel):
 
 
 class optimizer_hypermodel(keras_tuner.HyperModel):
+    '''
+        To tune only optimizer hyperparameters.
+        Architectural hyperparameters are taken as arguments.
+    '''
 
     def __init__(self, nr_of_encoder_blocks, nr_of_heads, dropout_rate,
                  nr_of_ffn_units_of_encoder, embedding_dims):
@@ -201,6 +208,7 @@ if __name__ == '__main__':
             keras_tuner.Objective('loss_mpp', direction='min'),
             keras_tuner.Objective('loss_cl', direction='min'),
         ],
+        directory=sLogsFolder,
         project_name='architecture'
     )
 
@@ -211,4 +219,28 @@ if __name__ == '__main__':
     dicBestArchitecture = oTunerArchitecture.get_best_hyperparameters(
         num_trials=1)[0]
 
-    print(dicBestArchitecture)
+    nr_of_encoder_blocks = dicBestArchitecture.get('nr_of_encoder_blocks')
+    nr_of_heads = dicBestArchitecture.get('nr_of_heads')
+    dropout_rate = dicBestArchitecture.get('dropout_rate')
+    nr_of_ffn_units_of_encoder = dicBestArchitecture.get(
+        'nr_of_ffn_units_of_encoder')
+    embedding_dims = dicBestArchitecture.get('embedding_dims')
+
+    oTunerOptimizer = keras_tuner.Hyperband(
+        optimizer_hypermodel(
+            nr_of_encoder_blocks,
+            nr_of_heads,
+            dropout_rate,
+            nr_of_ffn_units_of_encoder,
+            embedding_dims),
+        objective=[
+            keras_tuner.Objective('loss_mpp', direction='min'),
+            keras_tuner.Objective('loss_cl', direction='min'),
+        ],
+        directory=sLogsFolder,
+        project_name='optimizer'
+    )
+
+    oTunerOptimizer.search(
+        ds_train
+    )

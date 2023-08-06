@@ -3,6 +3,7 @@ FROM tensorflow/tensorflow:latest-gpu
 LABEL maintainer="yunusemremidilli@gmail.com"
 
 ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE 1
 
 COPY ./requirements.txt /tmp/requirements.txt
 

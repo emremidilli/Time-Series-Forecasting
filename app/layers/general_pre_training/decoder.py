@@ -2,6 +2,9 @@ import tensorflow as tf
 
 
 class MppDecoder(tf.keras.layers.Layer):
+    '''
+        Decoder for masked patch prediction task.
+    '''
 
     def __init__(self, iFfnUnits, iNrOfTimeSteps, **kwargs):
         super().__init__(**kwargs)
@@ -32,6 +35,7 @@ class MppDecoder(tf.keras.layers.Layer):
 
 
 class ProjectionHead(tf.keras.layers.Layer):
+    '''Projection head for contrastive learning task.'''
 
     def __init__(self, iFfnUnits, **kwargs):
         super().__init__(**kwargs)
