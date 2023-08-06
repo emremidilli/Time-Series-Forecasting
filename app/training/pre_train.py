@@ -1,8 +1,8 @@
 '''
     Trains a pre-training model for a univariate forecasting model.
-    loads training datasets
-    builds a pre-training model
-    trains and saves pre-training logs
+    Pre-training is done on training dataset.
+    But, it is performed on a small portion of the training dataset.
+    PRE_TRAIN_RATIO is used to select the pre-training dataset out of training dataset randomly.
 
     inputs:
         lb_train: (None, timesteps)
@@ -15,7 +15,6 @@ import sys
 import os
 import shutil
 
-# sys.path.append( '../')
 sys.path.append(os.path.join(sys.path[0], '..'))
 
 from settings import *
@@ -24,14 +23,16 @@ from models import *
 
 import numpy as np
 
-from keras.optimizers import Adam
+from sklearn.utils import resample
 
 if __name__ == '__main__':
 
     sChannel = 'EURUSD'
 
-    lb_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/lb_train.npy')[:128]
-    fc_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/fc_train.npy')[:128]
+    lb_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/lb_train.npy')
+    fc_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/fc_train.npy')
+
+    lb_train, fc_train = resample(lb_train, fc_train, n_samples= int(len(lb_train)*PRE_TRAIN_RATIO) ,random_state=1)
 
     oPreProcessor = PreProcessor(
         iPatchSize = PATCH_SIZE,
@@ -40,7 +41,7 @@ if __name__ == '__main__':
     )
     dist, tre,sea = oPreProcessor.pre_process((lb_train,fc_train))
 
-    ds_train = tf.data.Dataset.from_tensor_slices((dist, tre, sea)).batch(MINI_BATCH_SIZE)
+    ds_train = tf.data.Dataset.from_tensor_slices((dist, tre, sea)).batch(MINI_BATCH_SIZE).prefetch(tf.data.AUTOTUNE)
 
     oModel = PreTraining(
                  iNrOfEncoderBlocks = 2,
@@ -48,7 +49,7 @@ if __name__ == '__main__':
                  fDropoutRate = 0.10,
                  iEncoderFfnUnits = 32,
                  iEmbeddingDims = 32,
-                 iProjectionHeadUnits = 32,
+                 iProjectionHeadUnits = PROJECTION_HEAD,
                  iPatchSize = PATCH_SIZE,
                  fMskRate = MASK_RATE,
                  fMskScalar = MSK_SCALAR,
@@ -59,11 +60,11 @@ if __name__ == '__main__':
 
 
     oModel.compile(
-        masked_autoencoder_optimizer= Adam(
+        masked_autoencoder_optimizer= tf.keras.optimizers.Adam(
             learning_rate=1e-5,
             beta_1 = 0.85
         ),
-        contrastive_optimizer= Adam(
+        contrastive_optimizer= tf.keras.optimizers.Adam(
             learning_rate=1e-5,
             beta_1 = 0.85
         )
@@ -100,7 +101,7 @@ if __name__ == '__main__':
     oModel.fit(
         ds_train,
         epochs= 10 , #NR_OF_EPOCHS,
-        verbose=1,
+        verbose=2,
         # callbacks = [
         #     model_checkpoint_callback,
         #     csv_logger_callback,
@@ -109,7 +110,6 @@ if __name__ == '__main__':
     )
 
     print(oModel.summary())
-
 
     # oModel.save(
     #     sArtifactsDirectory,

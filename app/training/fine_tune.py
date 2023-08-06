@@ -4,8 +4,7 @@ from models.temporal_fusion_transformer import temporal_fusion_transformer
 
 from models.general_pre_training import general_pre_training
 
-from settings import QUANTILE_PREDICTION_DATA_FOLDER
-from settings import TARGET_QUANTILES
+from settings import *
 
 import numpy as np
 
@@ -53,10 +52,10 @@ if __name__ == '__main__':
     dataset = Dataset.from_tensor_slices((X_dist, X_tre, X_sea, X_tic, X_known, X_observed, X_static, Y))
     train_dataset, _ = split_dataset(
         dataset,
-        right_size = TEST_SIZE,
+        right_size = 350,
         shuffle = False
     )
-    train_dataset = train_dataset.batch(BATCH_SIZE)
+    train_dataset = train_dataset.batch(MINI_BATCH_SIZE)
 
     # process with pre-trained models
     oDisERT = general_pre_training()
