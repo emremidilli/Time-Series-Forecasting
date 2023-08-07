@@ -8,8 +8,8 @@ ARTIFACTS_FOLDER = f'{BIN_FOLDER}/04 - Artifacts'
 
 # hyperparameter tuning
 ARCHITECTURE_CONFIG = {
-    'nr_of_encoder_blocks': [2, 6, 1],
-    'nr_of_heads': [2, 16, 2],
+    'nr_of_encoder_blocks': [1, 6, 1],
+    'nr_of_heads': [2, 6, 1],
     'nr_of_ffn_units_of_encoder': [8, 128, 16],
     'embedding_dims': [8, 128, 16],
     'dropout_rate': [0.01, 0.9, 0.1]}
