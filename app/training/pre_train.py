@@ -27,7 +27,7 @@ from settings import TRAINING_DATA_FOLDER, PATCH_SIZE, \
     PATCH_SAMPLE_RATE, NR_OF_BINS, PRE_TRAIN_RATIO, MINI_BATCH_SIZE, \
     PROJECTION_HEAD, MASK_RATE, MSK_SCALAR, \
     NR_OF_LOOKBACK_PATCHES, NR_OF_FORECAST_PATCHES, \
-    ARTIFACTS_FOLDER
+    ARTIFACTS_FOLDER, NR_OF_EPOCHS
 
 from models import PreProcessor, PreTraining
 
@@ -81,53 +81,38 @@ if __name__ == '__main__':
     )
 
     sArtifactsDirectory = f'{ARTIFACTS_FOLDER}/{sChannel}/pre_train'
-
     shutil.rmtree(sArtifactsDirectory, ignore_errors=True)
     os.makedirs(sArtifactsDirectory)
 
-    # checkpoint_filepath = f'{sArtifactsDirectory}/tmp/checkpoint'
-    # model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-    #     filepath=checkpoint_filepath,
-    #     save_weights_only=True,
-    #     monitor='loss_cl',
-    #     mode='min',
-    #     save_best_only=True
-    #     )
+    class StopAtThreshold(tf.keras.callbacks.Callback):
+        def on_batch_end(self, batch, logs={}):
+            fMaeDist = logs.get('mae_dist')
+            fMaeTre = logs.get('mae_tre')
+            fMaeSea = logs.get('mae_sea')
+            if fMaeDist <= 0.01 and fMaeTre <= 0.01 and fMaeSea <= 0.01:
+                self.model.stop_training = True
+                print('Stopping because threshold is achived succesfully...')
 
-    # csv_logger_callback = tf.keras.callbacks.CSVLogger(
-    #     f'{sArtifactsDirectory}/logs.log',
-    #     separator=';',
-    #     append=True
-    # )
+    stop_at_thershold_callback = StopAtThreshold()
 
-    # class StopAtThreshold(tf.keras.callbacks.Callback):
-    #     def on_batch_end(self, batch, logs={}):
-    #         fMaeDist = logs.get('mae_dist')
-    #         fMaeTre = logs.get('mae_tre')
-    #         fMaeSea = logs.get('mae_sea')
-    #         if fMaeDist <= 0.05 and fMaeTre <= 0.05 and fMaeSea <= 0.05:
-    #             self.model.stop_training = True
-    #             print('Stopping because threshold is achived succesfully...')
-
-    # stop_at_thershold_callback = StopAtThreshold()
+    tensorboard_callback = tf.keras.callbacks.TensorBoard(
+        log_dir=f'{sArtifactsDirectory}/logs',
+        histogram_freq=1
+    )
 
     oModel.fit(
         ds_train,
-        epochs=10,  # NR_OF_EPOCHS,
+        epochs=NR_OF_EPOCHS,
         verbose=2,
-        # callbacks = [
-        #     model_checkpoint_callback,
-        #     csv_logger_callback,
-        #     stop_at_thershold_callback
-        # ]
+        callbacks=[
+            tensorboard_callback,
+            stop_at_thershold_callback
+        ]
     )
 
-    print(oModel.summary())
+    oModel.save(
+        sArtifactsDirectory,
+        overwrite=True,
+        save_format='tf')
 
-    # oModel.save(
-    #     sArtifactsDirectory,
-    #     overwrite = True,
-    #     save_format = 'tf'
-    #     )
-
-    # shutil.rmtree(model_checkpoint_callback, ignore_errors = True)
+    print('Training completed.')

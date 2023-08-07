@@ -8,6 +8,8 @@
         arguments of second phase.
     Both masked patch prediction and contrastive loss are set
         as objective of hyperparameter optimization.
+    Logs of tuning process are stored in a directory.
+    Tensorboard can be used later on to visualize the logs.
 '''
 import tensorflow as tf
 
@@ -177,70 +179,74 @@ class optimizer_hypermodel(keras_tuner.HyperModel):
 
 
 if __name__ == '__main__':
+    aChannels = os.listdir(TRAINING_DATA_FOLDER)
 
-    sChannel = 'EURUSD'
+    for sChannel in aChannels:
 
-    lb_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/lb_train.npy')
-    fc_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/fc_train.npy')
+        lb_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/lb_train.npy')
+        fc_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/fc_train.npy')
 
-    lb_train, fc_train = resample(
-        lb_train,
-        fc_train,
-        n_samples=int(len(lb_train) * PRE_TRAIN_RATIO),
-        random_state=1)
+        lb_train, fc_train = resample(
+            lb_train,
+            fc_train,
+            n_samples=int(len(lb_train) * PRE_TRAIN_RATIO),
+            random_state=1)
 
-    oPreProcessor = PreProcessor(
-        iPatchSize=PATCH_SIZE,
-        fPatchSampleRate=PATCH_SAMPLE_RATE,
-        iNrOfBins=NR_OF_BINS
-    )
-    dist, tre, sea = oPreProcessor.pre_process((lb_train, fc_train))
+        oPreProcessor = PreProcessor(
+            iPatchSize=PATCH_SIZE,
+            fPatchSampleRate=PATCH_SAMPLE_RATE,
+            iNrOfBins=NR_OF_BINS
+        )
+        dist, tre, sea = oPreProcessor.pre_process((lb_train, fc_train))
 
-    ds_train = tf.data.Dataset.from_tensor_slices(
-        (dist, tre, sea)).batch(MINI_BATCH_SIZE).prefetch(tf.data.AUTOTUNE)
+        ds_train = tf.data.Dataset.from_tensor_slices(
+            (dist, tre, sea)).batch(MINI_BATCH_SIZE).prefetch(tf.data.AUTOTUNE)
 
-    sLogsFolder = f'{HYPERPARAMETER_TUNING_FOLDER}/{sChannel}/pre_train'
-    shutil.rmtree(sLogsFolder, ignore_errors=True)
+        sLogsFolder = f'{HYPERPARAMETER_TUNING_FOLDER}/{sChannel}/pre_train'
+        shutil.rmtree(sLogsFolder, ignore_errors=True)
 
-    oTunerArchitecture = keras_tuner.Hyperband(
-        architectural_hypermodel(),
-        objective=[
-            keras_tuner.Objective('loss_mpp', direction='min'),
-            keras_tuner.Objective('loss_cl', direction='min'),
-        ],
-        directory=sLogsFolder,
-        project_name='architecture'
-    )
+        oTunerArchitecture = keras_tuner.Hyperband(
+            architectural_hypermodel(),
+            objective=[
+                keras_tuner.Objective('loss_mpp', direction='min'),
+                keras_tuner.Objective('loss_cl', direction='min'),
+            ],
+            directory=sLogsFolder,
+            project_name='architecture'
+        )
 
-    oTunerArchitecture.search(
-        ds_train
-    )
+        oTunerArchitecture.search(
+            ds_train
+        )
 
-    dicBestArchitecture = oTunerArchitecture.get_best_hyperparameters(
-        num_trials=1)[0]
+        dicBestArchitecture = oTunerArchitecture.get_best_hyperparameters(
+            num_trials=1)[0]
 
-    nr_of_encoder_blocks = dicBestArchitecture.get('nr_of_encoder_blocks')
-    nr_of_heads = dicBestArchitecture.get('nr_of_heads')
-    dropout_rate = dicBestArchitecture.get('dropout_rate')
-    nr_of_ffn_units_of_encoder = dicBestArchitecture.get(
-        'nr_of_ffn_units_of_encoder')
-    embedding_dims = dicBestArchitecture.get('embedding_dims')
+        nr_of_encoder_blocks = dicBestArchitecture.get('nr_of_encoder_blocks')
+        nr_of_heads = dicBestArchitecture.get('nr_of_heads')
+        dropout_rate = dicBestArchitecture.get('dropout_rate')
+        nr_of_ffn_units_of_encoder = dicBestArchitecture.get(
+            'nr_of_ffn_units_of_encoder')
+        embedding_dims = dicBestArchitecture.get('embedding_dims')
 
-    oTunerOptimizer = keras_tuner.Hyperband(
-        optimizer_hypermodel(
-            nr_of_encoder_blocks,
-            nr_of_heads,
-            dropout_rate,
-            nr_of_ffn_units_of_encoder,
-            embedding_dims),
-        objective=[
-            keras_tuner.Objective('loss_mpp', direction='min'),
-            keras_tuner.Objective('loss_cl', direction='min'),
-        ],
-        directory=sLogsFolder,
-        project_name='optimizer'
-    )
+        oTunerOptimizer = keras_tuner.Hyperband(
+            optimizer_hypermodel(
+                nr_of_encoder_blocks,
+                nr_of_heads,
+                dropout_rate,
+                nr_of_ffn_units_of_encoder,
+                embedding_dims),
+            objective=[
+                keras_tuner.Objective('loss_mpp', direction='min'),
+                keras_tuner.Objective('loss_cl', direction='min'),
+            ],
+            directory=sLogsFolder,
+            project_name='optimizer'
+        )
 
-    oTunerOptimizer.search(
-        ds_train
-    )
+        tensorboard_callback = tf.keras.callbacks.TensorBoard(
+            f'{sLogsFolder}/logs')
+        oTunerOptimizer.search(
+            ds_train,
+            callbacks=[tensorboard_callback]
+        )
