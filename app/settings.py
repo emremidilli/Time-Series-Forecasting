@@ -15,7 +15,8 @@ ARCHITECTURE_CONFIG = {
     'dropout_rate': [0.01, 0.9, 0.1]}
 OPTIMIZER_CONFIG = {
     'learning_rate': [0.0001, 0.01, 0.001],
-    'momentum_rate': [0.1, 0.9, 0.1]}
+    'beta_1': [0.1, 0.999, 0.1],
+    'beta_2': [0.1, 0.999, 0.1]}
 
 # architectures
 PROJECTION_HEAD = 32

@@ -95,11 +95,13 @@ class architectural_hypermodel(keras_tuner.HyperModel):
         oModel.compile(
             masked_autoencoder_optimizer=tf.keras.optimizers.Adam(
                 learning_rate=OPTIMIZER_CONFIG['learning_rate'][0],
-                beta_1=OPTIMIZER_CONFIG['momentum_rate'][0]
+                beta_1=OPTIMIZER_CONFIG['beta_1'][0],
+                beta_2=OPTIMIZER_CONFIG['beta_2'][0]
             ),
             contrastive_optimizer=tf.keras.optimizers.Adam(
                 learning_rate=OPTIMIZER_CONFIG['learning_rate'][0],
-                beta_1=OPTIMIZER_CONFIG['momentum_rate'][0]
+                beta_1=OPTIMIZER_CONFIG['beta_1'][0],
+                beta_2=OPTIMIZER_CONFIG['beta_2'][0]
             )
         )
 
@@ -136,11 +138,18 @@ class optimizer_hypermodel(keras_tuner.HyperModel):
             step=OPTIMIZER_CONFIG['learning_rate'][2]
         )
 
-        momentum_rate = hp.Float(
-            name='momentum_rate',
-            min_value=OPTIMIZER_CONFIG['momentum_rate'][0],
-            max_value=OPTIMIZER_CONFIG['momentum_rate'][1],
-            step=OPTIMIZER_CONFIG['momentum_rate'][2]
+        beta_1 = hp.Float(
+            name='beta_1',
+            min_value=OPTIMIZER_CONFIG['beta_1'][0],
+            max_value=OPTIMIZER_CONFIG['beta_1'][1],
+            step=OPTIMIZER_CONFIG['beta_1'][2]
+        )
+
+        beta_2 = hp.Float(
+            name='beta_2',
+            min_value=OPTIMIZER_CONFIG['beta_2'][0],
+            max_value=OPTIMIZER_CONFIG['beta_2'][1],
+            step=OPTIMIZER_CONFIG['beta_2'][2]
         )
 
         oModel = PreTraining(
@@ -161,11 +170,13 @@ class optimizer_hypermodel(keras_tuner.HyperModel):
         oModel.compile(
             masked_autoencoder_optimizer=tf.keras.optimizers.Adam(
                 learning_rate=learning_rate,
-                beta_1=momentum_rate
+                beta_1=beta_1,
+                beta_2=beta_2
             ),
             contrastive_optimizer=tf.keras.optimizers.Adam(
                 learning_rate=learning_rate,
-                beta_1=momentum_rate
+                beta_1=beta_1,
+                beta_2=beta_2
             )
         )
 
@@ -215,8 +226,11 @@ if __name__ == '__main__':
             project_name='architecture'
         )
 
+        tensorboard_callback = tf.keras.callbacks.TensorBoard(
+            f'{sLogsFolder}/architecture/logs')
         oTunerArchitecture.search(
-            ds_train
+            ds_train,
+            callbacks=[tensorboard_callback]
         )
 
         dicBestArchitecture = oTunerArchitecture.get_best_hyperparameters(
@@ -245,7 +259,7 @@ if __name__ == '__main__':
         )
 
         tensorboard_callback = tf.keras.callbacks.TensorBoard(
-            f'{sLogsFolder}/logs')
+            f'{sLogsFolder}/optimizer/logs')
         oTunerOptimizer.search(
             ds_train,
             callbacks=[tensorboard_callback]
