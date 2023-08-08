@@ -14,7 +14,7 @@ ARCHITECTURE_CONFIG = {
     'embedding_dims': [8, 128, 16],
     'dropout_rate': [0.01, 0.9, 0.1]}
 OPTIMIZER_CONFIG = {
-    'learning_rate': [0.0001, 0.01, 0.001],
+    'learning_rate': [1e-5, 1e-2, 1e-3],
     'beta_1': [0.1, 0.999, 0.1],
     'beta_2': [0.1, 0.999, 0.1]}
 

@@ -95,14 +95,10 @@ class architectural_hypermodel(keras_tuner.HyperModel):
 
         oModel.compile(
             masked_autoencoder_optimizer=tf.keras.optimizers.Adam(
-                learning_rate=OPTIMIZER_CONFIG['learning_rate'][0],
-                beta_1=OPTIMIZER_CONFIG['beta_1'][0],
-                beta_2=OPTIMIZER_CONFIG['beta_2'][0]
+                learning_rate=OPTIMIZER_CONFIG['learning_rate'][0]
             ),
             contrastive_optimizer=tf.keras.optimizers.Adam(
-                learning_rate=OPTIMIZER_CONFIG['learning_rate'][0],
-                beta_1=OPTIMIZER_CONFIG['beta_1'][0],
-                beta_2=OPTIMIZER_CONFIG['beta_2'][0]
+                learning_rate=OPTIMIZER_CONFIG['learning_rate'][0]
             )
         )
 
