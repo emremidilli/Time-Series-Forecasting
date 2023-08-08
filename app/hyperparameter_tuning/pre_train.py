@@ -238,7 +238,7 @@ if __name__ == '__main__':
             f'{sLogsFolder}/architecture/logs')
         oTunerArchitecture.search(
             ds_train,
-            callbacks=[tensorboard_callback]
+            # callbacks=[tensorboard_callback]
         )
 
         dicBestArchitecture = oTunerArchitecture.get_best_hyperparameters(
@@ -270,5 +270,5 @@ if __name__ == '__main__':
             f'{sLogsFolder}/optimizer/logs')
         oTunerOptimizer.search(
             ds_train,
-            callbacks=[tensorboard_callback]
+            # callbacks=[tensorboard_callback]
         )
