@@ -10,8 +10,8 @@ ARTIFACTS_FOLDER = f'{BIN_FOLDER}/04 - Artifacts'
 ARCHITECTURE_CONFIG = {
     'nr_of_encoder_blocks': [1, 6, 1],
     'nr_of_heads': [2, 6, 1],
-    'nr_of_ffn_units_of_encoder': [8, 128, 16],
-    'embedding_dims': [8, 128, 16],
+    'nr_of_ffn_units_of_encoder': [16, 128, 16],
+    'embedding_dims': [16, 128, 16],
     'dropout_rate': [0.01, 0.9, 0.1]}
 OPTIMIZER_CONFIG = {
     'learning_rate': [1e-5, 1e-2, 1e-3],

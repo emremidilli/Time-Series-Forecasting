@@ -41,82 +41,74 @@ from models.pre_training import PreTraining
 from models.pre_processing import PreProcessor
 
 
-class architectural_hypermodel(keras_tuner.HyperModel):
+def build_model_for_architecture(hp):
     '''
         Used to tune only the architectural hyperparameters.
         Optimzer hyperparaters are kept constant at their minimum level.
     '''
+    backend.clear_session()
+    gc.collect()
 
-    def build(self, hp):
-        backend.clear_session()
-        gc.collect()
+    nr_of_encoder_blocks = hp.Int(
+        name='nr_of_encoder_blocks',
+        min_value=ARCHITECTURE_CONFIG['nr_of_encoder_blocks'][0],
+        max_value=ARCHITECTURE_CONFIG['nr_of_encoder_blocks'][1],
+        step=ARCHITECTURE_CONFIG['nr_of_encoder_blocks'][2]
+    )
 
-        nr_of_encoder_blocks = hp.Int(
-            name='nr_of_encoder_blocks',
-            min_value=ARCHITECTURE_CONFIG['nr_of_encoder_blocks'][0],
-            max_value=ARCHITECTURE_CONFIG['nr_of_encoder_blocks'][1],
-            step=ARCHITECTURE_CONFIG['nr_of_encoder_blocks'][2]
+    nr_of_heads = hp.Int(
+        name='nr_of_heads',
+        min_value=ARCHITECTURE_CONFIG['nr_of_heads'][0],
+        max_value=ARCHITECTURE_CONFIG['nr_of_heads'][1],
+        step=ARCHITECTURE_CONFIG['nr_of_heads'][2]
+    )
+
+    nr_of_ffn_units_of_encoder = hp.Int(
+        name='nr_of_ffn_units_of_encoder',
+        min_value=ARCHITECTURE_CONFIG['nr_of_ffn_units_of_encoder'][0],
+        max_value=ARCHITECTURE_CONFIG['nr_of_ffn_units_of_encoder'][1],
+        step=ARCHITECTURE_CONFIG['nr_of_ffn_units_of_encoder'][2]
+    )
+
+    embedding_dims = hp.Int(
+        name='embedding_dims',
+        min_value=ARCHITECTURE_CONFIG['embedding_dims'][0],
+        max_value=ARCHITECTURE_CONFIG['embedding_dims'][1],
+        step=ARCHITECTURE_CONFIG['embedding_dims'][2]
+    )
+
+    dropout_rate = hp.Float(
+        name='dropout_rate',
+        min_value=ARCHITECTURE_CONFIG['dropout_rate'][0],
+        max_value=ARCHITECTURE_CONFIG['dropout_rate'][1],
+        step=ARCHITECTURE_CONFIG['dropout_rate'][2]
+    )
+
+    oModel = PreTraining(
+        iNrOfEncoderBlocks=nr_of_encoder_blocks,
+        iNrOfHeads=nr_of_heads,
+        fDropoutRate=dropout_rate,
+        iEncoderFfnUnits=nr_of_ffn_units_of_encoder,
+        iEmbeddingDims=embedding_dims,
+        iProjectionHeadUnits=PROJECTION_HEAD,
+        iPatchSize=PATCH_SIZE,
+        fMskRate=MASK_RATE,
+        fMskScalar=MSK_SCALAR,
+        iNrOfBins=NR_OF_BINS,
+        iNrOfLookbackPatches=NR_OF_LOOKBACK_PATCHES,
+        iNrOfForecastPatches=NR_OF_FORECAST_PATCHES
+    )
+
+    oModel.compile(
+        masked_autoencoder_optimizer=tf.keras.optimizers.Adam(
+            learning_rate=OPTIMIZER_CONFIG['learning_rate'][0]
+        ),
+        contrastive_optimizer=tf.keras.optimizers.Adam(
+            learning_rate=OPTIMIZER_CONFIG['learning_rate'][0]
         )
+    )
 
-        nr_of_heads = hp.Int(
-            name='nr_of_heads',
-            min_value=ARCHITECTURE_CONFIG['nr_of_heads'][0],
-            max_value=ARCHITECTURE_CONFIG['nr_of_heads'][1],
-            step=ARCHITECTURE_CONFIG['nr_of_heads'][2]
-        )
-
-        nr_of_ffn_units_of_encoder = hp.Int(
-            name='nr_of_ffn_units_of_encoder',
-            min_value=ARCHITECTURE_CONFIG['nr_of_ffn_units_of_encoder'][0],
-            max_value=ARCHITECTURE_CONFIG['nr_of_ffn_units_of_encoder'][1],
-            step=ARCHITECTURE_CONFIG['nr_of_ffn_units_of_encoder'][2]
-        )
-
-        embedding_dims = hp.Int(
-            name='embedding_dims',
-            min_value=ARCHITECTURE_CONFIG['embedding_dims'][0],
-            max_value=ARCHITECTURE_CONFIG['embedding_dims'][1],
-            step=ARCHITECTURE_CONFIG['embedding_dims'][2]
-        )
-
-        dropout_rate = hp.Float(
-            name='dropout_rate',
-            min_value=ARCHITECTURE_CONFIG['dropout_rate'][0],
-            max_value=ARCHITECTURE_CONFIG['dropout_rate'][1],
-            step=ARCHITECTURE_CONFIG['dropout_rate'][2]
-        )
-
-        oModel = PreTraining(
-            iNrOfEncoderBlocks=nr_of_encoder_blocks,
-            iNrOfHeads=nr_of_heads,
-            fDropoutRate=dropout_rate,
-            iEncoderFfnUnits=nr_of_ffn_units_of_encoder,
-            iEmbeddingDims=embedding_dims,
-            iProjectionHeadUnits=PROJECTION_HEAD,
-            iPatchSize=PATCH_SIZE,
-            fMskRate=MASK_RATE,
-            fMskScalar=MSK_SCALAR,
-            iNrOfBins=NR_OF_BINS,
-            iNrOfLookbackPatches=NR_OF_LOOKBACK_PATCHES,
-            iNrOfForecastPatches=NR_OF_FORECAST_PATCHES
-        )
-
-        oModel.compile(
-            masked_autoencoder_optimizer=tf.keras.optimizers.Adam(
-                learning_rate=OPTIMIZER_CONFIG['learning_rate'][0]
-            ),
-            contrastive_optimizer=tf.keras.optimizers.Adam(
-                learning_rate=OPTIMIZER_CONFIG['learning_rate'][0]
-            )
-        )
-
-        return oModel
-
-    def fit(self, hp, model, *args, **kwargs):
-        return model.fit(
-            *args,
-            **kwargs,
-        )
+    return oModel
 
 
 class optimizer_hypermodel(keras_tuner.HyperModel):
@@ -225,7 +217,7 @@ if __name__ == '__main__':
         shutil.rmtree(sLogsFolder, ignore_errors=True)
 
         oTunerArchitecture = keras_tuner.Hyperband(
-            architectural_hypermodel(),
+            build_model_for_architecture,
             objective=[
                 keras_tuner.Objective('loss_mpp', direction='min'),
                 keras_tuner.Objective('loss_cl', direction='min'),
@@ -238,7 +230,7 @@ if __name__ == '__main__':
             f'{sLogsFolder}/architecture/logs')
         oTunerArchitecture.search(
             ds_train,
-            # callbacks=[tensorboard_callback]
+            callbacks=[tensorboard_callback]
         )
 
         dicBestArchitecture = oTunerArchitecture.get_best_hyperparameters(
@@ -270,5 +262,5 @@ if __name__ == '__main__':
             f'{sLogsFolder}/optimizer/logs')
         oTunerOptimizer.search(
             ds_train,
-            # callbacks=[tensorboard_callback]
+            callbacks=[tensorboard_callback]
         )
