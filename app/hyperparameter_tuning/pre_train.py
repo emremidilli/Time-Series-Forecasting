@@ -41,6 +41,7 @@ class architectural_hypermodel(keras_tuner.HyperModel):
     '''
 
     def build(self, hp):
+        tf.keras.backend.clear_session()
 
         nr_of_encoder_blocks = hp.Int(
             name='nr_of_encoder_blocks',
@@ -131,6 +132,8 @@ class optimizer_hypermodel(keras_tuner.HyperModel):
         self.embedding_dims = embedding_dims
 
     def build(self, hp):
+        tf.keras.backend.clear_session()
+
         learning_rate = hp.Float(
             name='learning_rate',
             min_value=OPTIMIZER_CONFIG['learning_rate'][0],
