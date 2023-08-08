@@ -11,19 +11,24 @@
     Logs of tuning process are stored in a directory.
     Tensorboard can be used later on to visualize the logs.
 '''
-import tensorflow as tf
-
-import numpy as np
+import gc
 
 from keras import backend as backend
 
 import keras_tuner
 
-from sklearn.utils import resample
+import numpy as np
 
 import os
-import sys
+
 import shutil
+
+from sklearn.utils import resample
+
+import sys
+
+import tensorflow as tf
+
 sys.path.append(os.path.join(sys.path[0], '..'))
 
 from settings import TRAINING_DATA_FOLDER, PATCH_SIZE, \
@@ -44,6 +49,7 @@ class architectural_hypermodel(keras_tuner.HyperModel):
 
     def build(self, hp):
         backend.clear_session()
+        gc.collect()
 
         nr_of_encoder_blocks = hp.Int(
             name='nr_of_encoder_blocks',
@@ -131,6 +137,7 @@ class optimizer_hypermodel(keras_tuner.HyperModel):
 
     def build(self, hp):
         backend.clear_session()
+        gc.collect()
 
         learning_rate = hp.Float(
             name='learning_rate',
