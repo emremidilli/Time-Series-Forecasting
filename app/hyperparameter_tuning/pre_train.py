@@ -48,6 +48,10 @@ def build_model_for_architecture(hp):
     '''
     backend.clear_session()
     gc.collect()
+    try:
+        del oModel  # noqa F821
+    except:  # noqa E722
+        pass
 
     nr_of_encoder_blocks = hp.Int(
         name='nr_of_encoder_blocks',
