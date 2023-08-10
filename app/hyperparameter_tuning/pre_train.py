@@ -41,78 +41,89 @@ from models.pre_training import PreTraining
 from models.pre_processing import PreProcessor
 
 
-def build_model_for_architecture(hp):
-    '''
-        Used to tune only the architectural hyperparameters.
-        Optimzer hyperparaters are kept constant at their minimum level.
-    '''
-    backend.clear_session()
-    gc.collect()
-    try:
-        del oModel  # noqa F821
-    except:  # noqa E722
-        pass
+class architecture_hypermodel(keras_tuner.HyperModel):
 
-    nr_of_encoder_blocks = hp.Int(
-        name='nr_of_encoder_blocks',
-        min_value=ARCHITECTURE_CONFIG['nr_of_encoder_blocks'][0],
-        max_value=ARCHITECTURE_CONFIG['nr_of_encoder_blocks'][1],
-        step=ARCHITECTURE_CONFIG['nr_of_encoder_blocks'][2]
-    )
+    def run_trial(self, trial, *args, **kwargs):
+        hp = trial.hyperparameters
+        model = self.hypermodel.build(hp)
+        to_return = self.hypermodel.fit(hp, model, *args, **kwargs)
 
-    nr_of_heads = hp.Int(
-        name='nr_of_heads',
-        min_value=ARCHITECTURE_CONFIG['nr_of_heads'][0],
-        max_value=ARCHITECTURE_CONFIG['nr_of_heads'][1],
-        step=ARCHITECTURE_CONFIG['nr_of_heads'][2]
-    )
+        delattr(self, "hypermodel")
 
-    nr_of_ffn_units_of_encoder = hp.Int(
-        name='nr_of_ffn_units_of_encoder',
-        min_value=ARCHITECTURE_CONFIG['nr_of_ffn_units_of_encoder'][0],
-        max_value=ARCHITECTURE_CONFIG['nr_of_ffn_units_of_encoder'][1],
-        step=ARCHITECTURE_CONFIG['nr_of_ffn_units_of_encoder'][2]
-    )
+        return to_return
 
-    embedding_dims = hp.Int(
-        name='embedding_dims',
-        min_value=ARCHITECTURE_CONFIG['embedding_dims'][0],
-        max_value=ARCHITECTURE_CONFIG['embedding_dims'][1],
-        step=ARCHITECTURE_CONFIG['embedding_dims'][2]
-    )
+    def build(self, hp):
+        '''
+            Used to tune only the architectural hyperparameters.
+            Optimizer hyperparaters are kept constant at their minimum level.
+        '''
+        backend.clear_session()
+        gc.collect()
+        try:
+            del oModel  # noqa F821
+        except:  # noqa E722
+            pass
 
-    dropout_rate = hp.Float(
-        name='dropout_rate',
-        min_value=ARCHITECTURE_CONFIG['dropout_rate'][0],
-        max_value=ARCHITECTURE_CONFIG['dropout_rate'][1],
-        step=ARCHITECTURE_CONFIG['dropout_rate'][2]
-    )
-
-    oModel = PreTraining(
-        iNrOfEncoderBlocks=nr_of_encoder_blocks,
-        iNrOfHeads=nr_of_heads,
-        fDropoutRate=dropout_rate,
-        iEncoderFfnUnits=nr_of_ffn_units_of_encoder,
-        iEmbeddingDims=embedding_dims,
-        iProjectionHeadUnits=PROJECTION_HEAD,
-        iPatchSize=PATCH_SIZE,
-        fMskRate=MASK_RATE,
-        fMskScalar=MSK_SCALAR,
-        iNrOfBins=NR_OF_BINS,
-        iNrOfLookbackPatches=NR_OF_LOOKBACK_PATCHES,
-        iNrOfForecastPatches=NR_OF_FORECAST_PATCHES
-    )
-
-    oModel.compile(
-        masked_autoencoder_optimizer=tf.keras.optimizers.Adam(
-            learning_rate=OPTIMIZER_CONFIG['learning_rate'][0]
-        ),
-        contrastive_optimizer=tf.keras.optimizers.Adam(
-            learning_rate=OPTIMIZER_CONFIG['learning_rate'][0]
+        nr_of_encoder_blocks = hp.Int(
+            name='nr_of_encoder_blocks',
+            min_value=ARCHITECTURE_CONFIG['nr_of_encoder_blocks'][0],
+            max_value=ARCHITECTURE_CONFIG['nr_of_encoder_blocks'][1],
+            step=ARCHITECTURE_CONFIG['nr_of_encoder_blocks'][2]
         )
-    )
 
-    return oModel
+        nr_of_heads = hp.Int(
+            name='nr_of_heads',
+            min_value=ARCHITECTURE_CONFIG['nr_of_heads'][0],
+            max_value=ARCHITECTURE_CONFIG['nr_of_heads'][1],
+            step=ARCHITECTURE_CONFIG['nr_of_heads'][2]
+        )
+
+        nr_of_ffn_units_of_encoder = hp.Int(
+            name='nr_of_ffn_units_of_encoder',
+            min_value=ARCHITECTURE_CONFIG['nr_of_ffn_units_of_encoder'][0],
+            max_value=ARCHITECTURE_CONFIG['nr_of_ffn_units_of_encoder'][1],
+            step=ARCHITECTURE_CONFIG['nr_of_ffn_units_of_encoder'][2]
+        )
+
+        embedding_dims = hp.Int(
+            name='embedding_dims',
+            min_value=ARCHITECTURE_CONFIG['embedding_dims'][0],
+            max_value=ARCHITECTURE_CONFIG['embedding_dims'][1],
+            step=ARCHITECTURE_CONFIG['embedding_dims'][2]
+        )
+
+        dropout_rate = hp.Float(
+            name='dropout_rate',
+            min_value=ARCHITECTURE_CONFIG['dropout_rate'][0],
+            max_value=ARCHITECTURE_CONFIG['dropout_rate'][1],
+            step=ARCHITECTURE_CONFIG['dropout_rate'][2]
+        )
+
+        oModel = PreTraining(
+            iNrOfEncoderBlocks=nr_of_encoder_blocks,
+            iNrOfHeads=nr_of_heads,
+            fDropoutRate=dropout_rate,
+            iEncoderFfnUnits=nr_of_ffn_units_of_encoder,
+            iEmbeddingDims=embedding_dims,
+            iProjectionHeadUnits=PROJECTION_HEAD,
+            iPatchSize=PATCH_SIZE,
+            fMskRate=MASK_RATE,
+            fMskScalar=MSK_SCALAR,
+            iNrOfBins=NR_OF_BINS,
+            iNrOfLookbackPatches=NR_OF_LOOKBACK_PATCHES,
+            iNrOfForecastPatches=NR_OF_FORECAST_PATCHES
+        )
+
+        oModel.compile(
+            masked_autoencoder_optimizer=tf.keras.optimizers.Adam(
+                learning_rate=OPTIMIZER_CONFIG['learning_rate'][0]
+            ),
+            contrastive_optimizer=tf.keras.optimizers.Adam(
+                learning_rate=OPTIMIZER_CONFIG['learning_rate'][0]
+            )
+        )
+
+        return oModel
 
 
 class optimizer_hypermodel(keras_tuner.HyperModel):
@@ -221,7 +232,7 @@ if __name__ == '__main__':
         shutil.rmtree(sLogsFolder, ignore_errors=True)
 
         oTunerArchitecture = keras_tuner.Hyperband(
-            build_model_for_architecture,
+            architecture_hypermodel,
             objective=[
                 keras_tuner.Objective('loss_mpp', direction='min'),
                 keras_tuner.Objective('loss_cl', direction='min'),
