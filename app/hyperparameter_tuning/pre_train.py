@@ -13,9 +13,7 @@
 '''
 import gc
 
-from keras import backend as backend
-
-import keras_tuner
+import keras_tuner as kt
 
 import numpy as np
 
@@ -31,38 +29,53 @@ import tensorflow as tf
 
 sys.path.append(os.path.join(sys.path[0], '..'))
 
+from models.pre_training import PreTraining
+from models.pre_processing import PreProcessor
 from settings import TRAINING_DATA_FOLDER, PATCH_SIZE, \
     PRE_TRAIN_RATIO, NR_OF_BINS, PATCH_SAMPLE_RATE, MINI_BATCH_SIZE, \
     HYPERPARAMETER_TUNING_FOLDER, \
     OPTIMIZER_CONFIG, ARCHITECTURE_CONFIG, \
     PROJECTION_HEAD, MASK_RATE, MSK_SCALAR, \
     NR_OF_LOOKBACK_PATCHES, NR_OF_FORECAST_PATCHES
-from models.pre_training import PreTraining
-from models.pre_processing import PreProcessor
 
 
-class architecture_hypermodel(keras_tuner.HyperModel):
+class HyperbandTuner(kt.Hyperband):
+    '''
+        Tunes hyperparameters by Hyperband algorithm without saving callbacks.
+        Original Hyperband class is saving callbacks.
+        It causes out-of-memory issue during hyperparameter search.
+        In this context, Hyperband class is overriden.
+        Callback saving is disregarded.
+    '''
+
+    def __init__(self, hypermodel, **kwargs):
+        super().__init__(hypermodel, **kwargs)
 
     def run_trial(self, trial, *args, **kwargs):
+        '''
+            At the beginning it clears sessions and runs garbage collector
+                to avoid memory issue of trainings in loop.
+        '''
+        tf.keras.backend.clear_session()
+        gc.collect()
+        tf.compat.v1.reset_default_graph()
+
         hp = trial.hyperparameters
         model = self.hypermodel.build(hp)
         to_return = self.hypermodel.fit(hp, model, *args, **kwargs)
-
-        delattr(self, "hypermodel")
-
+        del model
         return to_return
+
+
+class architecture_hypermodel(kt.HyperModel):
+    def __init__(self):
+        super().__init__()
 
     def build(self, hp):
         '''
             Used to tune only the architectural hyperparameters.
             Optimizer hyperparaters are kept constant at their minimum level.
         '''
-        backend.clear_session()
-        gc.collect()
-        try:
-            del oModel  # noqa F821
-        except:  # noqa E722
-            pass
 
         nr_of_encoder_blocks = hp.Int(
             name='nr_of_encoder_blocks',
@@ -99,7 +112,7 @@ class architecture_hypermodel(keras_tuner.HyperModel):
             step=ARCHITECTURE_CONFIG['dropout_rate'][2]
         )
 
-        oModel = PreTraining(
+        model = PreTraining(
             iNrOfEncoderBlocks=nr_of_encoder_blocks,
             iNrOfHeads=nr_of_heads,
             fDropoutRate=dropout_rate,
@@ -114,7 +127,7 @@ class architecture_hypermodel(keras_tuner.HyperModel):
             iNrOfForecastPatches=NR_OF_FORECAST_PATCHES
         )
 
-        oModel.compile(
+        model.compile(
             masked_autoencoder_optimizer=tf.keras.optimizers.Adam(
                 learning_rate=OPTIMIZER_CONFIG['learning_rate'][0]
             ),
@@ -123,10 +136,10 @@ class architecture_hypermodel(keras_tuner.HyperModel):
             )
         )
 
-        return oModel
+        return model
 
 
-class optimizer_hypermodel(keras_tuner.HyperModel):
+class optimizer_hypermodel(kt.HyperModel):
     '''
         To tune only optimizer hyperparameters.
         Architectural hyperparameters are taken as arguments.
@@ -143,8 +156,6 @@ class optimizer_hypermodel(keras_tuner.HyperModel):
         self.embedding_dims = embedding_dims
 
     def build(self, hp):
-        backend.clear_session()
-        gc.collect()
 
         learning_rate = hp.Float(
             name='learning_rate',
@@ -167,7 +178,7 @@ class optimizer_hypermodel(keras_tuner.HyperModel):
             step=OPTIMIZER_CONFIG['beta_2'][2]
         )
 
-        oModel = PreTraining(
+        model = PreTraining(
             iNrOfEncoderBlocks=self.nr_of_encoder_blocks,
             iNrOfHeads=self.nr_of_heads,
             fDropoutRate=self.dropout_rate,
@@ -182,7 +193,7 @@ class optimizer_hypermodel(keras_tuner.HyperModel):
             iNrOfForecastPatches=NR_OF_FORECAST_PATCHES
         )
 
-        oModel.compile(
+        model.compile(
             masked_autoencoder_optimizer=tf.keras.optimizers.Adam(
                 learning_rate=learning_rate,
                 beta_1=beta_1,
@@ -195,7 +206,7 @@ class optimizer_hypermodel(keras_tuner.HyperModel):
             )
         )
 
-        return oModel
+        return model
 
     def fit(self, hp, model, *args, **kwargs):
         return model.fit(
@@ -231,11 +242,11 @@ if __name__ == '__main__':
         sLogsFolder = f'{HYPERPARAMETER_TUNING_FOLDER}/{sChannel}/pre_train'
         shutil.rmtree(sLogsFolder, ignore_errors=True)
 
-        oTunerArchitecture = keras_tuner.Hyperband(
-            architecture_hypermodel,
+        oTunerArchitecture = HyperbandTuner(
+            architecture_hypermodel(),
             objective=[
-                keras_tuner.Objective('loss_mpp', direction='min'),
-                keras_tuner.Objective('loss_cl', direction='min'),
+                kt.Objective('loss_mpp', direction='min'),
+                kt.Objective('loss_cl', direction='min'),
             ],
             directory=sLogsFolder,
             project_name='architecture'
@@ -245,7 +256,7 @@ if __name__ == '__main__':
             f'{sLogsFolder}/architecture/logs')
         oTunerArchitecture.search(
             ds_train,
-            callbacks=[tensorboard_callback]
+            # callbacks=[tensorboard_callback]
         )
 
         dicBestArchitecture = oTunerArchitecture.get_best_hyperparameters(
@@ -258,7 +269,7 @@ if __name__ == '__main__':
             'nr_of_ffn_units_of_encoder')
         embedding_dims = dicBestArchitecture.get('embedding_dims')
 
-        oTunerOptimizer = keras_tuner.Hyperband(
+        oTunerOptimizer = HyperbandTuner(
             optimizer_hypermodel(
                 nr_of_encoder_blocks,
                 nr_of_heads,
@@ -266,8 +277,8 @@ if __name__ == '__main__':
                 nr_of_ffn_units_of_encoder,
                 embedding_dims),
             objective=[
-                keras_tuner.Objective('loss_mpp', direction='min'),
-                keras_tuner.Objective('loss_cl', direction='min'),
+                kt.Objective('loss_mpp', direction='min'),
+                kt.Objective('loss_cl', direction='min'),
             ],
             directory=sLogsFolder,
             project_name='optimizer'
@@ -277,5 +288,5 @@ if __name__ == '__main__':
             f'{sLogsFolder}/optimizer/logs')
         oTunerOptimizer.search(
             ds_train,
-            callbacks=[tensorboard_callback]
+            # callbacks=[tensorboard_callback]
         )

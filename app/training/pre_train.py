@@ -27,14 +27,22 @@ from settings import TRAINING_DATA_FOLDER, PATCH_SIZE, \
     PATCH_SAMPLE_RATE, NR_OF_BINS, PRE_TRAIN_RATIO, MINI_BATCH_SIZE, \
     PROJECTION_HEAD, MASK_RATE, MSK_SCALAR, \
     NR_OF_LOOKBACK_PATCHES, NR_OF_FORECAST_PATCHES, \
-    ARTIFACTS_FOLDER, NR_OF_EPOCHS
+    ARTIFACTS_FOLDER, NR_OF_EPOCHS, \
+    NR_OF_ENCODER_BLOCKS, NR_OF_HEADS, \
+    DROPOUT_RATE, ENCODER_FFN_UNITS, EMBEDDING_DIMS, \
+    LEARNING_RATE, BETA_1, BETA_2
 
 from models import PreProcessor, PreTraining
 
 
 if __name__ == '__main__':
+    '''
+        Pre-trains a given channel.
+        Training logs are saved in tensorboard.
+        Final model is saved.
+    '''
 
-    sChannel = 'EURUSD'
+    sChannel = sys.argv[1]
 
     lb_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/lb_train.npy')
     fc_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/fc_train.npy')
@@ -56,11 +64,11 @@ if __name__ == '__main__':
         MINI_BATCH_SIZE).prefetch(tf.data.AUTOTUNE)
 
     oModel = PreTraining(
-        iNrOfEncoderBlocks=2,
-        iNrOfHeads=2,
-        fDropoutRate=0.10,
-        iEncoderFfnUnits=32,
-        iEmbeddingDims=32,
+        iNrOfEncoderBlocks=NR_OF_ENCODER_BLOCKS,
+        iNrOfHeads=NR_OF_HEADS,
+        fDropoutRate=DROPOUT_RATE,
+        iEncoderFfnUnits=ENCODER_FFN_UNITS,
+        iEmbeddingDims=EMBEDDING_DIMS,
         iProjectionHeadUnits=PROJECTION_HEAD,
         iPatchSize=PATCH_SIZE,
         fMskRate=MASK_RATE,
@@ -71,12 +79,14 @@ if __name__ == '__main__':
 
     oModel.compile(
         masked_autoencoder_optimizer=tf.keras.optimizers.Adam(
-            learning_rate=1e-5,
-            beta_1=0.85
+            learning_rate=LEARNING_RATE,
+            beta_1=BETA_1,
+            beta_2=BETA_2
         ),
         contrastive_optimizer=tf.keras.optimizers.Adam(
-            learning_rate=1e-5,
-            beta_1=0.85
+            learning_rate=LEARNING_RATE,
+            beta_1=BETA_1,
+            beta_2=BETA_2
         )
     )
 

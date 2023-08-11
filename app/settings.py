@@ -19,7 +19,17 @@ OPTIMIZER_CONFIG = {
     'beta_2': [0.1, 0.999, 0.1]}
 
 # architectures
+NR_OF_ENCODER_BLOCKS = 4
+NR_OF_HEADS = 8
+DROPOUT_RATE = 0.10
+ENCODER_FFN_UNITS = 32
+EMBEDDING_DIMS = 64
 PROJECTION_HEAD = 32
+
+# optimizers
+LEARNING_RATE = 1e-5
+BETA_1 = 0.90
+BETA_2 = 0.99
 
 # fine tuning parameters
 DATETIME_FEATURES = ['month', 'day', 'dayofweek', 'hour', 'minute']
