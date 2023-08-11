@@ -14,3 +14,5 @@ RUN pip install --upgrade pip && \
     rm -rf /tmp/requirements.txt
 
 WORKDIR /scripts
+
+CMD ["sh", "pre_train.sh"]
