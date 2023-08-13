@@ -12,4 +12,4 @@ services:
             count: 1
             capabilities: [gpu]
     volumes:
-       - ../TSF-bin:/TSF-bin
+       - ../tsf-bin:/tsf-bin

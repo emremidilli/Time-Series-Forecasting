@@ -13,6 +13,8 @@ import argparse
 
 from io import BytesIO
 
+import hypertune
+
 import numpy as np
 
 import os
@@ -45,9 +47,18 @@ def get_args():
 
     parser.add_argument(
         '--channel',
-        required=True,
+        required=False,
+        default='EURUSD',
         type=str,
         help='channel'
+    )
+
+    parser.add_argument(
+        '--tuner_on',
+        required=False,
+        default=False,
+        type=bool,
+        help='tuner_on'
     )
 
     '''Optimizer-related hyperparameters.'''
@@ -118,8 +129,9 @@ def get_args():
 if __name__ == '__main__':
     '''
         Pre-trains a given channel.
-        Training logs are saved in tensorboard.
-        Final model is saved.
+        There are two modes of the script:
+            1. tuner_on = True: for hyperparameter tuning
+            2. tuner_on = False: for only training.
     '''
     args = get_args()
 
@@ -180,39 +192,52 @@ if __name__ == '__main__':
         )
     )
 
-    sArtifactsDirectory = f'{ARTIFACTS_FOLDER}/{sChannel}/pre_train'
-    shutil.rmtree(sArtifactsDirectory, ignore_errors=True)
-    os.makedirs(sArtifactsDirectory)
+    sArtifactsDir = os.path.join(ARTIFACTS_FOLDER, sChannel, 'pre_train')
 
-    class StopAtThreshold(tf.keras.callbacks.Callback):
-        def on_batch_end(self, batch, logs={}):
-            fMaeDist = logs.get('mae_dist')
-            fMaeTre = logs.get('mae_tre')
-            fMaeSea = logs.get('mae_sea')
-            if fMaeDist <= 0.01 and fMaeTre <= 0.01 and fMaeSea <= 0.01:
-                self.model.stop_training = True
-                print('Stopping because threshold is achived succesfully...')
+    aCallbacks = []
+    if args.tuner_on is not True:
+        shutil.rmtree(sArtifactsDir, ignore_errors=True)
+        os.makedirs(sArtifactsDir)
 
-    stop_at_thershold_callback = StopAtThreshold()
+        class StopAtThreshold(tf.keras.callbacks.Callback):
+            def on_batch_end(self, batch, logs={}):
+                fMaeDist = logs.get('mae_dist')
+                fMaeTre = logs.get('mae_tre')
+                fMaeSea = logs.get('mae_sea')
+                if fMaeDist <= 0.01 and fMaeTre <= 0.01 and fMaeSea <= 0.01:
+                    self.model.stop_training = True
+                    print('Stopping because threshold is achived...')
 
-    tensorboard_callback = tf.keras.callbacks.TensorBoard(
-        log_dir=f'{sArtifactsDirectory}/logs',
-        histogram_freq=1
-    )
+        stop_at_thershold_callback = StopAtThreshold()
 
-    oModel.fit(
+        tensorboard_callback = tf.keras.callbacks.TensorBoard(
+            log_dir=os.path.join(sArtifactsDir, 'logs'),
+            histogram_freq=1
+        )
+
+        aCallbacks = [stop_at_thershold_callback, tensorboard_callback]
+
+    history = oModel.fit(
         ds_train,
         epochs=NR_OF_EPOCHS,
         verbose=2,
-        callbacks=[
-            tensorboard_callback,
-            stop_at_thershold_callback
-        ]
+        callbacks=aCallbacks
     )
 
-    oModel.save(
-        sArtifactsDirectory,
-        overwrite=True,
-        save_format='tf')
+    if args.tuner_on is not True:
+        oModel.save(
+            sArtifactsDir,
+            overwrite=True,
+            save_format='tf')
+    else:
+        hp_metric = history.history['mae_dist'][-1] + \
+            history.history['mae_tre'][-1] + \
+            history.history['mae_sea'][-1]
+
+        hpt = hypertune.HyperTune()
+        hpt.report_hyperparameter_tuning_metric(
+            hyperparameter_metric_tag='mean_absolute_error',
+            metric_value=hp_metric,
+            global_step=10)
 
     print('Training completed.')
