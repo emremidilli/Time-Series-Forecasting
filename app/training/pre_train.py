@@ -9,6 +9,8 @@
         lb_train: (None, timesteps)
         fc_train: (None, timesteps)
 '''
+import argparse
+
 import numpy as np
 
 import os
@@ -35,14 +37,93 @@ from settings import TRAINING_DATA_FOLDER, PATCH_SIZE, \
 from models import PreProcessor, PreTraining
 
 
+def get_args():
+    '''
+        Parses the args.
+    '''
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        '--channel',
+        required=True,
+        type=str,
+        help='channel'
+    )
+
+    '''Optimizer-related hyperparameters.'''
+    parser.add_argument(
+        '--learning_rate',
+        required=False,
+        default=LEARNING_RATE,
+        type=float,
+        help='learning_rate'
+    )
+    parser.add_argument(
+        '--beat_1',
+        required=False,
+        default=BETA_1,
+        type=float,
+        help='beat_1'
+    )
+    parser.add_argument(
+        '--beta_2',
+        required=False,
+        default=BETA_2,
+        type=float,
+        help='beta_2'
+    )
+
+    '''Architecture-related hyperparameters.'''
+    parser.add_argument(
+        '--nr_of_encoder_blocks',
+        required=False,
+        default=NR_OF_ENCODER_BLOCKS,
+        type=int,
+        help='nr_of_encoder_blocks'
+    )
+    parser.add_argument(
+        '--nr_of_heads',
+        required=False,
+        default=NR_OF_HEADS,
+        type=int,
+        help='nr_of_heads'
+    )
+    parser.add_argument(
+        '--dropout_rate',
+        required=False,
+        default=DROPOUT_RATE,
+        type=float,
+        help='dropout_rate'
+    )
+    parser.add_argument(
+        '--encoder_ffn_units',
+        required=False,
+        default=ENCODER_FFN_UNITS,
+        type=int,
+        help='encoder_ffn_units'
+    )
+    parser.add_argument(
+        '--embedding_dims',
+        required=False,
+        default=EMBEDDING_DIMS,
+        type=int,
+        help='embedding_dims'
+    )
+
+    args = parser.parse_args()
+
+    return args
+
+
 if __name__ == '__main__':
     '''
         Pre-trains a given channel.
         Training logs are saved in tensorboard.
         Final model is saved.
     '''
+    args = get_args()
 
-    sChannel = sys.argv[1]
+    sChannel = args.channel
 
     lb_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/lb_train.npy')
     fc_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/fc_train.npy')
@@ -64,11 +145,11 @@ if __name__ == '__main__':
         MINI_BATCH_SIZE).prefetch(tf.data.AUTOTUNE)
 
     oModel = PreTraining(
-        iNrOfEncoderBlocks=NR_OF_ENCODER_BLOCKS,
-        iNrOfHeads=NR_OF_HEADS,
-        fDropoutRate=DROPOUT_RATE,
-        iEncoderFfnUnits=ENCODER_FFN_UNITS,
-        iEmbeddingDims=EMBEDDING_DIMS,
+        iNrOfEncoderBlocks=args.nr_of_encoder_blocks,
+        iNrOfHeads=args.nr_of_heads,
+        fDropoutRate=args.dropout_rate,
+        iEncoderFfnUnits=args.encoder_ffn_units,
+        iEmbeddingDims=args.embedding_dims,
         iProjectionHeadUnits=PROJECTION_HEAD,
         iPatchSize=PATCH_SIZE,
         fMskRate=MASK_RATE,
@@ -79,14 +160,14 @@ if __name__ == '__main__':
 
     oModel.compile(
         masked_autoencoder_optimizer=tf.keras.optimizers.Adam(
-            learning_rate=LEARNING_RATE,
-            beta_1=BETA_1,
-            beta_2=BETA_2
+            learning_rate=args.learning_rate,
+            beta_1=args.beta_1,
+            beta_2=args.beta_2
         ),
         contrastive_optimizer=tf.keras.optimizers.Adam(
-            learning_rate=LEARNING_RATE,
-            beta_1=BETA_1,
-            beta_2=BETA_2
+            learning_rate=args.learning_rate,
+            beta_1=args.beta_1,
+            beta_2=args.beta_2
         )
     )
 

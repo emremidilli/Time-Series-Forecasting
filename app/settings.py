@@ -6,32 +6,20 @@ TRAINING_DATA_FOLDER = f'{BIN_FOLDER}/02 - Training Datasets'
 HYPERPARAMETER_TUNING_FOLDER = f'{BIN_FOLDER}/03 - Hyperparameter Tuning'
 ARTIFACTS_FOLDER = f'{BIN_FOLDER}/04 - Artifacts'
 
-# hyperparameter tuning
-ARCHITECTURE_CONFIG = {
-    'nr_of_encoder_blocks': [1, 6, 1],
-    'nr_of_heads': [2, 6, 1],
-    'nr_of_ffn_units_of_encoder': [16, 128, 16],
-    'embedding_dims': [16, 128, 16],
-    'dropout_rate': [0.01, 0.9, 0.1]}
-OPTIMIZER_CONFIG = {
-    'learning_rate': [1e-5, 1e-2, 1e-3],
-    'beta_1': [0.1, 0.999, 0.1],
-    'beta_2': [0.1, 0.999, 0.1]}
-
-# architectures
+# default architecture hyperparameters
 NR_OF_ENCODER_BLOCKS = 4
-NR_OF_HEADS = 8
+NR_OF_HEADS = 2
 DROPOUT_RATE = 0.10
 ENCODER_FFN_UNITS = 32
-EMBEDDING_DIMS = 64
+EMBEDDING_DIMS = 32
 PROJECTION_HEAD = 32
 
-# optimizers
+# default optimizer hyperparameters
 LEARNING_RATE = 1e-5
 BETA_1 = 0.90
 BETA_2 = 0.99
 
-# fine tuning parameters
+# fine-tuning parameters
 DATETIME_FEATURES = ['month', 'day', 'dayofweek', 'hour', 'minute']
 TARGET_QUANTILES = [0.10, 0.50, 0.90]
 
@@ -46,7 +34,6 @@ MSK_SCALAR = 0.53
 PRE_TRAIN_RATIO = 0.20
 MINI_BATCH_SIZE = 128
 NR_OF_EPOCHS = 1000
-PATIENCE = 20
 
 NR_OF_LOOKBACK_PATCHES = int(
     (FORECAST_HORIZON * LOOKBACK_COEFFICIENT) / PATCH_SIZE)
