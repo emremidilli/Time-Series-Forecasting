@@ -1,4 +1,4 @@
-SERVER = ''  # 'gs:/'
+SERVER = 'gs:/'
 
 # folder paths
 BIN_FOLDER = f'{SERVER}/tsf-bin'
