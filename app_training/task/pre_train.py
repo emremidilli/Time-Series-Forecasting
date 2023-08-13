@@ -11,6 +11,8 @@
 '''
 import argparse
 
+from io import BytesIO
+
 import numpy as np
 
 import os
@@ -29,6 +31,8 @@ from settings import TRAINING_DATA_FOLDER, PATCH_SIZE, \
 from sklearn.utils import resample
 
 import tensorflow as tf
+
+from tensorflow.python.lib.io import file_io
 
 from tsf_model import PreProcessor, PreTraining
 
@@ -121,8 +125,17 @@ if __name__ == '__main__':
 
     sChannel = args.channel
 
-    lb_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/lb_train.npy')
-    fc_train = np.load(f'{TRAINING_DATA_FOLDER}/{sChannel}/fc_train.npy')
+    lb_train = np.load(
+        BytesIO(
+            file_io.read_file_to_string(
+                f'{TRAINING_DATA_FOLDER}/{sChannel}/lb_train.npy',
+                binary_mode=True)))
+
+    fc_train = np.load(
+        BytesIO(
+            file_io.read_file_to_string(
+                f'{TRAINING_DATA_FOLDER}/{sChannel}/fc_train.npy',
+                binary_mode=True)))
 
     lb_train, fc_train = resample(
         lb_train,

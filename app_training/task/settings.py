@@ -1,7 +1,7 @@
-SERVER = ''
+SERVER = 'gs:/'
 
 # folder paths
-BIN_FOLDER = f'{SERVER}/TSF-bin'
+BIN_FOLDER = f'{SERVER}/tsf-bin'
 TRAINING_DATA_FOLDER = f'{BIN_FOLDER}/02 - Training Datasets'
 HYPERPARAMETER_TUNING_FOLDER = f'{BIN_FOLDER}/03 - Hyperparameter Tuning'
 ARTIFACTS_FOLDER = f'{BIN_FOLDER}/04 - Artifacts'
