@@ -19,11 +19,11 @@ import shutil
 
 from sklearn.utils import resample
 
-import sys
+# import sys
 
 import tensorflow as tf
 
-sys.path.append(os.path.join(sys.path[0], '..'))
+# sys.path.append(os.path.join(sys.path[0], '..'))
 
 from settings import TRAINING_DATA_FOLDER, PATCH_SIZE, \
     PATCH_SAMPLE_RATE, NR_OF_BINS, PRE_TRAIN_RATIO, MINI_BATCH_SIZE, \
@@ -34,7 +34,7 @@ from settings import TRAINING_DATA_FOLDER, PATCH_SIZE, \
     DROPOUT_RATE, ENCODER_FFN_UNITS, EMBEDDING_DIMS, \
     LEARNING_RATE, BETA_1, BETA_2
 
-from models import PreProcessor, PreTraining
+from tsf_model.models import PreProcessor, PreTraining
 
 
 def get_args():

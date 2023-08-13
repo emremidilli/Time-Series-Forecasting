@@ -7,7 +7,7 @@
 		"../docker-compose.yml",
 		"docker-compose.yml"
 	],
-	"service": "app",
+	"service": "app_training",
 	"customizations": {
 		"vscode": {
 		  "extensions": [

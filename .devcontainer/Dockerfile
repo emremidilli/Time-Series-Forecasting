@@ -1,4 +1,4 @@
-FROM tensorflow/tensorflow:latest-gpu
+FROM gcr.io/deeplearning-platform-release/tf2-gpu.2-12.py310
 
 LABEL maintainer="yunusemremidilli@gmail.com"
 

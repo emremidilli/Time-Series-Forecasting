@@ -1,8 +1,8 @@
 version: '3.9'
 services:
-  app:
+  app_training:
     build:
-      dockerfile: './.devcontainer/Dockerfile'
+      dockerfile: '../.devcontainer/Dockerfile'
     volumes:
-      - ./app:/workspace:cached
+      - ./app_training/task:/workspace:cached
     command: /bin/sh -c "sleep infinity"

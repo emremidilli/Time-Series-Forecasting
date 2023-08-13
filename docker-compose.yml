@@ -1,9 +1,9 @@
 version: "3.9"
 
 services:
-  app:
+  app_training:
     build:
-      context: .
+      context: ./app_training
     deploy:
       resources:
         reservations:
