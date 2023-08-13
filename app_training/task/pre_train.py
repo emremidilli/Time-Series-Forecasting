@@ -17,14 +17,6 @@ import os
 
 import shutil
 
-from sklearn.utils import resample
-
-# import sys
-
-import tensorflow as tf
-
-# sys.path.append(os.path.join(sys.path[0], '..'))
-
 from settings import TRAINING_DATA_FOLDER, PATCH_SIZE, \
     PATCH_SAMPLE_RATE, NR_OF_BINS, PRE_TRAIN_RATIO, MINI_BATCH_SIZE, \
     PROJECTION_HEAD, MASK_RATE, MSK_SCALAR, \
@@ -34,7 +26,11 @@ from settings import TRAINING_DATA_FOLDER, PATCH_SIZE, \
     DROPOUT_RATE, ENCODER_FFN_UNITS, EMBEDDING_DIMS, \
     LEARNING_RATE, BETA_1, BETA_2
 
-from tsf_model.models import PreProcessor, PreTraining
+from sklearn.utils import resample
+
+import tensorflow as tf
+
+from tsf_model import PreProcessor, PreTraining
 
 
 def get_args():
@@ -59,11 +55,11 @@ def get_args():
         help='learning_rate'
     )
     parser.add_argument(
-        '--beat_1',
+        '--beta_1',
         required=False,
         default=BETA_1,
         type=float,
-        help='beat_1'
+        help='beta_1'
     )
     parser.add_argument(
         '--beta_2',

@@ -1,10 +1,6 @@
+from . import PositionEmbedding, TransformerEncoder
+
 import tensorflow as tf
-
-import sys
-sys.path.append('../')
-
-from layers.general_pre_training import PositionEmbedding, \
-    TransformerEncoder
 
 
 class Representation(tf.keras.layers.Layer):

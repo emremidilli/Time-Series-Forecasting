@@ -12,6 +12,6 @@ RUN pip install --upgrade pip && \
     pip install -r /tmp/requirements.txt && \
     rm -rf /tmp/requirements.txt
 
-WORKDIR /task
+WORKDIR /app
 
 ENTRYPOINT ["python", "pre_train.py"]

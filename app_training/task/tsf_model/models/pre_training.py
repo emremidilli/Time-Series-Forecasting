@@ -1,11 +1,8 @@
-import sys
-sys.path.append('./')
-
 import tensorflow as tf
 
-from layers.pre_processing import PatchMasker, PatchShifter
-from layers.general_pre_training import Representation, \
+from tsf_model.layers.general_pre_training import Representation, \
     MppDecoder, ProjectionHead
+from tsf_model.layers.pre_processing import PatchMasker, PatchShifter
 
 
 class PreTraining(tf.keras.Model):

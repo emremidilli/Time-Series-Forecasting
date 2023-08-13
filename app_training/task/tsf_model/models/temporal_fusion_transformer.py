@@ -1,14 +1,14 @@
-import sys
-sys.path.append( '../')
-from layers.temporal_fusion_transformer.variable_selection_network import variable_selection_network
-from layers.temporal_fusion_transformer.interpretable_multi_head_attention import interpretable_multi_head_attention, get_decoder_mask
-from layers.temporal_fusion_transformer.gated_residual_network import gated_residual_network
-from layers.temporal_fusion_transformer.gated_linear_unit import gated_linear_unit
 
 import tensorflow as tf
 
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
+
+from tsf_model.layers.temporal_fusion_transformer.variable_selection_network import variable_selection_network
+from tsf_model.layers.temporal_fusion_transformer.interpretable_multi_head_attention import interpretable_multi_head_attention, get_decoder_mask
+from tsf_model.layers.temporal_fusion_transformer.gated_residual_network import gated_residual_network
+from tsf_model.layers.temporal_fusion_transformer.gated_linear_unit import gated_linear_unit
+
 
 class temporal_fusion_transformer(tf.keras.Model):
 
