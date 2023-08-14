@@ -1,19 +1,12 @@
 '''
     Trains a pre-training model for a univariate forecasting model.
-    Pre-training is done on training dataset.
-    But, it is performed on a small portion of the training dataset.
-    PRE_TRAIN_RATIO is used to select the pre-training dataset out of training
-        dataset randomly.
-
-    inputs:
-        lb_train: (None, timesteps)
-        fc_train: (None, timesteps)
+    Pre-training is done on a small portion of the training dataset.
+    PRE_TRAIN_RATIO is used to select the pre-training dataset
+        from the training dataset.
 '''
 import argparse
 
 from io import BytesIO
-
-import hypertune
 
 import numpy as np
 
@@ -51,14 +44,6 @@ def get_args():
         default='EURUSD',
         type=str,
         help='channel'
-    )
-
-    parser.add_argument(
-        '--tuner_on',
-        required=False,
-        default=False,
-        type=bool,
-        help='tuner_on'
     )
 
     '''Optimizer-related hyperparameters.'''
@@ -129,9 +114,7 @@ def get_args():
 if __name__ == '__main__':
     '''
         Pre-trains a given channel.
-        There are two modes of the script:
-            1. tuner_on = True: for hyperparameter tuning
-            2. tuner_on = False: for only training.
+        A training dataset should be in format of (None, timesteps).
     '''
     args = get_args()
 
@@ -160,7 +143,7 @@ if __name__ == '__main__':
         fPatchSampleRate=PATCH_SAMPLE_RATE,
         iNrOfBins=NR_OF_BINS
     )
-    dist, tre, sea = oPreProcessor.pre_process((lb_train, fc_train))
+    dist, tre, sea = oPreProcessor((lb_train, fc_train))
 
     ds_train = tf.data.Dataset.from_tensor_slices((dist, tre, sea)).batch(
         MINI_BATCH_SIZE).prefetch(tf.data.AUTOTUNE)
@@ -194,50 +177,35 @@ if __name__ == '__main__':
 
     sArtifactsDir = os.path.join(ARTIFACTS_FOLDER, sChannel, 'pre_train')
 
-    aCallbacks = []
-    if args.tuner_on is not True:
-        shutil.rmtree(sArtifactsDir, ignore_errors=True)
-        os.makedirs(sArtifactsDir)
+    shutil.rmtree(sArtifactsDir, ignore_errors=True)
+    os.makedirs(sArtifactsDir)
 
-        class StopAtThreshold(tf.keras.callbacks.Callback):
-            def on_batch_end(self, batch, logs={}):
-                fMaeDist = logs.get('mae_dist')
-                fMaeTre = logs.get('mae_tre')
-                fMaeSea = logs.get('mae_sea')
-                if fMaeDist <= 0.01 and fMaeTre <= 0.01 and fMaeSea <= 0.01:
-                    self.model.stop_training = True
-                    print('Stopping because threshold is achived...')
+    class StopAtThreshold(tf.keras.callbacks.Callback):
+        def on_batch_end(self, batch, logs={}):
+            fMaeDist = logs.get('mae_dist')
+            fMaeTre = logs.get('mae_tre')
+            fMaeSea = logs.get('mae_sea')
+            if fMaeDist <= 0.05 and fMaeTre <= 0.05 and fMaeSea <= 0.05:
+                self.model.stop_training = True
+                print('Stopping because threshold is achived...')
 
-        stop_at_thershold_callback = StopAtThreshold()
+    stop_at_thershold_callback = StopAtThreshold()
 
-        tensorboard_callback = tf.keras.callbacks.TensorBoard(
-            log_dir=os.path.join(sArtifactsDir, 'logs'),
-            histogram_freq=1
-        )
-
-        aCallbacks = [stop_at_thershold_callback, tensorboard_callback]
+    tensorboard_callback = tf.keras.callbacks.TensorBoard(
+        log_dir=os.path.join(sArtifactsDir, 'logs'),
+        histogram_freq=1
+    )
 
     history = oModel.fit(
         ds_train,
         epochs=NR_OF_EPOCHS,
         verbose=2,
-        callbacks=aCallbacks
+        callbacks=[stop_at_thershold_callback, tensorboard_callback]
     )
 
-    if args.tuner_on is not True:
-        oModel.save(
-            sArtifactsDir,
-            overwrite=True,
-            save_format='tf')
-    else:
-        hp_metric = history.history['mae_dist'][-1] + \
-            history.history['mae_tre'][-1] + \
-            history.history['mae_sea'][-1]
-
-        hpt = hypertune.HyperTune()
-        hpt.report_hyperparameter_tuning_metric(
-            hyperparameter_metric_tag='mean_absolute_error',
-            metric_value=hp_metric,
-            global_step=10)
+    oModel.save(
+        sArtifactsDir,
+        overwrite=True,
+        save_format='tf')
 
     print('Training completed.')

@@ -4,7 +4,7 @@ from tsf_model.layers.pre_processing import LookbackNormalizer, \
     PatchTokenizer, DistributionTokenizer, TrendSeasonalityTokenizer
 
 
-class PreProcessor():
+class PreProcessor(tf.keras.Model):
     '''
         Keras model to pre-process timestep inputs.
     '''
@@ -23,10 +23,11 @@ class PreProcessor():
             fMax=1)
 
         self.trend_seasonality_tokenizer = TrendSeasonalityTokenizer(
-            int(fPatchSampleRate * iPatchSize))
+            iPoolSizeReducing=int(fPatchSampleRate * iPatchSize),
+            iPoolSizeSampling=int(fPatchSampleRate * iPatchSize))
         self.lb_fc_concatter = tf.keras.layers.Concatenate(axis=1)
 
-    def pre_process(self, inputs):
+    def call(self, inputs):
         '''
             inputs: tuple of 2 elements.
             Each element is a tf.data.Dataset object.

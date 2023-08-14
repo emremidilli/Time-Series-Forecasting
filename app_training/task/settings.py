@@ -1,4 +1,4 @@
-SERVER = 'gs:/'
+SERVER = ''
 
 # folder paths
 BIN_FOLDER = f'{SERVER}/tsf-bin'
@@ -8,7 +8,7 @@ ARTIFACTS_FOLDER = f'{BIN_FOLDER}/04 - Artifacts'
 
 # default architecture hyperparameters
 NR_OF_ENCODER_BLOCKS = 4
-NR_OF_HEADS = 2
+NR_OF_HEADS = 6
 DROPOUT_RATE = 0.10
 ENCODER_FFN_UNITS = 32
 EMBEDDING_DIMS = 32

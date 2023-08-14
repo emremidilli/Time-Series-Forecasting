@@ -55,10 +55,16 @@ class DistributionTokenizer(tf.keras.layers.Layer):
 
 
 class TrendSeasonalityTokenizer(tf.keras.layers.Layer):
-    def __init__(self, iPoolSizeSampling, **kwargs):
+    def __init__(self, iPoolSizeReducing, iPoolSizeSampling, **kwargs):
         super().__init__(**kwargs)
 
-        self.oAvgPool = tf.keras.layers.AveragePooling1D(
+        self.oAvgPoolReducer = tf.keras.layers.AveragePooling1D(
+            pool_size=iPoolSizeReducing,
+            strides=iPoolSizeReducing,
+            padding='valid',
+            data_format='channels_first')
+
+        self.oAvgPoolTrend = tf.keras.layers.AveragePooling1D(
             pool_size=iPoolSizeSampling,
             strides=1,
             padding='same',
@@ -68,21 +74,23 @@ class TrendSeasonalityTokenizer(tf.keras.layers.Layer):
 
     def call(self, x):
         '''
-            inputs: lookback normalized series that is patched
+            x: lookback normalized series that is patched
             (None, nr_of_patches, patch_size)
 
             for each patch
-                calculate the trend component
+                reduces the input by avg pooling
+                calculate the trend component by avg pooling
                 calculate thte seasonality componenet by
                     subtracting the trend componenet from sampled
-
 
             returns:  tuple of 2 elements
                 1. trend component - (None, nr_of_patches, patch_size)
                 2. seasonality component - (None, nr_of_patches, patch_size)
         '''
-        y_trend = self.oAvgPool(x)
+        x_reduced = self.oAvgPoolReducer(x)
 
-        y_seasonality = tf.subtract(y_trend, x)
+        y_trend = self.oAvgPoolTrend(x_reduced)
+
+        y_seasonality = tf.subtract(y_trend, x_reduced)
 
         return (y_trend, y_seasonality)
