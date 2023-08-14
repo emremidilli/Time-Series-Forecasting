@@ -155,7 +155,7 @@ if __name__ == '__main__':
         iEncoderFfnUnits=args.encoder_ffn_units,
         iEmbeddingDims=args.embedding_dims,
         iProjectionHeadUnits=PROJECTION_HEAD,
-        iReducedDims=tre.shape[1],
+        iReducedDims=tre.shape[2],
         fMskRate=MASK_RATE,
         fMskScalar=MSK_SCALAR,
         iNrOfBins=NR_OF_BINS,
