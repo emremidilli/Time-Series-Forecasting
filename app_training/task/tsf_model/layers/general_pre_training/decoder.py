@@ -3,7 +3,7 @@ import tensorflow as tf
 
 class MppDecoder(tf.keras.layers.Layer):
     '''
-        Decoder for masked patch prediction task.
+    Decoder for masked patch prediction task.
     '''
 
     def __init__(self, iFfnUnits, iNrOfTimeSteps, **kwargs):
@@ -20,10 +20,8 @@ class MppDecoder(tf.keras.layers.Layer):
 
     def call(self, x):
         '''
-            decodes the input to the temporal sequence.
-
-            input: (None, timesteps, feature)
-            output: (None, timesteps, feature)
+        input: (None, timesteps, feature)
+        output: (None, timesteps, feature)
         '''
 
         x = self.flatten(x)
@@ -35,7 +33,9 @@ class MppDecoder(tf.keras.layers.Layer):
 
 
 class ProjectionHead(tf.keras.layers.Layer):
-    '''Projection head for contrastive learning task.'''
+    '''
+    Projection head for contrastive learning task.
+    '''
 
     def __init__(self, iFfnUnits, **kwargs):
         super().__init__(**kwargs)
@@ -44,15 +44,13 @@ class ProjectionHead(tf.keras.layers.Layer):
 
         self.dense = tf.keras.layers.Dense(
             units=iFfnUnits,
-            activation='tanh',
+            activation='relu',
             use_bias=False)
 
     def call(self, x):
         '''
-            decodes the input to the temporal sequence.
-
-            input: (None, timesteps, feature)
-            output: (None, feature)
+        input: (None, timesteps, feature)
+        output: (None, feature)
         '''
 
         x = self.flatten(x)
