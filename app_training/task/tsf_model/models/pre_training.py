@@ -16,7 +16,7 @@ class PreTraining(tf.keras.Model):
                  iEncoderFfnUnits,
                  iEmbeddingDims,
                  iProjectionHeadUnits,
-                 iPatchSize,
+                 iReducedDims,
                  fMskRate,
                  fMskScalar,
                  iNrOfBins,
@@ -49,9 +49,9 @@ class PreTraining(tf.keras.Model):
         self.decoder_dist = MppDecoder(
             iNrOfBins, iNrOfLookbackPatches + iNrOfForecastPatches)
         self.decoder_tre = MppDecoder(
-            iPatchSize, iNrOfLookbackPatches + iNrOfForecastPatches)
+            iReducedDims, iNrOfLookbackPatches + iNrOfForecastPatches)
         self.decoder_sea = MppDecoder(
-            iPatchSize, iNrOfLookbackPatches + iNrOfForecastPatches)
+            iReducedDims, iNrOfLookbackPatches + iNrOfForecastPatches)
 
         self.projection_head = ProjectionHead(iProjectionHeadUnits)
 
