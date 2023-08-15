@@ -1,8 +1,8 @@
 '''
-    Trains a pre-training model for a univariate forecasting model.
-    Pre-training is done on a small portion of the training dataset.
-    PRE_TRAIN_RATIO is used to select the pre-training dataset
-        from the training dataset.
+Trains a pre-training model for a univariate forecasting model.
+Pre-training is done on a small portion of the training dataset.
+PRE_TRAIN_RATIO is used to select the pre-training dataset
+    from the training dataset.
 '''
 import argparse
 
@@ -34,7 +34,7 @@ from tsf_model import PreProcessor, PreTraining
 
 def get_args():
     '''
-        Parses the args.
+    Parses the args.
     '''
     parser = argparse.ArgumentParser()
 
@@ -113,8 +113,8 @@ def get_args():
 
 if __name__ == '__main__':
     '''
-        Pre-trains a given channel.
-        A training dataset should be in format of (None, timesteps).
+    Pre-trains a given channel.
+    A training dataset should be in format of (None, timesteps).
     '''
     args = get_args()
 

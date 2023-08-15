@@ -11,14 +11,15 @@ class PositionEmbedding(tf.keras.layers.Layer):
 
         super().__init__(**kwargs)
 
-        self.lstm = tf.keras.layers.LSTM(units=iUnits, return_sequences=True)
+        self.lstm = tf.keras.layers.LSTM(units=iUnits,
+                                         return_sequences=True)
 
-        self.layer_norm = tf.keras.layers.LayerNormalization(axis=1)
+        self.layer_norm = tf.keras.layers.LayerNormalization(axis=1,
+                                                             epsilon=1e-6)
 
     def call(self, x):
         '''
         input: (None, timesteps, feature)
-
         output: (None, timesteps, iUnits)
         '''
 

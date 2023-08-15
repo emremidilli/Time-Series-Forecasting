@@ -1,4 +1,6 @@
-from . import PositionEmbedding, TransformerEncoder
+from . import PositionEmbedding
+
+from keras_nlp.layers import TransformerEncoder
 
 import tensorflow as tf
 
@@ -32,28 +34,37 @@ class Representation(tf.keras.layers.Layer):
         for i in range(iNrOfEncoderBlocks):
             self.encoders_temporal.append(
                 TransformerEncoder(
-                    iKeyDims=iEmbeddingDims,
-                    iNrOfHeads=iNrOfHeads,
-                    fDropoutRate=fDropoutRate,
-                    iFfnUnits=iEncoderFfnUnits,
-                    iFeatureSize=iEmbeddingDims * 3  # one for each aspect
-                )
+                    intermediate_dim=iEmbeddingDims * 3,  # one for each aspect
+                    num_heads=iNrOfHeads,
+                    dropout=fDropoutRate)
+                # TransformerEncoder(
+                #     iKeyDims=iEmbeddingDims,
+                #     iNrOfHeads=iNrOfHeads,
+                #     fDropoutRate=fDropoutRate,
+                #     iFfnUnits=iEncoderFfnUnits,
+                #     iFeatureSize=iEmbeddingDims * 3  # one for each aspect
+                # )
             )
 
         self.encoders_contextual = []
         for i in range(iNrOfEncoderBlocks):
             self.encoders_contextual.append(
                 TransformerEncoder(
-                    iKeyDims=iEmbeddingDims,
-                    iNrOfHeads=iNrOfHeads,
-                    fDropoutRate=fDropoutRate,
-                    iFfnUnits=iEncoderFfnUnits,
-                    iFeatureSize=iEmbeddingDims
-                )
+                    intermediate_dim=iEmbeddingDims,
+                    num_heads=iNrOfHeads,
+                    dropout=fDropoutRate)
+                # TransformerEncoder(
+                #     iKeyDims=iEmbeddingDims,
+                #     iNrOfHeads=iNrOfHeads,
+                #     fDropoutRate=fDropoutRate,
+                #     iFfnUnits=iEncoderFfnUnits,
+                #     iFeatureSize=iEmbeddingDims
+                # )
             )
 
         # to reduce the concatted aspects back to the model dims.
-        self.dense_temporal = tf.keras.layers.Dense(iEmbeddingDims)
+        self.dense_temporal = tf.keras.layers.Dense(units=iEmbeddingDims,
+                                                    activation='relu')
 
         self.concat_temporal_contextual = tf.keras.layers.Concatenate(axis=1)
 
@@ -61,12 +72,16 @@ class Representation(tf.keras.layers.Layer):
         for i in range(iNrOfEncoderBlocks):
             self.encoders_cont_temp.append(
                 TransformerEncoder(
-                    iKeyDims=iEmbeddingDims,
-                    iNrOfHeads=iNrOfHeads,
-                    fDropoutRate=fDropoutRate,
-                    iFfnUnits=iEncoderFfnUnits,
-                    iFeatureSize=iEmbeddingDims
-                )
+                    intermediate_dim=iEmbeddingDims,
+                    num_heads=iNrOfHeads,
+                    dropout=fDropoutRate)
+                # TransformerEncoder(
+                #     iKeyDims=iEmbeddingDims,
+                #     iNrOfHeads=iNrOfHeads,
+                #     fDropoutRate=fDropoutRate,
+                #     iFfnUnits=iEncoderFfnUnits,
+                #     iFeatureSize=iEmbeddingDims
+                # )
             )
 
     def call(self, x):
