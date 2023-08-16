@@ -15,7 +15,8 @@ import numpy as np
 import os
 
 from settings import TRAINING_DATA_FOLDER, PATCH_SIZE, \
-    PATCH_SAMPLE_RATE, NR_OF_BINS, PRE_TRAIN_RATIO, MINI_BATCH_SIZE, \
+    POOL_SIZE_REDUCTION, POOL_SIZE_TREND, NR_OF_BINS, \
+    PRE_TRAIN_RATIO, MINI_BATCH_SIZE, \
     PROJECTION_HEAD, MASK_RATE, MSK_SCALAR, \
     NR_OF_LOOKBACK_PATCHES, NR_OF_FORECAST_PATCHES, \
     ARTIFACTS_FOLDER, NR_OF_EPOCHS, \
@@ -129,6 +130,24 @@ class CustomCallback(tf.keras.callbacks.Callback):
         gc.collect()
 
 
+class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
+    '''Based on the original paper of ""Attention is all you need""'''
+    def __init__(self, d_model, warmup_steps=4000):
+        super().__init__()
+
+        self.d_model = d_model
+        self.d_model = tf.cast(self.d_model, tf.float32)
+
+        self.warmup_steps = warmup_steps
+
+    def __call__(self, step):
+        step = tf.cast(step, dtype=tf.float32)
+        arg1 = tf.math.rsqrt(step)
+        arg2 = step * (self.warmup_steps ** -1.5)
+
+        return tf.math.rsqrt(self.d_model) * tf.math.minimum(arg1, arg2)
+
+
 if __name__ == '__main__':
     '''
     Pre-trains a given channel.
@@ -158,7 +177,8 @@ if __name__ == '__main__':
 
     oPreProcessor = PreProcessor(
         iPatchSize=PATCH_SIZE,
-        fPatchSampleRate=PATCH_SAMPLE_RATE,
+        iPoolSizeReduction=POOL_SIZE_REDUCTION,
+        iPoolSizeTrend=POOL_SIZE_TREND,
         iNrOfBins=NR_OF_BINS
     )
     dist, tre, sea = oPreProcessor((lb_train, fc_train))
@@ -180,14 +200,16 @@ if __name__ == '__main__':
         iNrOfLookbackPatches=NR_OF_LOOKBACK_PATCHES,
         iNrOfForecastPatches=NR_OF_FORECAST_PATCHES)
 
+    learning_rate = CustomSchedule(EMBEDDING_DIMS)
+
     oModel.compile(
         masked_autoencoder_optimizer=tf.keras.optimizers.Adam(
-            learning_rate=args.learning_rate,
+            learning_rate=learning_rate,
             beta_1=args.beta_1,
             beta_2=args.beta_2
         ),
         contrastive_optimizer=tf.keras.optimizers.Adam(
-            learning_rate=args.learning_rate,
+            learning_rate=learning_rate,
             beta_1=args.beta_1,
             beta_2=args.beta_2
         )

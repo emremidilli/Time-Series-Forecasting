@@ -10,7 +10,8 @@ class PreProcessor(tf.keras.Model):
     '''
     def __init__(self,
                  iPatchSize,
-                 fPatchSampleRate,
+                 iPoolSizeReduction,
+                 iPoolSizeTrend,
                  iNrOfBins,
                  **kwargs):
         super().__init__(**kwargs)
@@ -23,8 +24,8 @@ class PreProcessor(tf.keras.Model):
             fMax=1)
 
         self.trend_seasonality_tokenizer = TrendSeasonalityTokenizer(
-            iPoolSizeReducing=int(fPatchSampleRate * iPatchSize),
-            iPoolSizeSampling=int(fPatchSampleRate * iPatchSize))
+            iPoolSizeReduction=iPoolSizeReduction,
+            iPoolSizeTrend=iPoolSizeTrend)
         self.lb_fc_concatter = tf.keras.layers.Concatenate(axis=1)
 
     def call(self, inputs):

@@ -55,17 +55,17 @@ class DistributionTokenizer(tf.keras.layers.Layer):
 
 
 class TrendSeasonalityTokenizer(tf.keras.layers.Layer):
-    def __init__(self, iPoolSizeReducing, iPoolSizeSampling, **kwargs):
+    def __init__(self, iPoolSizeReduction, iPoolSizeTrend, **kwargs):
         super().__init__(**kwargs)
 
         self.oAvgPoolReducer = tf.keras.layers.AveragePooling1D(
-            pool_size=iPoolSizeReducing,
-            strides=iPoolSizeReducing,
+            pool_size=iPoolSizeReduction,
+            strides=iPoolSizeReduction,
             padding='valid',
             data_format='channels_first')
 
         self.oAvgPoolTrend = tf.keras.layers.AveragePooling1D(
-            pool_size=iPoolSizeSampling,
+            pool_size=iPoolSizeTrend,
             strides=1,
             padding='same',
             data_format='channels_first')
