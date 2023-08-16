@@ -13,3 +13,12 @@ services:
             capabilities: [gpu]
     volumes:
        - ../tsf-bin:/tsf-bin
+  # app_tensorboard:
+  #   build:
+  #     context: ./app_tensorboard
+  #   volumes:
+  #      - ../tsf-bin:/tsf-bin
+  #   ports:
+  #     - "6006:6006"
+  #   stdin_open: true
+  #   tty: true

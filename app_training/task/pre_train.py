@@ -6,13 +6,13 @@ PRE_TRAIN_RATIO is used to select the pre-training dataset
 '''
 import argparse
 
+import gc
+
 from io import BytesIO
 
 import numpy as np
 
 import os
-
-import shutil
 
 from settings import TRAINING_DATA_FOLDER, PATCH_SIZE, \
     PATCH_SAMPLE_RATE, NR_OF_BINS, PRE_TRAIN_RATIO, MINI_BATCH_SIZE, \
@@ -23,10 +23,11 @@ from settings import TRAINING_DATA_FOLDER, PATCH_SIZE, \
     DROPOUT_RATE, ENCODER_FFN_UNITS, EMBEDDING_DIMS, \
     LEARNING_RATE, BETA_1, BETA_2
 
+import shutil
+
 from sklearn.utils import resample
 
 import tensorflow as tf
-
 from tensorflow.python.lib.io import file_io
 
 from tsf_model import PreProcessor, PreTraining
@@ -111,6 +112,23 @@ def get_args():
     return args
 
 
+class CustomCallback(tf.keras.callbacks.Callback):
+
+    def on_epoch_end(self, epoch, logs={}):
+        '''
+        used to stop the training when the threshold is achived.
+        Also cleans the RAM.
+        '''
+        fMaeDist = logs.get('mae_dist')
+        fMaeTre = logs.get('mae_tre')
+        fMaeSea = logs.get('mae_sea')
+        if fMaeDist <= 0.05 and fMaeTre <= 0.05 and fMaeSea <= 0.05:
+            self.model.stop_training = True
+            print('Stopping because threshold is achived...')
+
+        gc.collect()
+
+
 if __name__ == '__main__':
     '''
     Pre-trains a given channel.
@@ -180,27 +198,21 @@ if __name__ == '__main__':
     shutil.rmtree(sArtifactsDir, ignore_errors=True)
     os.makedirs(sArtifactsDir)
 
-    class StopAtThreshold(tf.keras.callbacks.Callback):
-        def on_batch_end(self, batch, logs={}):
-            fMaeDist = logs.get('mae_dist')
-            fMaeTre = logs.get('mae_tre')
-            fMaeSea = logs.get('mae_sea')
-            if fMaeDist <= 0.05 and fMaeTre <= 0.05 and fMaeSea <= 0.05:
-                self.model.stop_training = True
-                print('Stopping because threshold is achived...')
+    custom_callback = CustomCallback()
 
-    stop_at_thershold_callback = StopAtThreshold()
-
+    sTensorboardLogDir = os.path.join(sArtifactsDir, 'logs')
     tensorboard_callback = tf.keras.callbacks.TensorBoard(
-        log_dir=os.path.join(sArtifactsDir, 'logs'),
+        log_dir=sTensorboardLogDir,
         histogram_freq=1
     )
+
+    print(f' Tensorbaord logdir: {sTensorboardLogDir}')
 
     history = oModel.fit(
         ds_train,
         epochs=NR_OF_EPOCHS,
         verbose=2,
-        callbacks=[stop_at_thershold_callback, tensorboard_callback]
+        callbacks=[custom_callback, tensorboard_callback]
     )
 
     oModel.save(
