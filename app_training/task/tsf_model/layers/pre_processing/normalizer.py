@@ -33,12 +33,9 @@ class BatchNormalizer(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        self.batch_normalizer_dist = tf.keras.layers.BatchNormalization(
-            axis=(1, 2))
-        self.batch_normalizer_tre = tf.keras.layers.BatchNormalization(
-            axis=(1, 2))
-        self.batch_normalizer_sea = tf.keras.layers.BatchNormalization(
-            axis=(1, 2))
+        self.batch_normalizer_dist = tf.keras.layers.BatchNormalization()
+        self.batch_normalizer_tre = tf.keras.layers.BatchNormalization()
+        self.batch_normalizer_sea = tf.keras.layers.BatchNormalization()
 
     def call(self, inputs, training=True):
         '''
