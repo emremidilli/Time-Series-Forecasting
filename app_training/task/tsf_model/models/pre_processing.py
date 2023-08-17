@@ -57,10 +57,6 @@ class PreProcessor(tf.keras.Model):
         x_lb_tre, x_lb_sea = self.trend_seasonality_tokenizer(x_lb)
         x_fc_tre, x_fc_sea = self.trend_seasonality_tokenizer(x_fc)
 
-        # normalize saesonality
-        x_lb_sea = self.lookback_normalizer((x_lb_sea, x_lb_sea))
-        x_fc_sea = self.lookback_normalizer((x_lb_sea, x_fc_sea))
-
         dist = self.lb_fc_concatter((x_lb_dist, x_fc_dist))
         tre = self.lb_fc_concatter((x_lb_tre, x_fc_tre))
         sea = self.lb_fc_concatter((x_lb_sea, x_fc_sea))

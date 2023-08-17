@@ -7,7 +7,7 @@ HYPERPARAMETER_TUNING_FOLDER = f'{BIN_FOLDER}/03 - Hyperparameter Tuning'
 ARTIFACTS_FOLDER = f'{BIN_FOLDER}/04 - Artifacts'
 
 # default architecture hyperparameters
-NR_OF_ENCODER_BLOCKS = 4
+NR_OF_ENCODER_BLOCKS = 12
 NR_OF_HEADS = 6
 DROPOUT_RATE = 0.10
 ENCODER_FFN_UNITS = 128
@@ -19,7 +19,7 @@ LEARNING_RATE = 1e-5
 BETA_1 = 0.90
 BETA_2 = 0.99
 
-# fine-tuning parameters
+# fine-tuning features
 DATETIME_FEATURES = ['month', 'day', 'dayofweek', 'hour', 'minute']
 TARGET_QUANTILES = [0.10, 0.50, 0.90]
 

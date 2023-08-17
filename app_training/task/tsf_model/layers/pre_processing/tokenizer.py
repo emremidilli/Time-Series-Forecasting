@@ -91,6 +91,6 @@ class TrendSeasonalityTokenizer(tf.keras.layers.Layer):
 
         y_trend = self.oAvgPoolTrend(x_reduced)
 
-        y_seasonality = tf.subtract(y_trend, x_reduced)
+        y_seasonality = tf.subtract(x_reduced, y_trend)
 
         return (y_trend, y_seasonality)
