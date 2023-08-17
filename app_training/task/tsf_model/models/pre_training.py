@@ -277,7 +277,7 @@ class PreTraining(tf.keras.Model):
             input should be in array format. Not in tf.data.Dataset.
         '''
         if training is False:
-            inputs = self.batch_normalizer(inputs)
+            inputs = self.batch_normalizer(inputs, training=False)
 
         y_cont_temp = self.encoder_representation(inputs)
 
