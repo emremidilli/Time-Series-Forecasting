@@ -24,3 +24,38 @@ class LookbackNormalizer(tf.keras.layers.Layer):
         r = tf.divide(z, tf.expand_dims(y, axis=1))
 
         return r
+
+
+class BatchNormalizer(tf.keras.layers.Layer):
+    '''
+    Used to apply batch normalization to distribution, trend and seasonility
+    '''
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        self.batch_normalizer_dist = tf.keras.layers.BatchNormalization(
+            axis=2)
+        self.batch_normalizer_tre = tf.keras.layers.BatchNormalization(
+            axis=2)
+        self.batch_normalizer_sea = tf.keras.layers.BatchNormalization(
+            axis=2)
+
+    def call(self, inputs, training=True):
+        '''
+            inputs: tuple of 3 elements.
+                1. distribution (None, timesteps, features)
+                2. trend (None, timesteps, features)
+                3. seasonility (None, timesteps, features)
+
+            outputs: tuple of the normalized elements
+                1. distribution (None, timesteps, features)
+                2. trend (None, timesteps, features)
+                3. seasonility (None, timesteps, features)
+        '''
+        dist, tre, sea = inputs
+
+        dist = self.batch_normalizer_dist(dist)
+        tre = self.batch_normalizer_tre(tre)
+        sea = self.batch_normalizer_sea(sea)
+
+        return (dist, tre, sea)
