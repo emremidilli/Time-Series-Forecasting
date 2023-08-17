@@ -18,6 +18,7 @@ PROJECTION_HEAD = 128
 LEARNING_RATE = 1e-5
 BETA_1 = 0.90
 BETA_2 = 0.99
+CLIP_NORM = 1.0
 
 # fine-tuning features
 DATETIME_FEATURES = ['month', 'day', 'dayofweek', 'hour', 'minute']

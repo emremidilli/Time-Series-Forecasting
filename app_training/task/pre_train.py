@@ -22,7 +22,7 @@ from settings import TRAINING_DATA_FOLDER, PATCH_SIZE, \
     ARTIFACTS_FOLDER, NR_OF_EPOCHS, \
     NR_OF_ENCODER_BLOCKS, NR_OF_HEADS, \
     DROPOUT_RATE, ENCODER_FFN_UNITS, EMBEDDING_DIMS, \
-    LEARNING_RATE, BETA_1, BETA_2
+    LEARNING_RATE, BETA_1, BETA_2, CLIP_NORM
 
 import shutil
 
@@ -69,6 +69,13 @@ def get_args():
         default=BETA_2,
         type=float,
         help='beta_2'
+    )
+    parser.add_argument(
+        '--clip_norm',
+        required=False,
+        default=CLIP_NORM,
+        type=float,
+        help='clip_norm'
     )
 
     '''Architecture-related hyperparameters.'''
@@ -217,18 +224,20 @@ if __name__ == '__main__':
         iNrOfLookbackPatches=NR_OF_LOOKBACK_PATCHES,
         iNrOfForecastPatches=NR_OF_FORECAST_PATCHES)
 
-    # learning_rate = CustomSchedule(EMBEDDING_DIMS)
+    learning_rate = CustomSchedule(EMBEDDING_DIMS)
 
     oModel.compile(
         masked_autoencoder_optimizer=tf.keras.optimizers.Adam(
-            learning_rate=args.learning_rate,
+            learning_rate=learning_rate,
             beta_1=args.beta_1,
-            beta_2=args.beta_2
+            beta_2=args.beta_2,
+            clipnorm=args.clip_norm
         ),
         contrastive_optimizer=tf.keras.optimizers.Adam(
-            learning_rate=args.learning_rate,
+            learning_rate=learning_rate,
             beta_1=args.beta_1,
-            beta_2=args.beta_2
+            beta_2=args.beta_2,
+            clipnorm=args.clip_norm
         )
     )
 
