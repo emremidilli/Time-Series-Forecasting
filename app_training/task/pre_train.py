@@ -254,7 +254,7 @@ if __name__ == '__main__':
         histogram_freq=1
     )
 
-    print(f' Tensorbaord logdir: {sTensorboardLogDir}')
+    print(f'tensorboard --logdir="{sTensorboardLogDir}" --bind_all')
 
     history = oModel.fit(
         ds_train,
