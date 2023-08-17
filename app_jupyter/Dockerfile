@@ -5,4 +5,4 @@ LABEL maintainer="yunusemremidilli@gmail.com"
 ENV PYTHONUNBUFFERED 1
 ENV PYTHONDONTWRITEBYTECODE 1
 
-ENTRYPOINT ["tensorboard"]
+EXPOSE 6006

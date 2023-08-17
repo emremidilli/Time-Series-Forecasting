@@ -7,7 +7,7 @@ HYPERPARAMETER_TUNING_FOLDER = f'{BIN_FOLDER}/03 - Hyperparameter Tuning'
 ARTIFACTS_FOLDER = f'{BIN_FOLDER}/04 - Artifacts'
 
 # default architecture hyperparameters
-NR_OF_ENCODER_BLOCKS = 12
+NR_OF_ENCODER_BLOCKS = 6
 NR_OF_HEADS = 6
 DROPOUT_RATE = 0.10
 ENCODER_FFN_UNITS = 128

@@ -108,6 +108,23 @@ def get_args():
         help='embedding_dims'
     )
 
+    '''Training-related hyperparameters'''
+    parser.add_argument(
+        '--mini_batch_size',
+        required=False,
+        default=MINI_BATCH_SIZE,
+        type=int,
+        help='mini_batch_size'
+    )
+
+    parser.add_argument(
+        '--nr_of_epochs',
+        required=False,
+        default=NR_OF_EPOCHS,
+        type=int,
+        help='nr_of_epochs'
+    )
+
     args = parser.parse_args()
 
     return args
@@ -184,7 +201,7 @@ if __name__ == '__main__':
     dist, tre, sea = oPreProcessor((lb_train, fc_train))
 
     ds_train = tf.data.Dataset.from_tensor_slices((dist, tre, sea)).batch(
-        MINI_BATCH_SIZE).prefetch(tf.data.AUTOTUNE)
+        args.mini_batch_size).prefetch(tf.data.AUTOTUNE)
 
     oModel = PreTraining(
         iNrOfEncoderBlocks=args.nr_of_encoder_blocks,
@@ -200,16 +217,16 @@ if __name__ == '__main__':
         iNrOfLookbackPatches=NR_OF_LOOKBACK_PATCHES,
         iNrOfForecastPatches=NR_OF_FORECAST_PATCHES)
 
-    learning_rate = CustomSchedule(EMBEDDING_DIMS)
+    # learning_rate = CustomSchedule(EMBEDDING_DIMS)
 
     oModel.compile(
         masked_autoencoder_optimizer=tf.keras.optimizers.Adam(
-            learning_rate=learning_rate,
+            learning_rate=args.learning_rate,
             beta_1=args.beta_1,
             beta_2=args.beta_2
         ),
         contrastive_optimizer=tf.keras.optimizers.Adam(
-            learning_rate=learning_rate,
+            learning_rate=args.learning_rate,
             beta_1=args.beta_1,
             beta_2=args.beta_2
         )
@@ -232,7 +249,7 @@ if __name__ == '__main__':
 
     history = oModel.fit(
         ds_train,
-        epochs=NR_OF_EPOCHS,
+        epochs=args.nr_of_epochs,
         verbose=2,
         callbacks=[custom_callback, tensorboard_callback]
     )
