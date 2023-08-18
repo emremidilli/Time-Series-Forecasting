@@ -30,6 +30,8 @@ import shutil
 
 from sklearn.utils import resample
 
+import sys
+
 import tensorflow as tf
 from tensorflow.python.lib.io import file_io
 
@@ -44,7 +46,7 @@ def get_args():
 
     parser.add_argument(
         '--channel',
-        required=False,
+        required=True,
         default='EURUSD',
         type=str,
         help='channel'
@@ -136,20 +138,17 @@ def get_args():
 
     parser.add_argument(
         '--resume_training',
-        required=False,
+        required=True,
         default=True,
         type=bool,
         help='resume_training'
     )
-    parser.add_argument(
-        '--complete_training',
-        required=False,
-        default=False,
-        type=bool,
-        help='complete_training'
-    )
 
-    args = parser.parse_args()
+    try:
+        args = parser.parse_args()
+    except:
+        parser.print_help()
+        sys.exit(0)
 
     return args
 
@@ -179,16 +178,26 @@ class CustomModelCheckpoint(ModelCheckpoint):
                  **kwargs):
         super().__init__(**kwargs)
 
-        self.starting_epoch_checkpoint_dir = starting_epoch_checkpoint_dir
+        self.starting_epoch_checkpoint_dir = os.path.join(
+            starting_epoch_checkpoint_dir,
+            'ckpt')
+
+        self.filepath = os.path.join(
+            self.filepath,
+            'ckpt')
+
         self.epoch_freq = epoch_freq
 
     def on_epoch_end(self, epoch, logs=None):
         '''Saves model and the remained epoch to resume training.'''
         if epoch % self.epoch_freq == 0:
+
             checkpoint_epoch = tf.train.Checkpoint(
                 starting_epoch=tf.Variable(epoch, dtype=tf.int64))
 
-            checkpoint_epoch.save(self.starting_epoch_checkpoint_dir)
+            checkpoint_epoch.save(
+                file_prefix=self.starting_epoch_checkpoint_dir)
+
             return super().on_epoch_end(epoch, logs)
 
 
@@ -256,33 +265,36 @@ if __name__ == '__main__':
         beta_2=args.beta_2,
         clipnorm=args.clip_norm)
 
+    model.compile(
+        masked_autoencoder_optimizer=mae_optimizer,
+        contrastive_optimizer=cl_optimizer)
+
     artficats_dir = os.path.join(ARTIFACTS_FOLDER, sChannel, 'pre_train')
-    model_checkpoint_dir = os.path.join(artficats_dir,
-                                        'model_weights/')
+    model_checkpoint_dir = os.path.join(artficats_dir, 'model_weights')
     starting_epoch_checkpoint_dir = os.path.join(artficats_dir,
-                                                 'starting_epoch/')
-    tensorboard_log_dir = os.path.join(artficats_dir,
-                                       'tboard_logs')
+                                                 'starting_epoch')
+    tensorboard_log_dir = os.path.join(artficats_dir, 'tboard_logs')
 
     starting_epoch = 0
 
     if args.resume_training is True:
-        latest_checkpoint = tf.train.latest_checkpoint(model_checkpoint_dir)
-        if latest_checkpoint:
-            model.load_weights(model_checkpoint_dir)
+        latest_model_checkpoint = tf.train.latest_checkpoint(
+            model_checkpoint_dir)
+        if latest_model_checkpoint:
+            model.load_weights(latest_model_checkpoint)
 
+        latest_starting_epoch_checkpoint = tf.train.latest_checkpoint(
+            starting_epoch_checkpoint_dir)
+
+        if latest_starting_epoch_checkpoint:
             checkpoint_starting_epoch = tf.train.Checkpoint(
                 starting_epoch=tf.Variable(starting_epoch, dtype=tf.int64))
 
-            checkpoint_starting_epoch.restore(starting_epoch_checkpoint_dir)
-            starting_epoch = starting_epoch.numpy()
+            checkpoint_starting_epoch.restore(latest_starting_epoch_checkpoint)
+            starting_epoch = checkpoint_starting_epoch.starting_epoch.numpy()
     else:
         shutil.rmtree(artficats_dir, ignore_errors=True)
         os.makedirs(artficats_dir)
-
-    model.compile(
-        masked_autoencoder_optimizer=mae_optimizer,
-        contrastive_optimizer=cl_optimizer)
 
     checkpoint_callback = CustomModelCheckpoint(
         starting_epoch_checkpoint_dir=starting_epoch_checkpoint_dir,
@@ -302,7 +314,7 @@ if __name__ == '__main__':
         write_images=False,
         histogram_freq=1)
 
-    print(f'tensorboard --logdir="{tensorboard_log_dir}" --bind_all')
+    print(f'tensorboard --logdir=".{tensorboard_log_dir}" --bind_all')
     history = model.fit(
         ds_train,
         epochs=args.nr_of_epochs,
@@ -311,10 +323,9 @@ if __name__ == '__main__':
         shuffle=False,
         callbacks=[custom_callback, tensorboard_callback, checkpoint_callback])
 
-    if args.complete_training:
-        model.save(
-            artficats_dir,
-            overwrite=True,
-            save_format='tf')
+    model.save(
+        artficats_dir,
+        overwrite=True,
+        save_format='tf')
 
-        print('Training completed.')
+    print('Training completed.')

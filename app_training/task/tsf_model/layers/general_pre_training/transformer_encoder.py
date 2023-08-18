@@ -2,6 +2,10 @@ import tensorflow as tf
 
 
 class TransformerEncoder(tf.keras.layers.Layer):
+    '''
+    Single encoder block from "Attention is all you need paper."
+    As difference, elu activation is employed instead of relu.
+    '''
 
     def __init__(self,
                  iKeyDims,
