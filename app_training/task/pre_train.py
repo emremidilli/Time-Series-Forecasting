@@ -46,7 +46,7 @@ def get_args():
 
     parser.add_argument(
         '--channel',
-        required=False,
+        required=True,
         default='EURUSD',
         type=str,
         help='channel'
@@ -138,7 +138,7 @@ def get_args():
 
     parser.add_argument(
         '--resume_training',
-        required=False,
+        required=True,
         default=True,
         type=bool,
         help='resume_training'
