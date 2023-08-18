@@ -4,7 +4,6 @@ import tensorflow as tf
 class PositionEmbedding(tf.keras.layers.Layer):
     '''
     LSTM layer that processes sequential input.
-    Output of LSTM layer is normalized accross timesteps.
     '''
 
     def __init__(self, iUnits, **kwargs):
@@ -14,9 +13,6 @@ class PositionEmbedding(tf.keras.layers.Layer):
         self.lstm = tf.keras.layers.LSTM(units=iUnits,
                                          return_sequences=True)
 
-        self.layer_norm = tf.keras.layers.LayerNormalization(axis=1,
-                                                             epsilon=1e-6)
-
     def call(self, x):
         '''
         input: (None, timesteps, feature)
@@ -24,7 +20,5 @@ class PositionEmbedding(tf.keras.layers.Layer):
         '''
 
         y = self.lstm(x)
-
-        y = self.layer_norm(y)
 
         return y

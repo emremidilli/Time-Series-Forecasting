@@ -46,7 +46,7 @@ def get_args():
 
     parser.add_argument(
         '--channel',
-        required=True,
+        required=False,
         default='EURUSD',
         type=str,
         help='channel'
@@ -138,7 +138,7 @@ def get_args():
 
     parser.add_argument(
         '--resume_training',
-        required=True,
+        required=False,
         default=True,
         type=bool,
         help='resume_training'
@@ -234,7 +234,7 @@ if __name__ == '__main__':
         iPoolSizeTrend=POOL_SIZE_TREND,
         iNrOfBins=NR_OF_BINS
     )
-    dist, tre, sea = oPreProcessor((lb_train, fc_train))
+    dist, tre, sea = oPreProcessor((lb_train, fc_train), training=True)
 
     ds_train = tf.data.Dataset.from_tensor_slices((dist, tre, sea)).batch(
         args.mini_batch_size).prefetch(tf.data.AUTOTUNE)
@@ -318,7 +318,7 @@ if __name__ == '__main__':
     history = model.fit(
         ds_train,
         epochs=args.nr_of_epochs,
-        verbose=1,
+        verbose=2,
         initial_epoch=starting_epoch,
         shuffle=False,
         callbacks=[custom_callback, tensorboard_callback, checkpoint_callback])

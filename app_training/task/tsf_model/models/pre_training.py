@@ -2,8 +2,7 @@ import tensorflow as tf
 
 from tsf_model.layers.general_pre_training import Representation, \
     MppDecoder, ProjectionHead
-from tsf_model.layers.pre_processing import PatchMasker, PatchShifter, \
-    BatchNormalizer
+from tsf_model.layers.pre_processing import PatchMasker, PatchShifter
 
 
 class PreTraining(tf.keras.Model):
@@ -30,8 +29,6 @@ class PreTraining(tf.keras.Model):
 
         self.nr_of_lookback_patches = iNrOfLookbackPatches
         self.nr_of_forecast_patches = iNrOfForecastPatches
-
-        self.batch_normalizer = BatchNormalizer()
 
         self.patch_masker = PatchMasker(
             fMaskingRate=fMskRate, fMskScalar=fMskScalar)
@@ -166,9 +163,7 @@ class PreTraining(tf.keras.Model):
                 1. masked patch prediction
                 2. contrastive learning
         '''
-        inputs = self.batch_normalizer(
-            data,
-            training=True)
+        inputs = data
 
         dist_anchor, tre_anchor, sea_anchor = inputs
         # masked auto-encoder
@@ -272,13 +267,10 @@ class PreTraining(tf.keras.Model):
             self.cos_true,
             self.cos_false]
 
-    def call(self, inputs, training=True):
+    def call(self, inputs):
         '''
             input should be in array format. Not in tf.data.Dataset.
         '''
-        if training is False:
-            inputs = self.batch_normalizer(inputs, training=False)
-
         y_cont_temp = self.encoder_representation(inputs)
 
         y_pred_dist = self.decoder_dist(y_cont_temp)

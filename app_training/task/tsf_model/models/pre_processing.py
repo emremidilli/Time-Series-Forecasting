@@ -1,7 +1,8 @@
 import tensorflow as tf
 
 from tsf_model.layers.pre_processing import LookbackNormalizer, \
-    PatchTokenizer, DistributionTokenizer, TrendSeasonalityTokenizer
+    PatchTokenizer, DistributionTokenizer, TrendSeasonalityTokenizer, \
+    BatchNormalizer
 
 
 class PreProcessor(tf.keras.Model):
@@ -28,7 +29,9 @@ class PreProcessor(tf.keras.Model):
             iPoolSizeTrend=iPoolSizeTrend)
         self.lb_fc_concatter = tf.keras.layers.Concatenate(axis=1)
 
-    def call(self, inputs):
+        self.batch_normalizer = BatchNormalizer()
+
+    def call(self, inputs, training=False):
         '''
             inputs: tuple of 2 elements.
             Each element is a tf.data.Dataset object.
@@ -43,7 +46,7 @@ class PreProcessor(tf.keras.Model):
 
         x_lb, x_fc = inputs
 
-        # normalize
+        # lookback normalize
         x_fc = self.lookback_normalizer((x_lb, x_fc))
         x_lb = self.lookback_normalizer((x_lb, x_lb))
 
@@ -61,4 +64,8 @@ class PreProcessor(tf.keras.Model):
         tre = self.lb_fc_concatter((x_lb_tre, x_fc_tre))
         sea = self.lb_fc_concatter((x_lb_sea, x_fc_sea))
 
-        return (dist, tre, sea)
+        # batch normalize
+        y = (dist, tre, sea)
+        y = self.batch_normalizer(y, training=training)
+
+        return y
