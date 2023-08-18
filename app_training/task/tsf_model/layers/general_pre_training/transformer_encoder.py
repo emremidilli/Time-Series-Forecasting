@@ -23,7 +23,7 @@ class TransformerEncoder(tf.keras.layers.Layer):
         # 2nd part of the encoder is fully connected networ.
         self.oLayerNorm_2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
         self.oDense_2 = tf.keras.layers.Dense(
-            units=iFfnUnits, activation='relu')
+            units=iFfnUnits, activation='elu')
         self.oDropOut_2 = tf.keras.layers.Dropout(fDropoutRate)
 
         # 3rd part of the encoder is

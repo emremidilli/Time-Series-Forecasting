@@ -10,6 +10,8 @@ import gc
 
 from io import BytesIO
 
+from keras.callbacks import Callback, ModelCheckpoint
+
 import numpy as np
 
 import os
@@ -132,12 +134,27 @@ def get_args():
         help='nr_of_epochs'
     )
 
+    parser.add_argument(
+        '--resume_training',
+        required=False,
+        default=True,
+        type=bool,
+        help='resume_training'
+    )
+    parser.add_argument(
+        '--complete_training',
+        required=False,
+        default=False,
+        type=bool,
+        help='complete_training'
+    )
+
     args = parser.parse_args()
 
     return args
 
 
-class CustomCallback(tf.keras.callbacks.Callback):
+class CustomCallback(Callback):
 
     def on_epoch_end(self, epoch, logs={}):
         '''
@@ -154,22 +171,25 @@ class CustomCallback(tf.keras.callbacks.Callback):
         gc.collect()
 
 
-class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
-    '''Based on the original paper of ""Attention is all you need""'''
-    def __init__(self, d_model, warmup_steps=4000):
-        super().__init__()
+class CustomModelCheckpoint(ModelCheckpoint):
+    '''Custom ModelCheckpoint by epoch frequency.'''
+    def __init__(self,
+                 starting_epoch_checkpoint_dir,
+                 epoch_freq,
+                 **kwargs):
+        super().__init__(**kwargs)
 
-        self.d_model = d_model
-        self.d_model = tf.cast(self.d_model, tf.float32)
+        self.starting_epoch_checkpoint_dir = starting_epoch_checkpoint_dir
+        self.epoch_freq = epoch_freq
 
-        self.warmup_steps = warmup_steps
+    def on_epoch_end(self, epoch, logs=None):
+        '''Saves model and the remained epoch to resume training.'''
+        if epoch % self.epoch_freq == 0:
+            checkpoint_epoch = tf.train.Checkpoint(
+                starting_epoch=tf.Variable(epoch, dtype=tf.int64))
 
-    def __call__(self, step):
-        step = tf.cast(step, dtype=tf.float32)
-        arg1 = tf.math.rsqrt(step)
-        arg2 = step * (self.warmup_steps ** -1.5)
-
-        return tf.math.rsqrt(self.d_model) * tf.math.minimum(arg1, arg2)
+            checkpoint_epoch.save(self.starting_epoch_checkpoint_dir)
+            return super().on_epoch_end(epoch, logs)
 
 
 if __name__ == '__main__':
@@ -210,7 +230,7 @@ if __name__ == '__main__':
     ds_train = tf.data.Dataset.from_tensor_slices((dist, tre, sea)).batch(
         args.mini_batch_size).prefetch(tf.data.AUTOTUNE)
 
-    oModel = PreTraining(
+    model = PreTraining(
         iNrOfEncoderBlocks=args.nr_of_encoder_blocks,
         iNrOfHeads=args.nr_of_heads,
         fDropoutRate=args.dropout_rate,
@@ -224,48 +244,77 @@ if __name__ == '__main__':
         iNrOfLookbackPatches=NR_OF_LOOKBACK_PATCHES,
         iNrOfForecastPatches=NR_OF_FORECAST_PATCHES)
 
-    learning_rate = CustomSchedule(EMBEDDING_DIMS)
+    mae_optimizer = tf.keras.optimizers.Adam(
+        learning_rate=args.learning_rate,
+        beta_1=args.beta_1,
+        beta_2=args.beta_2,
+        clipnorm=args.clip_norm)
 
-    oModel.compile(
-        masked_autoencoder_optimizer=tf.keras.optimizers.Adam(
-            learning_rate=learning_rate,
-            beta_1=args.beta_1,
-            beta_2=args.beta_2,
-            clipnorm=args.clip_norm
-        ),
-        contrastive_optimizer=tf.keras.optimizers.Adam(
-            learning_rate=learning_rate,
-            beta_1=args.beta_1,
-            beta_2=args.beta_2,
-            clipnorm=args.clip_norm
-        )
-    )
+    cl_optimizer = tf.keras.optimizers.Adam(
+        learning_rate=args.learning_rate,
+        beta_1=args.beta_1,
+        beta_2=args.beta_2,
+        clipnorm=args.clip_norm)
 
-    sArtifactsDir = os.path.join(ARTIFACTS_FOLDER, sChannel, 'pre_train')
+    artficats_dir = os.path.join(ARTIFACTS_FOLDER, sChannel, 'pre_train')
+    model_checkpoint_dir = os.path.join(artficats_dir,
+                                        'model_weights/')
+    starting_epoch_checkpoint_dir = os.path.join(artficats_dir,
+                                                 'starting_epoch/')
+    tensorboard_log_dir = os.path.join(artficats_dir,
+                                       'tboard_logs')
 
-    shutil.rmtree(sArtifactsDir, ignore_errors=True)
-    os.makedirs(sArtifactsDir)
+    starting_epoch = 0
+
+    if args.resume_training is True:
+        latest_checkpoint = tf.train.latest_checkpoint(model_checkpoint_dir)
+        if latest_checkpoint:
+            model.load_weights(model_checkpoint_dir)
+
+            checkpoint_starting_epoch = tf.train.Checkpoint(
+                starting_epoch=tf.Variable(starting_epoch, dtype=tf.int64))
+
+            checkpoint_starting_epoch.restore(starting_epoch_checkpoint_dir)
+            starting_epoch = starting_epoch.numpy()
+    else:
+        shutil.rmtree(artficats_dir, ignore_errors=True)
+        os.makedirs(artficats_dir)
+
+    model.compile(
+        masked_autoencoder_optimizer=mae_optimizer,
+        contrastive_optimizer=cl_optimizer)
+
+    checkpoint_callback = CustomModelCheckpoint(
+        starting_epoch_checkpoint_dir=starting_epoch_checkpoint_dir,
+        filepath=model_checkpoint_dir,
+        epoch_freq=3,
+        save_weights_only=True,
+        save_best_only=True,
+        monitor='loss_mpp',
+        mode='min',
+        save_freq='epoch')
 
     custom_callback = CustomCallback()
 
-    sTensorboardLogDir = os.path.join(sArtifactsDir, 'logs')
     tensorboard_callback = tf.keras.callbacks.TensorBoard(
-        log_dir=sTensorboardLogDir,
-        histogram_freq=1
-    )
+        log_dir=tensorboard_log_dir,
+        write_graph=True,
+        write_images=False,
+        histogram_freq=1)
 
-    print(f'tensorboard --logdir="{sTensorboardLogDir}" --bind_all')
-
-    history = oModel.fit(
+    print(f'tensorboard --logdir="{tensorboard_log_dir}" --bind_all')
+    history = model.fit(
         ds_train,
         epochs=args.nr_of_epochs,
-        verbose=2,
-        callbacks=[custom_callback, tensorboard_callback]
-    )
+        verbose=1,
+        initial_epoch=starting_epoch,
+        shuffle=False,
+        callbacks=[custom_callback, tensorboard_callback, checkpoint_callback])
 
-    oModel.save(
-        sArtifactsDir,
-        overwrite=True,
-        save_format='tf')
+    if args.complete_training:
+        model.save(
+            artficats_dir,
+            overwrite=True,
+            save_format='tf')
 
-    print('Training completed.')
+        print('Training completed.')

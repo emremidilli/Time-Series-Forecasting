@@ -36,7 +36,8 @@ class Representation(tf.keras.layers.Layer):
                 TransformerEncoder(
                     intermediate_dim=iEmbeddingDims * 3,  # one for each aspect
                     num_heads=iNrOfHeads,
-                    dropout=fDropoutRate)
+                    dropout=fDropoutRate,
+                    activation='elu')
                 # TransformerEncoder(
                 #     iKeyDims=iEmbeddingDims,
                 #     iNrOfHeads=iNrOfHeads,
@@ -52,7 +53,8 @@ class Representation(tf.keras.layers.Layer):
                 TransformerEncoder(
                     intermediate_dim=iEmbeddingDims,
                     num_heads=iNrOfHeads,
-                    dropout=fDropoutRate)
+                    dropout=fDropoutRate,
+                    activation='elu')
                 # TransformerEncoder(
                 #     iKeyDims=iEmbeddingDims,
                 #     iNrOfHeads=iNrOfHeads,
@@ -64,7 +66,7 @@ class Representation(tf.keras.layers.Layer):
 
         # to reduce the concatted aspects back to the model dims.
         self.dense_temporal = tf.keras.layers.Dense(units=iEmbeddingDims,
-                                                    activation='relu')
+                                                    activation='elu')
 
         self.concat_temporal_contextual = tf.keras.layers.Concatenate(axis=1)
 
@@ -74,7 +76,8 @@ class Representation(tf.keras.layers.Layer):
                 TransformerEncoder(
                     intermediate_dim=iEmbeddingDims,
                     num_heads=iNrOfHeads,
-                    dropout=fDropoutRate)
+                    dropout=fDropoutRate,
+                    activation='elu')
                 # TransformerEncoder(
                 #     iKeyDims=iEmbeddingDims,
                 #     iNrOfHeads=iNrOfHeads,
