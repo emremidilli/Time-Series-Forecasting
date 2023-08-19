@@ -6,8 +6,8 @@ class GatedLinearUnit(tf.keras.layers.Layer):
     Gated linear unit from "Temporal Fusion Transformer" paper
     It suppress the input that is not relevant for the given task.
     '''
-    def __init__(self, units):
-        super().__init__()
+    def __init__(self, units, **kwargs):
+        super().__init__(**kwargs)
         self.linear = tf.keras.layers.Dense(units)
         self.sigmoid = tf.keras.layers.Dense(units, activation="sigmoid")
 
@@ -25,8 +25,8 @@ class GatedResidualNetwork(tf.keras.layers.Layer):
             to perform skip (residual) connection.
         4. Applies layer normalization and produces the output.
     '''
-    def __init__(self, units, dropout_rate):
-        super().__init__()
+    def __init__(self, units, dropout_rate, **kwargs):
+        super().__init__(**kwargs)
         self.units = units
         self.elu_dense = tf.keras.layers.Dense(units, activation="elu")
         self.linear_dense = tf.keras.layers.Dense(units)
@@ -57,8 +57,8 @@ class VariableSelection(tf.keras.layers.Layer):
     Note that the output of the VSN is [batch_size, encoding_size],
         regardless of the number of the input features.
     '''
-    def __init__(self, num_features, units, dropout_rate):
-        super().__init__()
+    def __init__(self, num_features, units, dropout_rate, **kwargs):
+        super().__init__(**kwargs)
         self.grns = list()
         # Create a GRN for each feature independently
         for idx in range(num_features):

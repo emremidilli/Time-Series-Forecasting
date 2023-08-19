@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from tsf_model.layers.general_pre_training import Representation, \
+from tsf_model.layers.pre_training import Representation, \
     MppDecoder, ProjectionHead
 from tsf_model.layers.pre_processing import PatchMasker, PatchShifter
 
@@ -22,6 +22,7 @@ class PreTraining(tf.keras.Model):
                  iNrOfBins,
                  iNrOfLookbackPatches,
                  iNrOfForecastPatches,
+                 summary_writer=None,
                  **kwargs):
         super().__init__(**kwargs)
 
@@ -47,13 +48,22 @@ class PreTraining(tf.keras.Model):
         self.lookback_forecast_concatter = tf.keras.layers.Concatenate(axis=1)
 
         self.decoder_dist = MppDecoder(
-            iNrOfBins, iNrOfLookbackPatches + iNrOfForecastPatches)
+            iNrOfBins,
+            iNrOfLookbackPatches + iNrOfForecastPatches,
+            name='decoder_dist')
         self.decoder_tre = MppDecoder(
-            iReducedDims, iNrOfLookbackPatches + iNrOfForecastPatches)
+            iReducedDims,
+            iNrOfLookbackPatches + iNrOfForecastPatches,
+            name='decoder_tre')
         self.decoder_sea = MppDecoder(
-            iReducedDims, iNrOfLookbackPatches + iNrOfForecastPatches)
+            iReducedDims,
+            iNrOfLookbackPatches + iNrOfForecastPatches,
+            name='decoder_sea')
 
-        self.projection_head = ProjectionHead(iProjectionHeadUnits)
+        self.projection_head = ProjectionHead(iProjectionHeadUnits,
+                                              name='projection_head')
+
+        self.summary_writer = summary_writer
 
     def compile(self,
                 contrastive_optimizer,
@@ -189,9 +199,19 @@ class PreTraining(tf.keras.Model):
             self.decoder_sea.trainable_variables
         gradients = tape.gradient(loss_mpp, trainable_vars)
 
+        zipped_gradients_variables = zip(gradients, trainable_vars)
+        # Write gradients to TensorBoard
+        with self.summary_writer.as_default():
+            for grad, var in zipped_gradients_variables:
+                if grad is not None:
+                    tf.summary.histogram(
+                        var.name + '/gradient_mpp',
+                        grad,
+                        step=self.masked_autoencoder_optimizer.iterations)
+
         # update weights
         self.masked_autoencoder_optimizer.apply_gradients(
-            zip(gradients, trainable_vars))
+            zipped_gradients_variables)
 
         # compute own metrics
         self.loss_tracker_mpp.update_state(loss_mpp)
@@ -228,9 +248,19 @@ class PreTraining(tf.keras.Model):
             self.projection_head.trainable_variables
         gradients = tape.gradient(loss_cl, trainable_vars)
 
+        zipped_gradients_variables = zip(gradients, trainable_vars)
+        # Write gradients to TensorBoard
+        with self.summary_writer.as_default():
+            for grad, var in zipped_gradients_variables:
+                if grad is not None:
+                    tf.summary.histogram(
+                        var.name + '/gradient_cl',
+                        grad,
+                        step=self.masked_autoencoder_optimizer.iterations)
+
         # update weights
         self.contrastive_optimizer.apply_gradients(
-            zip(gradients, trainable_vars))
+            zipped_gradients_variables)
 
         # compute own metrics
         self.loss_tracker_cl.update_state(loss_cl)

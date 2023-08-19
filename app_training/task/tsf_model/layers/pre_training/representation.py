@@ -15,22 +15,29 @@ class Representation(tf.keras.layers.Layer):
 
         super().__init__(**kwargs)
 
-        self.pe_dist_temporal = PositionEmbedding(iUnits=iEmbeddingDims)
-        self.pe_tre_temporal = PositionEmbedding(iUnits=iEmbeddingDims)
-        self.pe_sea_temporal = PositionEmbedding(iUnits=iEmbeddingDims)
+        self.pe_dist_temporal = PositionEmbedding(iUnits=iEmbeddingDims,
+                                                  name='pe_dist_temporal')
+        self.pe_tre_temporal = PositionEmbedding(iUnits=iEmbeddingDims,
+                                                 name='pe_tre_temporal')
+        self.pe_sea_temporal = PositionEmbedding(iUnits=iEmbeddingDims,
+                                                 name='pe_sea_temporal')
 
         self.temporal_to_contextual = tf.keras.layers.Permute((2, 1))
 
-        self.pe_dist_contextual = PositionEmbedding(iUnits=iEmbeddingDims)
-        self.pe_tre_contextual = PositionEmbedding(iUnits=iEmbeddingDims)
-        self.pe_sea_contextual = PositionEmbedding(iUnits=iEmbeddingDims)
+        self.pe_dist_contextual = PositionEmbedding(iUnits=iEmbeddingDims,
+                                                    name='pe_dist_contextual')
+        self.pe_tre_contextual = PositionEmbedding(iUnits=iEmbeddingDims,
+                                                   name='pe_tre_contextual')
+        self.pe_sea_contextual = PositionEmbedding(iUnits=iEmbeddingDims,
+                                                   name='pe_tre_contextual')
 
         self.concat_contextuals = tf.keras.layers.Concatenate(axis=1)
 
         self.variable_selection_single_step = VariableSelection(
             num_features=3,
             units=iEmbeddingDims,
-            dropout_rate=fDropoutRate)
+            dropout_rate=fDropoutRate,
+            name='variable_selection_single_step')
         self.variable_selection_temporals = tf.keras.layers.TimeDistributed(
             self.variable_selection_single_step)
 
@@ -41,7 +48,8 @@ class Representation(tf.keras.layers.Layer):
                     embed_dim=iEmbeddingDims,
                     num_heads=iNrOfHeads,
                     feedforward_dim=iEncoderFfnUnits,
-                    dropout_rate=fDropoutRate
+                    dropout_rate=fDropoutRate,
+                    name=f'encoders_temporal{i}'
                 )
             )
 
@@ -52,7 +60,8 @@ class Representation(tf.keras.layers.Layer):
                     embed_dim=iEmbeddingDims,
                     num_heads=iNrOfHeads,
                     feedforward_dim=iEncoderFfnUnits,
-                    dropout_rate=fDropoutRate
+                    dropout_rate=fDropoutRate,
+                    name=f'encoders_contextual{i}'
                 )
             )
 
@@ -65,7 +74,8 @@ class Representation(tf.keras.layers.Layer):
                     embed_dim=iEmbeddingDims,
                     num_heads=iNrOfHeads,
                     feedforward_dim=iEncoderFfnUnits,
-                    dropout_rate=fDropoutRate
+                    dropout_rate=fDropoutRate,
+                    name=f'encoders_cont_temp{i}'
                 )
             )
 

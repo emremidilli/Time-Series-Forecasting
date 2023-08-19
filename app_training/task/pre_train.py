@@ -219,6 +219,11 @@ if __name__ == '__main__':
     args = get_args()
 
     sChannel = args.channel
+    artficats_dir = os.path.join(ARTIFACTS_FOLDER, sChannel, 'pre_train')
+    model_checkpoint_dir = os.path.join(artficats_dir, 'model_weights')
+    starting_epoch_checkpoint_dir = os.path.join(artficats_dir,
+                                                 'starting_epoch')
+    tensorboard_log_dir = os.path.join(artficats_dir, 'tboard_logs')
 
     lb_train = np.load(
         BytesIO(
@@ -250,6 +255,7 @@ if __name__ == '__main__':
     ds_train = tf.data.Dataset.from_tensor_slices((dist, tre, sea)).batch(
         args.mini_batch_size).prefetch(tf.data.AUTOTUNE)
 
+    summary_writer = tf.summary.create_file_writer(tensorboard_log_dir)
     model = PreTraining(
         iNrOfEncoderBlocks=args.nr_of_encoder_blocks,
         iNrOfHeads=args.nr_of_heads,
@@ -262,7 +268,8 @@ if __name__ == '__main__':
         fMskScalar=MSK_SCALAR,
         iNrOfBins=NR_OF_BINS,
         iNrOfLookbackPatches=NR_OF_LOOKBACK_PATCHES,
-        iNrOfForecastPatches=NR_OF_FORECAST_PATCHES)
+        iNrOfForecastPatches=NR_OF_FORECAST_PATCHES,
+        summary_writer=summary_writer)
 
     mae_optimizer = tf.keras.optimizers.Adam(
         learning_rate=args.learning_rate,
@@ -279,12 +286,6 @@ if __name__ == '__main__':
     model.compile(
         masked_autoencoder_optimizer=mae_optimizer,
         contrastive_optimizer=cl_optimizer)
-
-    artficats_dir = os.path.join(ARTIFACTS_FOLDER, sChannel, 'pre_train')
-    model_checkpoint_dir = os.path.join(artficats_dir, 'model_weights')
-    starting_epoch_checkpoint_dir = os.path.join(artficats_dir,
-                                                 'starting_epoch')
-    tensorboard_log_dir = os.path.join(artficats_dir, 'tboard_logs')
 
     starting_epoch = 0
 
