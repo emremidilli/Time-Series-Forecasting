@@ -141,6 +141,7 @@ def get_args():
         required=True,
         default=True,
         type=bool,
+        action='store_true',
         help='resume_training'
     )
 
