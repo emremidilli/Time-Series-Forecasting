@@ -28,8 +28,6 @@ from settings import TRAINING_DATA_FOLDER, PATCH_SIZE, \
 
 import shutil
 
-from sklearn.utils import resample
-
 import sys
 
 import tensorflow as tf
@@ -46,7 +44,7 @@ def get_args():
 
     parser.add_argument(
         '--channel',
-        required=True,
+        required=False,
         default='EURUSD',
         type=str,
         help='channel'
@@ -138,10 +136,10 @@ def get_args():
 
     parser.add_argument(
         '--resume_training',
-        required=True,
-        default=True,
-        type=bool,
-        action='store_true',
+        required=False,
+        default='False',
+        choices=[True, False],
+        type=eval,
         help='resume_training'
     )
 
@@ -202,6 +200,17 @@ class CustomModelCheckpoint(ModelCheckpoint):
             return super().on_epoch_end(epoch, logs)
 
 
+def get_random_sample(lb, fc, sampling_ratio):
+    np.random.seed(1)
+    size_of_sample = int(len(lb) * PRE_TRAIN_RATIO)
+    all_indices = np.arange(len(lb))
+    np.random.shuffle(all_indices)
+    rand_indices = all_indices[:size_of_sample]
+    rand_indices = np.sort(rand_indices)
+
+    return lb[rand_indices], fc[rand_indices]
+
+
 if __name__ == '__main__':
     '''
     Pre-trains a given channel.
@@ -223,11 +232,10 @@ if __name__ == '__main__':
                 f'{TRAINING_DATA_FOLDER}/{sChannel}/fc_train.npy',
                 binary_mode=True)))
 
-    lb_train, fc_train = resample(
-        lb_train,
-        fc_train,
-        n_samples=int(len(lb_train) * PRE_TRAIN_RATIO),
-        random_state=1)
+    lb_train, fc_train = get_random_sample(
+        lb=lb_train,
+        fc=fc_train,
+        sampling_ratio=PRE_TRAIN_RATIO)
 
     oPreProcessor = PreProcessor(
         iPatchSize=PATCH_SIZE,
@@ -235,7 +243,9 @@ if __name__ == '__main__':
         iPoolSizeTrend=POOL_SIZE_TREND,
         iNrOfBins=NR_OF_BINS
     )
-    dist, tre, sea = oPreProcessor((lb_train, fc_train), training=True)
+    oPreProcessor.fit_on_batches((lb_train, fc_train),
+                                 batch_size=args.mini_batch_size)
+    dist, tre, sea = oPreProcessor((lb_train, fc_train), training=False)
 
     ds_train = tf.data.Dataset.from_tensor_slices((dist, tre, sea)).batch(
         args.mini_batch_size).prefetch(tf.data.AUTOTUNE)

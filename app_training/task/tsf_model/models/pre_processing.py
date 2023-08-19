@@ -31,6 +31,15 @@ class PreProcessor(tf.keras.Model):
 
         self.batch_normalizer = BatchNormalizer()
 
+    def fit_on_batches(self, inputs, batch_size):
+        '''used to train only batch normalizer'''
+        lb, fc = inputs
+        ds_input = tf.data.Dataset.from_tensor_slices((lb, fc)).batch(
+            batch_size).prefetch(tf.data.AUTOTUNE)
+
+        for input in ds_input:
+            self(input, training=True)
+
     def call(self, inputs, training=False):
         '''
             inputs: tuple of 2 elements.
