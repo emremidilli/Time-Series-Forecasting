@@ -6,51 +6,34 @@ class TransformerEncoder(tf.keras.layers.Layer):
     Single encoder block from "Attention is all you need paper."
     As difference, elu activation is employed instead of relu.
     '''
-
     def __init__(self,
-                 iKeyDims,
-                 iNrOfHeads,
-                 fDropoutRate,
-                 iFfnUnits,
-                 iFeatureSize,
+                 embed_dim,
+                 num_heads,
+                 feedforward_dim,
+                 dropout_rate=0.1,
                  **kwargs):
-        super().__init__(**kwargs)
+        super(TransformerEncoder, self).__init__(**kwargs)
+        self.attention = tf.keras.layers.MultiHeadAttention(
+            num_heads=num_heads,
+            key_dim=embed_dim)
 
-        # 1st part of the encoder is multi-head attention mechanism
-        self.oLayerNorm_1 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
-        self.oMha_1 = tf.keras.layers.MultiHeadAttention(
-            key_dim=iKeyDims,
-            num_heads=iNrOfHeads,
-            dropout=fDropoutRate)
-        self.oDropOut_1 = tf.keras.layers.Dropout(fDropoutRate)
+        self.norm1 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
+        self.dropout1 = tf.keras.layers.Dropout(dropout_rate)
 
-        # 2nd part of the encoder is fully connected networ.
-        self.oLayerNorm_2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
-        self.oDense_2 = tf.keras.layers.Dense(
-            units=iFfnUnits, activation='elu')
-        self.oDropOut_2 = tf.keras.layers.Dropout(fDropoutRate)
+        self.feedforward = tf.keras.Sequential([
+            tf.keras.layers.Dense(feedforward_dim, activation='elu'),
+            tf.keras.layers.Dense(embed_dim)
+        ])
+        self.norm2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
+        self.dropout2 = tf.keras.layers.Dropout(dropout_rate)
 
-        # 3rd part of the encoder is
-        # to connect an encoder block to the next one.
-        self.oDense_3 = tf.keras.layers.Dense(units=iFeatureSize)
+    def call(self, inputs, training=False):
+        attn_output = self.attention(inputs, inputs)
+        attn_output = self.dropout1(attn_output, training=training)
+        out1 = self.norm1(inputs + attn_output)
 
-    def call(self, x):
+        ff_output = self.feedforward(out1)
+        ff_output = self.dropout2(ff_output, training=training)
+        out2 = self.norm2(out1 + ff_output)
 
-        x_input = x
-
-        # 1st part
-        x = self.oLayerNorm_1(x)
-        x = self.oMha_1(x, x)  # self-attention
-        x = self.oDropOut_1(x)
-
-        residual = x_input + x  # residual connection
-
-        # 2nd part
-        x = self.oLayerNorm_2(residual)
-        x = self.oDense_2(x)
-        x = self.oDropOut_2(x)
-
-        # 3rd part
-        x = self.oDense_3(x)
-
-        return x + residual
+        return out2
