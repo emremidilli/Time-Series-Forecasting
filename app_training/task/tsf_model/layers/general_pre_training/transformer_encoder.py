@@ -46,7 +46,7 @@ class TransformerEncoder(tf.keras.layers.Layer):
         residual = x_input + x  # residual connection
 
         # 2nd part
-        x = self.oLayerNorm_1(residual)
+        x = self.oLayerNorm_2(residual)
         x = self.oDense_2(x)
         x = self.oDropOut_2(x)
 
