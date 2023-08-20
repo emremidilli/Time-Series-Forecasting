@@ -265,6 +265,9 @@ class PreTraining(tf.keras.Model):
             'mae_dist': self.mae_dist.result(),
             'mae_tre': self.mae_tre.result(),
             'mae_sea': self.mae_sea.result(),
+            'cos_dist': self.cos_dist.result(),
+            'cos_tre': self.cos_tre.result(),
+            'cos_sea': self.cos_sea.result(),
             'cos_true': self.cos_true.result(),
             'cos_false': self.cos_false.result()
         }
@@ -286,6 +289,9 @@ class PreTraining(tf.keras.Model):
             self.mae_dist,
             self.mae_tre,
             self.mae_sea,
+            self.cos_dist,
+            self.cos_tre,
+            self.cos_sea,
             self.cos_true,
             self.cos_false]
 
