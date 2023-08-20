@@ -1,4 +1,4 @@
-from . import PositionEmbedding, TransformerEncoder
+from . import PositionEmbedding, TransformerEncoder, Time2Vec
 
 import tensorflow as tf
 
@@ -30,6 +30,9 @@ class Representation(tf.keras.layers.Layer):
                                                    name='pe_tre_contextual')
         self.pe_sea_contextual = PositionEmbedding(iUnits=iEmbeddingDims,
                                                    name='pe_tre_contextual')
+
+        self.time2vec = Time2Vec(kernel_size=iEmbeddingDims,
+                                 name='Time2Vec')
 
         self.concat_temporals = tf.keras.layers.Concatenate(axis=2)
 
@@ -77,13 +80,14 @@ class Representation(tf.keras.layers.Layer):
 
     def call(self, x):
         '''
-        inputs: tuple of 3 elements
-            distribution - tuple of 3 elements (None, timesteps, feature)
-            trend - tuple of 3 elements (None, timesteps, feature)
-            seasonality - tuple of 3 elements (None, timesteps, feature)
+        inputs: tuple of 4 elements
+            distribution: (None, timesteps, features)
+            trend: (None, timesteps, features)
+            seasonality: (None, timesteps, features)
+            dates: (None, features, 1)
         '''
 
-        x_dist_temp, x_tre_temp, x_sea_temp = x
+        x_dist_temp, x_tre_temp, x_sea_temp, x_dates = x
 
         x_dist_cont = self.temporal_to_contextual(x_dist_temp)
         x_tre_cont = self.temporal_to_contextual(x_tre_temp)
@@ -97,10 +101,12 @@ class Representation(tf.keras.layers.Layer):
         x_tre_cont = self.pe_tre_contextual(x_tre_cont)
         x_sea_cont = self.pe_sea_contextual(x_sea_cont)
 
+        x_dates = self.time2vec(x_dates)
+
         x_temp = self.concat_temporals(
             [x_dist_temp, x_tre_temp, x_sea_temp])
         x_cont = self.concat_contextuals(
-            [x_dist_cont, x_tre_cont, x_sea_cont])
+            [x_dist_cont, x_tre_cont, x_sea_cont, x_dates])
 
         for encoder in self.encoders_temporal:
             x_temp = encoder(x_temp)

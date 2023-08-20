@@ -1,0 +1,20 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/docker-existing-docker-compose
+{
+	"name": "dev_cont_raw_data_formatter",
+
+	"dockerComposeFile": [
+		"docker-compose.yml"
+	],
+	"service": "app_data_formatter",
+	"customizations": {
+		"vscode": {
+		  "extensions": [
+			"ms-python.python",
+			"ms-python.vscode-pylance",
+			"ms-python.flake8"
+		  ]
+		}
+	  },
+	"workspaceFolder": "/workspace"
+}

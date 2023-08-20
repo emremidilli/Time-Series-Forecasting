@@ -42,14 +42,6 @@ def get_args():
     '''
     parser = argparse.ArgumentParser()
 
-    parser.add_argument(
-        '--channel',
-        required=False,
-        default='EURUSD',
-        type=str,
-        help='channel'
-    )
-
     '''Optimizer-related hyperparameters.'''
     parser.add_argument(
         '--learning_rate',
@@ -217,7 +209,7 @@ class CustomModelCheckpoint(ModelCheckpoint):
             return super().on_epoch_end(epoch, logs)
 
 
-def get_random_sample(lb, fc, sampling_ratio):
+def get_random_sample(lb, fc, ts, sampling_ratio):
     np.random.seed(1)
     size_of_sample = int(len(lb) * sampling_ratio)
     all_indices = np.arange(len(lb))
@@ -225,7 +217,7 @@ def get_random_sample(lb, fc, sampling_ratio):
     rand_indices = all_indices[:size_of_sample]
     rand_indices = np.sort(rand_indices)
 
-    return lb[rand_indices], fc[rand_indices]
+    return lb[rand_indices], fc[rand_indices], ts[rand_indices]
 
 
 if __name__ == '__main__':
@@ -235,7 +227,7 @@ if __name__ == '__main__':
     '''
     args = get_args()
 
-    sChannel = args.channel
+    sChannel = input(f'Enter a channel name from {TRAINING_DATA_FOLDER}:')
     artficats_dir = os.path.join(ARTIFACTS_FOLDER, sChannel, 'pre_train')
     model_checkpoint_dir = os.path.join(artficats_dir, 'model_weights')
     starting_epoch_checkpoint_dir = os.path.join(artficats_dir,
@@ -254,9 +246,18 @@ if __name__ == '__main__':
                 f'{TRAINING_DATA_FOLDER}/{sChannel}/fc_train.npy',
                 binary_mode=True)))
 
-    lb_train, fc_train = get_random_sample(
+    ts_train = np.load(
+        BytesIO(
+            file_io.read_file_to_string(
+                f'{TRAINING_DATA_FOLDER}/{sChannel}/ts_train.npy',
+                binary_mode=True)))
+    ts_train = np.expand_dims(ts_train, axis=2)
+    ts_train = np.array(ts_train, dtype=np.float32)
+
+    lb_train, fc_train, ts_train = get_random_sample(
         lb=lb_train,
         fc=fc_train,
+        ts=ts_train,
         sampling_ratio=args.pre_train_ratio)
 
     oPreProcessor = PreProcessor(
@@ -267,8 +268,9 @@ if __name__ == '__main__':
     )
     dist, tre, sea = oPreProcessor((lb_train, fc_train))
 
-    ds_train = tf.data.Dataset.from_tensor_slices((dist, tre, sea)).batch(
-        args.mini_batch_size).prefetch(tf.data.AUTOTUNE)
+    ds_train = tf.data.Dataset.from_tensor_slices(
+        (dist, tre, sea, ts_train)).batch(
+            args.mini_batch_size).prefetch(tf.data.AUTOTUNE)
 
     model = PreTraining(
         iNrOfEncoderBlocks=args.nr_of_encoder_blocks,

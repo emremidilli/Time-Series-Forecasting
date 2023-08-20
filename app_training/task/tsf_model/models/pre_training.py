@@ -1,5 +1,3 @@
-import os
-
 import tensorflow as tf
 
 from tsf_model.layers.pre_training import Representation, \
@@ -64,10 +62,6 @@ class PreTraining(tf.keras.Model):
 
         self.projection_head = ProjectionHead(iProjectionHeadUnits,
                                               name='projection_head')
-
-        gradient_log_dir = os.path.join(tensorboard_log_dir, 'gradients')
-        os.makedirs(gradient_log_dir, exist_ok=True)
-        self.summary_writer = tf.summary.create_file_writer(gradient_log_dir)
 
     def compile(self,
                 contrastive_optimizer,
@@ -173,21 +167,24 @@ class PreTraining(tf.keras.Model):
                 x_tre_false,
                 x_sea_false)
 
-    @tf.function()
+    # @tf.function()
     def train_step(self, data):
         '''
             trains a step in two phases:
                 1. masked patch prediction
                 2. contrastive learning
         '''
-        inputs = data
+        anchor_dist, anchor_tre, anchor_sea, dates = data
 
-        anchor_dist, anchor_tre, anchor_sea = inputs
         # masked auto-encoder
-        x_msk = self.mask_patches(inputs)
+        msk_dist, msk_tre, msk_sea = self.mask_patches(
+            (anchor_dist, anchor_tre, anchor_sea))
 
         with tf.GradientTape() as tape:
-            y_pred_dist, y_pred_tre, y_pred_sea = self(x_msk)
+            y_pred_dist, y_pred_tre, y_pred_sea = self((msk_dist,
+                                                        msk_tre,
+                                                        msk_sea,
+                                                        dates))
 
             # compute the loss value
             loss_dist = tf.keras.losses.mean_squared_error(
@@ -197,11 +194,7 @@ class PreTraining(tf.keras.Model):
             loss_sea = tf.keras.losses.mean_squared_error(
                 y_pred=y_pred_sea, y_true=anchor_sea)
 
-            losses = [loss_dist, loss_tre, loss_sea]
-            loss_weights = [1.0 / loss for loss in losses]
-            weighted_losses = [loss * weight for loss, weight in
-                               zip(losses, loss_weights)]
-            loss_mpp = tf.reduce_sum(weighted_losses)
+            loss_mpp = loss_dist + loss_tre + loss_sea
 
         # compute gradients
         trainable_vars = self.encoder_representation.trainable_variables + \
@@ -225,15 +218,15 @@ class PreTraining(tf.keras.Model):
 
         # contrastive learning
         dist_true, tre_true, sea_true, dist_false, tre_false, sea_false = \
-            self.augment_pairs(inputs)
+            self.augment_pairs((anchor_dist, anchor_tre, anchor_sea))
 
         with tf.GradientTape() as tape:
             x_cont_temp_true = self.encoder_representation(
-                (dist_true, tre_true, sea_true))
+                (dist_true, tre_true, sea_true, dates))
             x_cont_temp_false = self.encoder_representation(
-                (dist_false, tre_false, sea_false))
+                (dist_false, tre_false, sea_false, dates))
             x_cont_temp_anchor = self.encoder_representation(
-                (anchor_dist, anchor_tre, anchor_sea))
+                (anchor_dist, anchor_tre, anchor_sea, dates))
 
             y_logits_false = self.projection_head(x_cont_temp_false)
             y_logits_true = self.projection_head(x_cont_temp_true)
@@ -276,8 +269,6 @@ class PreTraining(tf.keras.Model):
             'cos_false': self.cos_false.result()
         }
 
-        self.summary_writer
-
         return dic
 
     @property
@@ -301,7 +292,11 @@ class PreTraining(tf.keras.Model):
 
     def call(self, inputs):
         '''
-            input should be in array format. Not in tf.data.Dataset.
+            input: tuple of 4 arrays.
+                1. dist: (none, timestemps, features)
+                2. tre: (none, timestemps, features)
+                3. sea: (none, timestemps, features)
+                4. date: (none, features)
         '''
         y_cont_temp = self.encoder_representation(inputs)
 

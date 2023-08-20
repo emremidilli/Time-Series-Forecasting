@@ -1,0 +1,16 @@
+SERVER = '..'
+BIN_FOLDER = f'{SERVER}/tsf-bin'
+
+RAW_DATA_FOLDER = f'{BIN_FOLDER}/00 - Raw Data'
+CONVERTED_DATA_FOLDER = f'{BIN_FOLDER}/01 - Converted Data'
+TRAINING_DATASETS_FOLDER = f'{BIN_FOLDER}/02 - Training Datasets'
+
+RAW_FREQUENCY = 'T'
+RAW_FREQUENCY_NUMPY = 'm'
+
+PATCH_SIZE = 30
+FORECAST_HORIZON = 120
+LOOKBACK_COEFFICIENT = 4
+TEST_SIZE = 500
+
+DATETIME_FEATURES = ['month', 'day', 'dayofweek', 'hour', 'minute']
