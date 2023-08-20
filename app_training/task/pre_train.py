@@ -176,10 +176,10 @@ class CustomCallback(Callback):
         used to stop the training when the threshold is achived.
         Also cleans the RAM.
         '''
-        fMaeDist = logs.get('mae_dist')
-        fMaeTre = logs.get('mae_tre')
-        fMaeSea = logs.get('mae_sea')
-        if fMaeDist <= 0.05 and fMaeTre <= 0.05 and fMaeSea <= 0.05:
+        cos_dist = logs.get('cos_dist')
+        cos_tre = logs.get('cos_tre')
+        cos_sea = logs.get('cos_sea')
+        if cos_dist >= 0.80 and cos_tre <= 0.80 and cos_sea <= 0.80:
             self.model.stop_training = True
             print('Stopping because threshold is achived...')
 

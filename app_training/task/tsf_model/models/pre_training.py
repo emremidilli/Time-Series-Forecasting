@@ -197,7 +197,11 @@ class PreTraining(tf.keras.Model):
             loss_sea = tf.keras.losses.mean_squared_error(
                 y_pred=y_pred_sea, y_true=anchor_sea)
 
-            loss_mpp = loss_dist + loss_tre + loss_sea
+            losses = [loss_dist, loss_tre, loss_sea]
+            loss_weights = [1.0 / loss for loss in losses]
+            weighted_losses = [loss * weight for loss, weight in
+                               zip(losses, loss_weights)]
+            loss_mpp = tf.reduce_sum(weighted_losses)
 
         # compute gradients
         trainable_vars = self.encoder_representation.trainable_variables + \
