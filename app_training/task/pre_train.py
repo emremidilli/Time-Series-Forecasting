@@ -116,6 +116,13 @@ def get_args():
         type=int,
         help='embedding_dims'
     )
+    parser.add_argument(
+        '--projection_head',
+        required=False,
+        default=PROJECTION_HEAD,
+        type=int,
+        help='projection_head'
+    )
 
     '''Training-related hyperparameters'''
     parser.add_argument(
@@ -269,7 +276,7 @@ if __name__ == '__main__':
         fDropoutRate=args.dropout_rate,
         iEncoderFfnUnits=args.encoder_ffn_units,
         iEmbeddingDims=args.embedding_dims,
-        iProjectionHeadUnits=PROJECTION_HEAD,
+        iProjectionHeadUnits=args.projection_head,
         iReducedDims=tre.shape[2],
         fMskRate=MASK_RATE,
         fMskScalar=MSK_SCALAR,
