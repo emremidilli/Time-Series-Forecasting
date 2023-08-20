@@ -135,6 +135,14 @@ def get_args():
     )
 
     parser.add_argument(
+        '--pre_train_ratio',
+        required=False,
+        default=PRE_TRAIN_RATIO,
+        type=bool,
+        help='pre_train_ratio'
+    )
+
+    parser.add_argument(
         '--resume_training',
         required=False,
         default='False',
@@ -240,7 +248,7 @@ if __name__ == '__main__':
     lb_train, fc_train = get_random_sample(
         lb=lb_train,
         fc=fc_train,
-        sampling_ratio=PRE_TRAIN_RATIO)
+        sampling_ratio=args.pre_train_ratio)
 
     oPreProcessor = PreProcessor(
         iPatchSize=PATCH_SIZE,
@@ -255,7 +263,6 @@ if __name__ == '__main__':
     ds_train = tf.data.Dataset.from_tensor_slices((dist, tre, sea)).batch(
         args.mini_batch_size).prefetch(tf.data.AUTOTUNE)
 
-    summary_writer = tf.summary.create_file_writer(tensorboard_log_dir)
     model = PreTraining(
         iNrOfEncoderBlocks=args.nr_of_encoder_blocks,
         iNrOfHeads=args.nr_of_heads,
@@ -269,7 +276,7 @@ if __name__ == '__main__':
         iNrOfBins=NR_OF_BINS,
         iNrOfLookbackPatches=NR_OF_LOOKBACK_PATCHES,
         iNrOfForecastPatches=NR_OF_FORECAST_PATCHES,
-        summary_writer=summary_writer)
+        tensorboard_log_dir=tensorboard_log_dir)
 
     mae_optimizer = tf.keras.optimizers.Adam(
         learning_rate=args.learning_rate,

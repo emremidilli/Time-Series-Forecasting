@@ -22,7 +22,7 @@ class PreTraining(tf.keras.Model):
                  iNrOfBins,
                  iNrOfLookbackPatches,
                  iNrOfForecastPatches,
-                 summary_writer=None,
+                 tensorboard_log_dir,
                  **kwargs):
         super().__init__(**kwargs)
 
@@ -63,7 +63,8 @@ class PreTraining(tf.keras.Model):
         self.projection_head = ProjectionHead(iProjectionHeadUnits,
                                               name='projection_head')
 
-        self.summary_writer = summary_writer
+        self.summary_writer = tf.summary.create_file_writer(
+            tensorboard_log_dir)
 
     def compile(self,
                 contrastive_optimizer,
@@ -202,12 +203,13 @@ class PreTraining(tf.keras.Model):
         zipped_gradients_variables = zip(gradients, trainable_vars)
         # Write gradients to TensorBoard
         with self.summary_writer.as_default():
+            step = self.masked_autoencoder_optimizer.iterations.numpy()
             for grad, var in zipped_gradients_variables:
                 if grad is not None:
                     tf.summary.histogram(
                         var.name + '/gradient_mpp',
                         grad,
-                        step=self.masked_autoencoder_optimizer.iterations)
+                        step=step)
 
         # update weights
         self.masked_autoencoder_optimizer.apply_gradients(
@@ -251,12 +253,13 @@ class PreTraining(tf.keras.Model):
         zipped_gradients_variables = zip(gradients, trainable_vars)
         # Write gradients to TensorBoard
         with self.summary_writer.as_default():
+            step = self.contrastive_optimizer.iterations.numpy()
             for grad, var in zipped_gradients_variables:
                 if grad is not None:
                     tf.summary.histogram(
                         var.name + '/gradient_cl',
                         grad,
-                        step=self.masked_autoencoder_optimizer.iterations)
+                        step=step)
 
         # update weights
         self.contrastive_optimizer.apply_gradients(
