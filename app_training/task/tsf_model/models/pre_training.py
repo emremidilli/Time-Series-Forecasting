@@ -87,6 +87,9 @@ class PreTraining(tf.keras.Model):
         self.mae_dist = tf.keras.metrics.MeanAbsoluteError(name='mae_dist')
         self.mae_tre = tf.keras.metrics.MeanAbsoluteError(name='mae_tre')
         self.mae_sea = tf.keras.metrics.MeanAbsoluteError(name='mae_sea')
+        self.cos_dist = tf.keras.metrics.CosineSimilarity(name='cos_dist')
+        self.cos_tre = tf.keras.metrics.CosineSimilarity(name='cos_tre')
+        self.cos_sea = tf.keras.metrics.CosineSimilarity(name='cos_sea')
         self.cos_true = tf.keras.metrics.CosineSimilarity(name='cos_true')
         self.cos_false = tf.keras.metrics.CosineSimilarity(name='cos_false')
 
@@ -179,7 +182,7 @@ class PreTraining(tf.keras.Model):
         '''
         inputs = data
 
-        dist_anchor, tre_anchor, sea_anchor = inputs
+        anchor_dist, anchor_tre, anchor_sea = inputs
         # masked auto-encoder
         x_msk = self.mask_patches(inputs)
 
@@ -188,11 +191,11 @@ class PreTraining(tf.keras.Model):
 
             # compute the loss value
             loss_dist = tf.keras.losses.mean_squared_error(
-                y_pred=y_pred_dist, y_true=dist_anchor)
+                y_pred=y_pred_dist, y_true=anchor_dist)
             loss_tre = tf.keras.losses.mean_squared_error(
-                y_pred=y_pred_tre, y_true=tre_anchor)
+                y_pred=y_pred_tre, y_true=anchor_tre)
             loss_sea = tf.keras.losses.mean_squared_error(
-                y_pred=y_pred_sea, y_true=sea_anchor)
+                y_pred=y_pred_sea, y_true=anchor_sea)
 
             loss_mpp = loss_dist + loss_tre + loss_sea
 
@@ -203,26 +206,18 @@ class PreTraining(tf.keras.Model):
             self.decoder_sea.trainable_variables
         gradients = tape.gradient(loss_mpp, trainable_vars)
 
-        zipped_gradients_variables = zip(gradients, trainable_vars)
-        # Write gradients to TensorBoard
-        with self.summary_writer.as_default():
-            step = self.masked_autoencoder_optimizer.iterations
-            for grad, var in zipped_gradients_variables:
-                if grad is not None:
-                    tf.summary.histogram(
-                        var.name + '/gradient_mpp',
-                        grad,
-                        step=step)
-
         # update weights
         self.masked_autoencoder_optimizer.apply_gradients(
-            zipped_gradients_variables)
+            zip(gradients, trainable_vars))
 
         # compute own metrics
         self.loss_tracker_mpp.update_state(loss_mpp)
-        self.mae_dist.update_state(y_pred=y_pred_dist, y_true=dist_anchor)
-        self.mae_tre.update_state(y_pred=y_pred_tre, y_true=tre_anchor)
-        self.mae_sea.update_state(y_pred=y_pred_sea, y_true=sea_anchor)
+        self.mae_dist.update_state(y_pred=y_pred_dist, y_true=anchor_dist)
+        self.mae_tre.update_state(y_pred=y_pred_tre, y_true=anchor_tre)
+        self.mae_sea.update_state(y_pred=y_pred_sea, y_true=anchor_sea)
+        self.cos_dist.update_state(y_pred=y_pred_dist, y_true=anchor_dist)
+        self.cos_tre.update_state(y_pred=y_pred_tre, y_true=anchor_tre)
+        self.cos_sea.update_state(y_pred=y_pred_sea, y_true=anchor_sea)
 
         # contrastive learning
         dist_true, tre_true, sea_true, dist_false, tre_false, sea_false = \
@@ -234,7 +229,7 @@ class PreTraining(tf.keras.Model):
             x_cont_temp_false = self.encoder_representation(
                 (dist_false, tre_false, sea_false))
             x_cont_temp_anchor = self.encoder_representation(
-                (dist_anchor, tre_anchor, sea_anchor))
+                (anchor_dist, anchor_tre, anchor_sea))
 
             y_logits_false = self.projection_head(x_cont_temp_false)
             y_logits_true = self.projection_head(x_cont_temp_true)
@@ -253,20 +248,9 @@ class PreTraining(tf.keras.Model):
             self.projection_head.trainable_variables
         gradients = tape.gradient(loss_cl, trainable_vars)
 
-        zipped_gradients_variables = zip(gradients, trainable_vars)
-        # Write gradients to TensorBoard
-        with self.summary_writer.as_default():
-            step = self.contrastive_optimizer.iterations
-            for grad, var in zipped_gradients_variables:
-                if grad is not None:
-                    tf.summary.histogram(
-                        var.name + '/gradient_cl',
-                        grad,
-                        step=step)
-
         # update weights
         self.contrastive_optimizer.apply_gradients(
-            zipped_gradients_variables)
+            zip(gradients, trainable_vars))
 
         # compute own metrics
         self.loss_tracker_cl.update_state(loss_cl)
