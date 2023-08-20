@@ -1,4 +1,4 @@
-from . import PositionEmbedding, TransformerEncoder, VariableSelection
+from . import PositionEmbedding, TransformerEncoder
 
 import tensorflow as tf
 
@@ -31,27 +31,21 @@ class Representation(tf.keras.layers.Layer):
         self.pe_sea_contextual = PositionEmbedding(iUnits=iEmbeddingDims,
                                                    name='pe_tre_contextual')
 
-        self.concat_contextuals = tf.keras.layers.Concatenate(axis=1)
-
-        self.variable_selection_single_step = VariableSelection(
-            num_features=3,
-            units=iEmbeddingDims,
-            dropout_rate=fDropoutRate,
-            name='variable_selection_single_step')
-        self.variable_selection_temporals = tf.keras.layers.TimeDistributed(
-            self.variable_selection_single_step)
+        self.concat_temporals = tf.keras.layers.Concatenate(axis=2)
 
         self.encoders_temporal = []
         for i in range(iNrOfEncoderBlocks):
             self.encoders_temporal.append(
                 TransformerEncoder(
-                    embed_dim=iEmbeddingDims,
+                    embed_dim=iEmbeddingDims * 3,
                     num_heads=iNrOfHeads,
-                    feedforward_dim=iEncoderFfnUnits,
+                    feedforward_dim=iEncoderFfnUnits * 3,
                     dropout_rate=fDropoutRate,
                     name=f'encoders_temporal{i}'
                 )
             )
+
+        self.dense_reducer = tf.keras.layers.Dense(units=iEmbeddingDims)
 
         self.encoders_contextual = []
         for i in range(iNrOfEncoderBlocks):
@@ -64,6 +58,8 @@ class Representation(tf.keras.layers.Layer):
                     name=f'encoders_contextual{i}'
                 )
             )
+
+        self.concat_contextuals = tf.keras.layers.Concatenate(axis=1)
 
         self.concat_temporal_contextual = tf.keras.layers.Concatenate(axis=1)
 
@@ -101,13 +97,15 @@ class Representation(tf.keras.layers.Layer):
         x_tre_cont = self.pe_tre_contextual(x_tre_cont)
         x_sea_cont = self.pe_sea_contextual(x_sea_cont)
 
-        x_temp = self.variable_selection_temporals(
+        x_temp = self.concat_temporals(
             [x_dist_temp, x_tre_temp, x_sea_temp])
         x_cont = self.concat_contextuals(
             [x_dist_cont, x_tre_cont, x_sea_cont])
 
         for encoder in self.encoders_temporal:
             x_temp = encoder(x_temp)
+
+        x_temp = self.dense_reducer(x_temp)
 
         for encoder in self.encoders_contextual:
             x_cont = encoder(x_cont)
