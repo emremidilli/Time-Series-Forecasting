@@ -1,3 +1,5 @@
+import os
+
 import tensorflow as tf
 
 from tsf_model.layers.pre_training import Representation, \
@@ -63,8 +65,9 @@ class PreTraining(tf.keras.Model):
         self.projection_head = ProjectionHead(iProjectionHeadUnits,
                                               name='projection_head')
 
-        self.summary_writer = tf.summary.create_file_writer(
-            tensorboard_log_dir)
+        gradient_log_dir = os.path.join(tensorboard_log_dir, 'gradients')
+        os.makedirs(gradient_log_dir, exist_ok=True)
+        self.summary_writer = tf.summary.create_file_writer(gradient_log_dir)
 
     def compile(self,
                 contrastive_optimizer,
@@ -203,7 +206,7 @@ class PreTraining(tf.keras.Model):
         zipped_gradients_variables = zip(gradients, trainable_vars)
         # Write gradients to TensorBoard
         with self.summary_writer.as_default():
-            step = self.masked_autoencoder_optimizer.iterations.numpy()
+            step = self.masked_autoencoder_optimizer.iterations
             for grad, var in zipped_gradients_variables:
                 if grad is not None:
                     tf.summary.histogram(
@@ -253,7 +256,7 @@ class PreTraining(tf.keras.Model):
         zipped_gradients_variables = zip(gradients, trainable_vars)
         # Write gradients to TensorBoard
         with self.summary_writer.as_default():
-            step = self.contrastive_optimizer.iterations.numpy()
+            step = self.contrastive_optimizer.iterations
             for grad, var in zipped_gradients_variables:
                 if grad is not None:
                     tf.summary.histogram(
@@ -281,6 +284,8 @@ class PreTraining(tf.keras.Model):
             'cos_true': self.cos_true.result(),
             'cos_false': self.cos_false.result()
         }
+
+        self.summary_writer
 
         return dic
 

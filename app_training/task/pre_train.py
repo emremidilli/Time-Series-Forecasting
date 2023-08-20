@@ -138,7 +138,7 @@ def get_args():
         '--pre_train_ratio',
         required=False,
         default=PRE_TRAIN_RATIO,
-        type=bool,
+        type=float,
         help='pre_train_ratio'
     )
 
@@ -156,6 +156,8 @@ def get_args():
     except:
         parser.print_help()
         sys.exit(0)
+
+    print(args)
 
     return args
 
@@ -210,7 +212,7 @@ class CustomModelCheckpoint(ModelCheckpoint):
 
 def get_random_sample(lb, fc, sampling_ratio):
     np.random.seed(1)
-    size_of_sample = int(len(lb) * PRE_TRAIN_RATIO)
+    size_of_sample = int(len(lb) * sampling_ratio)
     all_indices = np.arange(len(lb))
     np.random.shuffle(all_indices)
     rand_indices = all_indices[:size_of_sample]

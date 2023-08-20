@@ -47,6 +47,8 @@ class ProjectionHead(tf.keras.layers.Layer):
             activation='relu',
             use_bias=False)
 
+        self.layer_norm = tf.keras.layers.LayerNormalization()
+
     def call(self, x):
         '''
         input: (None, timesteps, feature)
@@ -56,5 +58,7 @@ class ProjectionHead(tf.keras.layers.Layer):
         x = self.flatten(x)
 
         y = self.dense(x)
+
+        y = self.layer_norm(y)
 
         return y
