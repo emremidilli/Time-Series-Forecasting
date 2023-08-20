@@ -31,58 +31,33 @@ class PositionEmbedding(tf.keras.layers.Layer):
 class Time2Vec(tf.keras.layers.Layer):
     '''Embedds a datetime vector via perioid activation based on
         "Time2Vec: Learning a Vector Representation of Time" paper.'''
-    def __init__(self, kernel_size, periodic_activation='sin', **kwargs):
-        super(Time2Vec, self).__init__(
-            trainable=True,
-            **kwargs
+    def __init__(self, embedding_dims, **kwargs):
+        super(Time2Vec, self).__init__(**kwargs)
+
+        self.dense_linear = tf.keras.layers.Dense(
+            units=1
         )
 
-        self.k = kernel_size - 1
-        self.p_activation = periodic_activation
-
-    def build(self, input_shape):
-        self.wb = self.add_weight(
-            shape=(1, 1),
-            initializer='uniform',
-            trainable=True
+        self.dense_periodic = tf.keras.layers.Dense(
+            units=embedding_dims - 1
         )
 
-        self.bb = self.add_weight(
-            shape=(1, 1),
-            initializer='uniform',
-            trainable=True
-        )
-
-        self.wa = self.add_weight(
-            shape=(1, self.k),
-            initializer='uniform',
-            trainable=True
-        )
-
-        self.ba = self.add_weight(
-            shape=(1, self.k),
-            initializer='uniform',
-            trainable=True
-        )
-
-        super(Time2Vec, self).build(input_shape)
+        self.concatter = tf.keras.layers.Concatenate(axis=2)
 
     def call(self, inputs, **kwargs):
         '''
-        inputs: (None, feature_size, 1)
-        returns: (None, feature_size, kernel_size)
+        inputs: (None, feature_size)
+        returns: (None, feature_size, embedding_dims)
         '''
-        bias = self.wb * inputs + self.bb
-        if self.p_activation.startswith('sin'):
-            wgts = tf.keras.backend.sin(
-                tf.keras.backend.dot(inputs, self.wa) + self.ba)
-        elif self.p_activation.startswith('cos'):
-            wgts = tf.keras.backend.cos(
-                tf.keras.backend.dot(inputs, self.wa) + self.ba)
-        else:
-            raise NotImplementedError('Neither sine or cosine periodic \
-                                      activation be selected.')
-        return tf.keras.backend.concatenate([bias, wgts], -1)
+        x = tf.expand_dims(inputs, axis=2)
 
-    def compute_output_shape(self, input_shape):
-        return (input_shape[0], input_shape[1], self.k + 1)
+        linear = self.dense_linear(x)
+
+        periodic = self.dense_periodic(x)
+        periodic = tf.keras.backend.sin(
+            periodic
+        )
+
+        embedded = self.concatter([linear, periodic])
+
+        return embedded

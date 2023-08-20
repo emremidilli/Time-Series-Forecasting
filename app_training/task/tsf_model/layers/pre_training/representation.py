@@ -31,8 +31,8 @@ class Representation(tf.keras.layers.Layer):
         self.pe_sea_contextual = PositionEmbedding(iUnits=iEmbeddingDims,
                                                    name='pe_tre_contextual')
 
-        self.time2vec = Time2Vec(kernel_size=iEmbeddingDims,
-                                 name='Time2Vec')
+        self.time2vec = Time2Vec(embedding_dims=iEmbeddingDims,
+                                 name='time2vec')
 
         self.concat_temporals = tf.keras.layers.Concatenate(axis=2)
 
@@ -84,7 +84,7 @@ class Representation(tf.keras.layers.Layer):
             distribution: (None, timesteps, features)
             trend: (None, timesteps, features)
             seasonality: (None, timesteps, features)
-            dates: (None, features, 1)
+            dates: (None, features)
         '''
 
         x_dist_temp, x_tre_temp, x_sea_temp, x_dates = x

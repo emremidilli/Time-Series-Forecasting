@@ -251,8 +251,6 @@ if __name__ == '__main__':
             file_io.read_file_to_string(
                 f'{TRAINING_DATA_FOLDER}/{sChannel}/ts_train.npy',
                 binary_mode=True)))
-    ts_train = np.expand_dims(ts_train, axis=2)
-    ts_train = np.array(ts_train, dtype=np.float32)
 
     lb_train, fc_train, ts_train = get_random_sample(
         lb=lb_train,
@@ -268,6 +266,7 @@ if __name__ == '__main__':
     )
     dist, tre, sea = oPreProcessor((lb_train, fc_train))
 
+    ts_train = tf.convert_to_tensor(ts_train, dtype=tf.float32)
     ds_train = tf.data.Dataset.from_tensor_slices(
         (dist, tre, sea, ts_train)).batch(
             args.mini_batch_size).prefetch(tf.data.AUTOTUNE)
