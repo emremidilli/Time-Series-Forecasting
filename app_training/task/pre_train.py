@@ -258,9 +258,7 @@ if __name__ == '__main__':
         iPoolSizeTrend=POOL_SIZE_TREND,
         iNrOfBins=NR_OF_BINS
     )
-    oPreProcessor.fit_on_batches((lb_train, fc_train),
-                                 batch_size=args.mini_batch_size)
-    dist, tre, sea = oPreProcessor((lb_train, fc_train), training=False)
+    dist, tre, sea = oPreProcessor((lb_train, fc_train))
 
     ds_train = tf.data.Dataset.from_tensor_slices((dist, tre, sea)).batch(
         args.mini_batch_size).prefetch(tf.data.AUTOTUNE)

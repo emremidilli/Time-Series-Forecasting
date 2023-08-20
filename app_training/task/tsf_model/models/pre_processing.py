@@ -2,7 +2,7 @@ import tensorflow as tf
 
 from tsf_model.layers.pre_processing import LookbackNormalizer, \
     PatchTokenizer, DistributionTokenizer, TrendSeasonalityTokenizer, \
-    BatchNormalizer
+    LayerNormalizer
 
 
 class PreProcessor(tf.keras.Model):
@@ -29,16 +29,7 @@ class PreProcessor(tf.keras.Model):
             iPoolSizeTrend=iPoolSizeTrend)
         self.lb_fc_concatter = tf.keras.layers.Concatenate(axis=1)
 
-        self.batch_normalizer = BatchNormalizer()
-
-    def fit_on_batches(self, inputs, batch_size):
-        '''used to train only batch normalizer'''
-        lb, fc = inputs
-        ds_input = tf.data.Dataset.from_tensor_slices((lb, fc)).batch(
-            batch_size).prefetch(tf.data.AUTOTUNE)
-
-        for input in ds_input:
-            self(input, training=True)
+        self.layer__normalizer = LayerNormalizer()
 
     def call(self, inputs, training=False):
         '''
@@ -75,6 +66,6 @@ class PreProcessor(tf.keras.Model):
 
         # batch normalize
         y = (dist, tre, sea)
-        y = self.batch_normalizer(y, training=training)
+        y = self.layer__normalizer(y)
 
         return y
