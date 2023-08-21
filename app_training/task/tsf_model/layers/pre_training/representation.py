@@ -49,6 +49,8 @@ class Representation(tf.keras.layers.Layer):
             )
 
         self.dense_reducer = tf.keras.layers.Dense(units=iEmbeddingDims)
+        self.layer_norm_reducer = tf.keras.layers.LayerNormalization(
+            epsilon=1e-6)
 
         self.encoders_contextual = []
         for i in range(iNrOfEncoderBlocks):
@@ -112,6 +114,7 @@ class Representation(tf.keras.layers.Layer):
             x_temp = encoder(x_temp)
 
         x_temp = self.dense_reducer(x_temp)
+        x_temp = self.layer_norm_reducer(x_temp)
 
         for encoder in self.encoders_contextual:
             x_cont = encoder(x_cont)
