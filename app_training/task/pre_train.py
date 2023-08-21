@@ -33,7 +33,7 @@ import sys
 import tensorflow as tf
 from tensorflow.python.lib.io import file_io
 
-from tsf_model import PreProcessor, PreTraining
+from tsf_model import InputPreProcessor, PreTraining
 
 
 def get_args():
@@ -230,6 +230,7 @@ if __name__ == '__main__':
     sChannel = input(f'Enter a channel name from {TRAINING_DATA_FOLDER}:')
     artficats_dir = os.path.join(ARTIFACTS_FOLDER, sChannel, 'pre_train')
     model_checkpoint_dir = os.path.join(artficats_dir, 'model_weights')
+    saved_model_dir = os.path.join(artficats_dir, 'saved_model')
     starting_epoch_checkpoint_dir = os.path.join(artficats_dir,
                                                  'starting_epoch')
     tensorboard_log_dir = os.path.join(artficats_dir, 'tboard_logs')
@@ -258,14 +259,14 @@ if __name__ == '__main__':
         ts=ts_train,
         sampling_ratio=args.pre_train_ratio)
 
-    oPreProcessor = PreProcessor(
+    input_pre_processor = InputPreProcessor(
         iPatchSize=PATCH_SIZE,
         iPoolSizeReduction=POOL_SIZE_REDUCTION,
         iPoolSizeTrend=POOL_SIZE_TREND,
         iNrOfBins=NR_OF_BINS
     )
-    dist, tre, sea = oPreProcessor((lb_train, fc_train))
-    ts_train = oPreProcessor.batch_normalizer(ts_train, training=True)
+    dist, tre, sea = input_pre_processor((lb_train, fc_train))
+    ts_train = input_pre_processor.batch_normalizer(ts_train, training=True)
 
     ds_train = tf.data.Dataset.from_tensor_slices(
         (dist, tre, sea, ts_train)).batch(
@@ -283,8 +284,7 @@ if __name__ == '__main__':
         fMskScalar=MSK_SCALAR,
         iNrOfBins=NR_OF_BINS,
         iNrOfLookbackPatches=NR_OF_LOOKBACK_PATCHES,
-        iNrOfForecastPatches=NR_OF_FORECAST_PATCHES,
-        tensorboard_log_dir=tensorboard_log_dir)
+        iNrOfForecastPatches=NR_OF_FORECAST_PATCHES)
 
     mae_optimizer = tf.keras.optimizers.Adam(
         learning_rate=args.learning_rate,
@@ -351,7 +351,7 @@ if __name__ == '__main__':
         callbacks=[custom_callback, tensorboard_callback, checkpoint_callback])
 
     model.save(
-        artficats_dir,
+        saved_model_dir,
         overwrite=True,
         save_format='tf')
 

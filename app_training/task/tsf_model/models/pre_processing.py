@@ -2,12 +2,45 @@ import tensorflow as tf
 
 from tsf_model.layers.pre_processing import LookbackNormalizer, \
     PatchTokenizer, DistributionTokenizer, TrendSeasonalityTokenizer, \
-    LayerNormalizer, BatchNormalizer
+    LayerNormalizer, BatchNormalizer, QuantileTokenizer
 
 
-class PreProcessor(tf.keras.Model):
+class BasePreProcessor(tf.keras.Model):
+    def __init__(self,
+                 iPatchSize,
+                 **kwargs):
+        super().__init__(**kwargs)
+
+        self.lookback_normalizer = LookbackNormalizer()
+        self.patch_tokenizer = PatchTokenizer(iPatchSize)
+
+    def call(self, inputs):
+        '''
+            applies lookback normalization and patch tokenization.
+            inputs: tuple of 2 elements.
+                1. x_lb: (None, timesteps)
+                2. x_fc: (None, timesteps)
+
+            returns tuple of 2 elemements.
+                1. dist: (None, timesteps, feature)
+                2. tre: (None, timesteps, feature)
+        '''
+        x_lb, x_fc = inputs
+
+        # lookback normalize
+        x_fc = self.lookback_normalizer((x_lb, x_fc))
+        x_lb = self.lookback_normalizer((x_lb, x_lb))
+
+        # tokenize
+        x_lb = self.patch_tokenizer(x_lb)
+        x_fc = self.patch_tokenizer(x_fc)
+
+        return (x_lb, x_fc)
+
+
+class InputPreProcessor(tf.keras.Model):
     '''
-        Keras model to pre-process timestep inputs.
+        Preprocess for pre-training model.
     '''
     def __init__(self,
                  iPatchSize,
@@ -17,8 +50,8 @@ class PreProcessor(tf.keras.Model):
                  **kwargs):
         super().__init__(**kwargs)
 
-        self.lookback_normalizer = LookbackNormalizer()
-        self.patch_tokenizer = PatchTokenizer(iPatchSize)
+        self.base_pre_processor = BasePreProcessor(iPatchSize=iPatchSize)
+
         self.distribution_tokenizer = DistributionTokenizer(
             iNrOfBins=iNrOfBins,
             fMin=0,
@@ -29,7 +62,7 @@ class PreProcessor(tf.keras.Model):
             iPoolSizeTrend=iPoolSizeTrend)
         self.lb_fc_concatter = tf.keras.layers.Concatenate(axis=1)
 
-        self.layer__normalizer = LayerNormalizer()
+        self.layer_normalizer = LayerNormalizer()
 
         self.batch_normalizer = BatchNormalizer()
 
@@ -48,13 +81,7 @@ class PreProcessor(tf.keras.Model):
 
         x_lb, x_fc = inputs
 
-        # lookback normalize
-        x_fc = self.lookback_normalizer((x_lb, x_fc))
-        x_lb = self.lookback_normalizer((x_lb, x_lb))
-
-        # tokenize
-        x_lb = self.patch_tokenizer(x_lb)
-        x_fc = self.patch_tokenizer(x_fc)
+        x_lb, x_fc = self.base_pre_processor((x_lb, x_fc))
 
         x_lb_dist = self.distribution_tokenizer(x_lb)
         x_fc_dist = self.distribution_tokenizer(x_fc)
@@ -66,8 +93,32 @@ class PreProcessor(tf.keras.Model):
         tre = self.lb_fc_concatter((x_lb_tre, x_fc_tre))
         sea = self.lb_fc_concatter((x_lb_sea, x_fc_sea))
 
-        # batch normalize
         y = (dist, tre, sea)
-        y = self.layer__normalizer(y)
+        y = self.layer_normalizer(y)
 
         return y
+
+
+class TargetPreProcessor(tf.keras.Model):
+    '''Preprocess to prouce target features.'''
+    def __init__(self, iPatchSize, quantiles, **kwargs):
+        super().__init__(**kwargs)
+        self.base_pre_processor = BasePreProcessor(iPatchSize=iPatchSize)
+
+        self.quantile_tokenizer = QuantileTokenizer(quantiles=quantiles)
+
+    def call(self, inputs):
+        '''
+        input:
+            1. x_lb: (None, timesteps)
+            2. x_fc: (None, timesteps)
+        returns:
+            1. qntl: (None, timesteps, features)
+        '''
+        x_lb, x_fc = inputs
+
+        _, x_fc = self.base_pre_processor((x_lb, x_fc))
+
+        qntl = self.quantile_tokenizer(x_fc)
+
+        return qntl

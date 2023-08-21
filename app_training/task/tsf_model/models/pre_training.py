@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from tsf_model.layers.pre_training import Representation, \
+from tsf_model.layers.ConTemPreT import Representation, \
     MppDecoder, ProjectionHead
 from tsf_model.layers.pre_processing import PatchMasker, PatchShifter
 
@@ -22,7 +22,6 @@ class PreTraining(tf.keras.Model):
                  iNrOfBins,
                  iNrOfLookbackPatches,
                  iNrOfForecastPatches,
-                 tensorboard_log_dir,
                  **kwargs):
         super().__init__(**kwargs)
 
@@ -36,7 +35,6 @@ class PreTraining(tf.keras.Model):
 
         self.patch_shifter = PatchShifter()
 
-        self.encoder_representation = tf.keras.layers.Concatenate(axis=2)
         self.encoder_representation = Representation(
             iNrOfEncoderBlocks,
             iNrOfHeads,
@@ -293,9 +291,9 @@ class PreTraining(tf.keras.Model):
     def call(self, inputs):
         '''
             input: tuple of 4 arrays.
-                1. dist: (none, timestemps, features)
-                2. tre: (none, timestemps, features)
-                3. sea: (none, timestemps, features)
+                1. dist: (none, timesteps, features)
+                2. tre: (none, timesteps, features)
+                3. sea: (none, timesteps, features)
                 4. date: (none, features)
         '''
         y_cont_temp = self.encoder_representation(inputs)

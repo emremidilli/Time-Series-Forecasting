@@ -1,4 +1,5 @@
 import tensorflow as tf
+import tensorflow_probability as tfp
 
 
 class PatchTokenizer(tf.keras.layers.Layer):
@@ -94,3 +95,27 @@ class TrendSeasonalityTokenizer(tf.keras.layers.Layer):
         y_seasonality = tf.subtract(x_reduced, y_trend)
 
         return (y_trend, y_seasonality)
+
+
+class QuantileTokenizer(tf.keras.layers.Layer):
+    def __init__(self, quantiles, **kwargs):
+        super().__init__(**kwargs)
+
+        self.trainable = False
+
+        self.percentiles = tf.convert_to_tensor(quantiles) * 100
+
+    def call(self, x):
+        '''
+        inputs: lookback normalized & patch tokenizer input
+            (None, timesteps, feature)
+            timesteps are patches.
+            features are single steps within the same patch.
+
+        returns: (None, timesteps, feature)
+            timesteps are patches.
+            features are quantiles.
+        '''
+        y = tfp.stats.percentile(x, self.percentiles, axis=2)
+        y = tf.transpose(y, perm=[1, 2, 0])
+        return y

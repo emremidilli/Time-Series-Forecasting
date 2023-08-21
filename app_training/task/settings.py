@@ -21,7 +21,7 @@ BETA_2 = 0.99
 CLIP_NORM = 1.0
 
 # fine-tuning features
-TARGET_QUANTILES = [0.10, 0.50, 0.90]
+QUANTILES = [0.10, 0.50, 0.90]
 
 # input representation
 FORECAST_HORIZON = 120
