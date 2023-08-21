@@ -61,3 +61,22 @@ class LayerNormalizer(tf.keras.layers.Layer):
         sea = self.layer_normalizer_sea(sea)
 
         return (dist, tre, sea)
+
+
+class BatchNormalizer(tf.keras.layers.Layer):
+    '''Batch normalization for date features'''
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        self.batch_norm = tf.keras.layers.BatchNormalization(
+            epsilon=1e-6
+        )
+
+    def call(self, inputs, training=True):
+        '''
+        inputs: (none, features)
+        outputs: (none, features)
+        '''
+        y = self.batch_norm(inputs)
+
+        return y

@@ -30,19 +30,29 @@ class PositionEmbedding(tf.keras.layers.Layer):
 
 class Time2Vec(tf.keras.layers.Layer):
     '''Embedds a datetime vector via perioid activation based on
-        "Time2Vec: Learning a Vector Representation of Time" paper.'''
+        "Time2Vec: Learning a Vector Representation of Time" paper.
+        As difference from original paper:
+            In order to prevent from gradient explosion for higher dimensions,
+            layer normalization is employed at end of the layer.
+    '''
     def __init__(self, embedding_dims, **kwargs):
         super(Time2Vec, self).__init__(**kwargs)
 
         self.dense_linear = tf.keras.layers.Dense(
-            units=1
+            units=1,
+            kernel_initializer='glorot_uniform',
+            bias_initializer='glorot_uniform'
         )
 
         self.dense_periodic = tf.keras.layers.Dense(
-            units=embedding_dims - 1
+            units=embedding_dims - 1,
+            kernel_initializer='glorot_uniform',
+            bias_initializer='glorot_uniform'
         )
 
         self.concatter = tf.keras.layers.Concatenate(axis=2)
+
+        self.layer_norm = tf.keras.layers.LayerNormalization(epsilon=1e-6)
 
     def call(self, inputs, **kwargs):
         '''
@@ -60,4 +70,6 @@ class Time2Vec(tf.keras.layers.Layer):
 
         embedded = self.concatter([linear, periodic])
 
-        return embedded
+        y = self.layer_norm(embedded)
+
+        return y

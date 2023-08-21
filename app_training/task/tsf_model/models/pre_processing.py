@@ -2,7 +2,7 @@ import tensorflow as tf
 
 from tsf_model.layers.pre_processing import LookbackNormalizer, \
     PatchTokenizer, DistributionTokenizer, TrendSeasonalityTokenizer, \
-    LayerNormalizer
+    LayerNormalizer, BatchNormalizer
 
 
 class PreProcessor(tf.keras.Model):
@@ -30,6 +30,8 @@ class PreProcessor(tf.keras.Model):
         self.lb_fc_concatter = tf.keras.layers.Concatenate(axis=1)
 
         self.layer__normalizer = LayerNormalizer()
+
+        self.batch_normalizer = BatchNormalizer()
 
     def call(self, inputs, training=False):
         '''

@@ -265,8 +265,8 @@ if __name__ == '__main__':
         iNrOfBins=NR_OF_BINS
     )
     dist, tre, sea = oPreProcessor((lb_train, fc_train))
+    ts_train = oPreProcessor.batch_normalizer(ts_train, training=True)
 
-    ts_train = tf.convert_to_tensor(ts_train, dtype=tf.float32)
     ds_train = tf.data.Dataset.from_tensor_slices(
         (dist, tre, sea, ts_train)).batch(
             args.mini_batch_size).prefetch(tf.data.AUTOTUNE)
