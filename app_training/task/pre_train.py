@@ -10,7 +10,7 @@ import gc
 
 from io import BytesIO
 
-from keras.callbacks import Callback, ModelCheckpoint
+from keras.callbacks import Callback
 
 import numpy as np
 
@@ -34,6 +34,8 @@ import tensorflow as tf
 from tensorflow.python.lib.io import file_io
 
 from tsf_model import InputPreProcessor, PreTraining
+
+from utils import CustomModelCheckpoint
 
 
 def get_args():
@@ -178,37 +180,6 @@ class CustomCallback(Callback):
         gc.collect()
 
 
-class CustomModelCheckpoint(ModelCheckpoint):
-    '''Custom ModelCheckpoint by epoch frequency.'''
-    def __init__(self,
-                 starting_epoch_checkpoint_dir,
-                 epoch_freq,
-                 **kwargs):
-        super().__init__(**kwargs)
-
-        self.starting_epoch_checkpoint_dir = os.path.join(
-            starting_epoch_checkpoint_dir,
-            'ckpt')
-
-        self.filepath = os.path.join(
-            self.filepath,
-            'ckpt')
-
-        self.epoch_freq = epoch_freq
-
-    def on_epoch_end(self, epoch, logs=None):
-        '''Saves model and the remained epoch to resume training.'''
-        if epoch % self.epoch_freq == 0:
-
-            checkpoint_epoch = tf.train.Checkpoint(
-                starting_epoch=tf.Variable(epoch, dtype=tf.int64))
-
-            checkpoint_epoch.save(
-                file_prefix=self.starting_epoch_checkpoint_dir)
-
-            return super().on_epoch_end(epoch, logs)
-
-
 def get_random_sample(lb, fc, ts, sampling_ratio):
     np.random.seed(1)
     size_of_sample = int(len(lb) * sampling_ratio)
@@ -227,30 +198,30 @@ if __name__ == '__main__':
     '''
     args = get_args()
 
-    sChannel = input(f'Enter a channel name from {TRAINING_DATA_FOLDER}:')
-    artficats_dir = os.path.join(ARTIFACTS_FOLDER, sChannel, 'pre_train')
-    model_checkpoint_dir = os.path.join(artficats_dir, 'model_weights')
-    saved_model_dir = os.path.join(artficats_dir, 'saved_model')
-    starting_epoch_checkpoint_dir = os.path.join(artficats_dir,
+    channel = input(f'Enter a channel name from {TRAINING_DATA_FOLDER}:')
+    artifacts_dir = os.path.join(ARTIFACTS_FOLDER, channel, 'pre_train')
+    model_checkpoint_dir = os.path.join(artifacts_dir, 'model_weights')
+    saved_model_dir = os.path.join(artifacts_dir, 'saved_model')
+    starting_epoch_checkpoint_dir = os.path.join(artifacts_dir,
                                                  'starting_epoch')
-    tensorboard_log_dir = os.path.join(artficats_dir, 'tboard_logs')
+    tensorboard_log_dir = os.path.join(artifacts_dir, 'tboard_logs')
 
     lb_train = np.load(
         BytesIO(
             file_io.read_file_to_string(
-                f'{TRAINING_DATA_FOLDER}/{sChannel}/lb_train.npy',
+                f'{TRAINING_DATA_FOLDER}/{channel}/lb_train.npy',
                 binary_mode=True)))
 
     fc_train = np.load(
         BytesIO(
             file_io.read_file_to_string(
-                f'{TRAINING_DATA_FOLDER}/{sChannel}/fc_train.npy',
+                f'{TRAINING_DATA_FOLDER}/{channel}/fc_train.npy',
                 binary_mode=True)))
 
     ts_train = np.load(
         BytesIO(
             file_io.read_file_to_string(
-                f'{TRAINING_DATA_FOLDER}/{sChannel}/ts_train.npy',
+                f'{TRAINING_DATA_FOLDER}/{channel}/ts_train.npy',
                 binary_mode=True)))
 
     lb_train, fc_train, ts_train = get_random_sample(
@@ -281,7 +252,7 @@ if __name__ == '__main__':
         iProjectionHeadUnits=args.projection_head,
         iReducedDims=tre.shape[2],
         fMskRate=MASK_RATE,
-        fMskScalar=MSK_SCALAR,
+        msk_scalar=MSK_SCALAR,
         iNrOfBins=NR_OF_BINS,
         iNrOfLookbackPatches=NR_OF_LOOKBACK_PATCHES,
         iNrOfForecastPatches=NR_OF_FORECAST_PATCHES)
@@ -302,27 +273,6 @@ if __name__ == '__main__':
         masked_autoencoder_optimizer=mae_optimizer,
         contrastive_optimizer=cl_optimizer)
 
-    starting_epoch = 0
-
-    if args.resume_training is True:
-        latest_model_checkpoint = tf.train.latest_checkpoint(
-            model_checkpoint_dir)
-        if latest_model_checkpoint:
-            model.load_weights(latest_model_checkpoint)
-
-        latest_starting_epoch_checkpoint = tf.train.latest_checkpoint(
-            starting_epoch_checkpoint_dir)
-
-        if latest_starting_epoch_checkpoint:
-            checkpoint_starting_epoch = tf.train.Checkpoint(
-                starting_epoch=tf.Variable(starting_epoch, dtype=tf.int64))
-
-            checkpoint_starting_epoch.restore(latest_starting_epoch_checkpoint)
-            starting_epoch = checkpoint_starting_epoch.starting_epoch.numpy()
-    else:
-        shutil.rmtree(artficats_dir, ignore_errors=True)
-        os.makedirs(artficats_dir)
-
     checkpoint_callback = CustomModelCheckpoint(
         starting_epoch_checkpoint_dir=starting_epoch_checkpoint_dir,
         filepath=model_checkpoint_dir,
@@ -340,6 +290,14 @@ if __name__ == '__main__':
         write_graph=True,
         write_images=False,
         histogram_freq=1)
+
+    starting_epoch = 0
+    if args.resume_training is True:
+        starting_epoch = checkpoint_callback.\
+            get_most_recent_weight_and_epoch_nr(model=model)
+    else:
+        shutil.rmtree(artifacts_dir, ignore_errors=True)
+        os.makedirs(artifacts_dir)
 
     print(f'tensorboard --logdir=".{tensorboard_log_dir}" --bind_all')
     history = model.fit(

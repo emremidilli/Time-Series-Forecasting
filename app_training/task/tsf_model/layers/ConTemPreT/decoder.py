@@ -5,17 +5,17 @@ class MppDecoder(tf.keras.layers.Layer):
     '''
     Decoder for masked patch prediction task.
     '''
-    def __init__(self, iFfnUnits, iNrOfTimeSteps, **kwargs):
+    def __init__(self, iFfnUnits, nr_of_time_steps, **kwargs):
         super().__init__(**kwargs)
 
         self.flatten = tf.keras.layers.Flatten()
 
         self.dense = tf.keras.layers.Dense(
-            units=iFfnUnits * iNrOfTimeSteps,
+            units=iFfnUnits * nr_of_time_steps,
             use_bias=False)
 
         self.reshape = tf.keras.layers.Reshape(
-            target_shape=(iNrOfTimeSteps, iFfnUnits))
+            target_shape=(nr_of_time_steps, iFfnUnits))
 
     def call(self, x):
         '''
@@ -66,17 +66,17 @@ class QuantileDecoder(tf.keras.layers.Layer):
     '''
     Decoder for quantile predictor.
     '''
-    def __init__(self, iNrOfTimeSteps, iNrOfQuantiles, **kwargs):
+    def __init__(self, nr_of_time_steps, nr_of_quantiles, **kwargs):
         super().__init__(**kwargs)
 
         self.flatten = tf.keras.layers.Flatten()
 
         self.dense = tf.keras.layers.Dense(
-            units=iNrOfQuantiles * iNrOfTimeSteps,
+            units=nr_of_quantiles * nr_of_time_steps,
             use_bias=False)
 
         self.reshape = tf.keras.layers.Reshape(
-            target_shape=(iNrOfTimeSteps, iNrOfQuantiles))
+            target_shape=(nr_of_time_steps, nr_of_quantiles))
 
     def call(self, x):
         '''

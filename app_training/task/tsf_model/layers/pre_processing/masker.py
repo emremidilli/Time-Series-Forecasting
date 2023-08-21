@@ -3,11 +3,11 @@ import tensorflow as tf
 
 class PatchMasker(tf.keras.layers.Layer):
 
-    def __init__(self, fMaskingRate, fMskScalar, **kwargs):
+    def __init__(self, masking_rate, msk_scalar, **kwargs):
         super().__init__(**kwargs)
 
-        self.fMaskingRate = fMaskingRate
-        self.fMskScalar = fMskScalar
+        self.masking_rate = masking_rate
+        self.msk_scalar = msk_scalar
         self.trainable = False
 
     def call(self, inputs):
@@ -26,9 +26,9 @@ class PatchMasker(tf.keras.layers.Layer):
 
         iNrOfPatches = x_dist.shape[1]
 
-        y_dist = tf.add(tf.zeros_like(x_dist), self.fMskScalar)
-        y_tre = tf.add(tf.zeros_like(x_tre), self.fMskScalar)
-        y_sea = tf.add(tf.zeros_like(x_sea), self.fMskScalar)
+        y_dist = tf.add(tf.zeros_like(x_dist), self.msk_scalar)
+        y_tre = tf.add(tf.zeros_like(x_tre), self.msk_scalar)
+        y_sea = tf.add(tf.zeros_like(x_sea), self.msk_scalar)
 
         z_dist = []
         z_tre = []
@@ -41,7 +41,7 @@ class PatchMasker(tf.keras.layers.Layer):
 
             fRand = tf.random.uniform(
                 shape=[], minval=0, maxval=1, dtype=tf.float32)
-            if fRand <= self.fMaskingRate:
+            if fRand <= self.masking_rate:
                 r_dist = y_dist[:, i]
                 r_tre = y_tre[:, i]
                 r_sea = y_sea[:, i]

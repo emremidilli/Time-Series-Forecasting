@@ -2,7 +2,7 @@ import tensorflow as tf
 
 from tsf_model.layers.pre_processing import LookbackNormalizer, \
     PatchTokenizer, DistributionTokenizer, TrendSeasonalityTokenizer, \
-    LayerNormalizer, BatchNormalizer, QuantileTokenizer
+    LayerNormalizer, BatchNormalizer, QuantileTokenizer, PatchMasker
 
 
 class BasePreProcessor(tf.keras.Model):
@@ -97,6 +97,39 @@ class InputPreProcessor(tf.keras.Model):
         y = self.layer_normalizer(y)
 
         return y
+
+    def mask_forecast_patches(self, inputs, nr_of_patches, msk_scalar):
+        '''
+        Masks the forecast patches of inputs.
+        input:
+            1. dist: (None, timesteps, features)
+            2. tre: (None, timesteps, features)
+            3. sea: (None, timesteps, features)
+        returns:
+            1. dist: (None, timesteps, features)
+            2. tre: (None, timesteps, features)
+            3. sea: (None, timesteps, features)
+        '''
+        dist, tre, sea = inputs
+
+        lb_dist = dist[:, :-nr_of_patches]
+        fc_dist = dist[:, -nr_of_patches:]
+
+        lb_tre = tre[:, :-nr_of_patches]
+        fc_tre = tre[:, -nr_of_patches:]
+
+        lb_sea = sea[:, :-nr_of_patches]
+        fc_sea = sea[:, -nr_of_patches:]
+        patch_masker = PatchMasker(masking_rate=1.0, msk_scalar=msk_scalar)
+
+        fc_dist, fc_tre, fc_sea = patch_masker((fc_dist, fc_tre, fc_sea))
+
+        lookback_forecast_concatter = tf.keras.layers.Concatenate(axis=1)
+        dist = lookback_forecast_concatter([lb_dist, fc_dist])
+        tre = lookback_forecast_concatter([lb_tre, fc_tre])
+        sea = lookback_forecast_concatter([lb_sea, fc_sea])
+
+        return (dist, tre, sea)
 
 
 class TargetPreProcessor(tf.keras.Model):

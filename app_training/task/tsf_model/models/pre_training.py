@@ -18,7 +18,7 @@ class PreTraining(tf.keras.Model):
                  iProjectionHeadUnits,
                  iReducedDims,
                  fMskRate,
-                 fMskScalar,
+                 msk_scalar,
                  iNrOfBins,
                  iNrOfLookbackPatches,
                  iNrOfForecastPatches,
@@ -31,7 +31,7 @@ class PreTraining(tf.keras.Model):
         self.nr_of_forecast_patches = iNrOfForecastPatches
 
         self.patch_masker = PatchMasker(
-            fMaskingRate=fMskRate, fMskScalar=fMskScalar)
+            masking_rate=fMskRate, msk_scalar=msk_scalar)
 
         self.patch_shifter = PatchShifter()
 

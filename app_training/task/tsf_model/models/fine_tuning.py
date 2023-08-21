@@ -3,19 +3,39 @@ import tensorflow as tf
 from tsf_model.layers.ConTemPreT.decoder import QuantileDecoder
 
 
+@tf.keras.saving.register_keras_serializable()
 class FineTuning(tf.keras.Model):
     '''
         Keras model for fine-tuning purpose.
     '''
     def __init__(self,
-                 con_tem_pret_model,
+                 con_temp_pret,
+                 nr_of_time_steps,
                  nr_of_quantiles,
                  **kwargs):
         super().__init__(**kwargs)
 
-        self.con_tem_pret = con_tem_pret_model
+        self.con_temp_pret = con_temp_pret
+        self.con_temp_pret.trainable = False
 
-        self.quantile_decoder = QuantileDecoder(nr_of_quantiles)
+        self.quantile_decoder = QuantileDecoder(
+            nr_of_time_steps=nr_of_time_steps,
+            nr_of_quantiles=nr_of_quantiles)
+
+    def get_config(self):
+        config = super().get_config()
+        config.update(
+            {
+                "con_temp_pret": self.con_temp_pret,
+            }
+        )
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        config["con_temp_pret"] = tf.keras.layers.deserialize(
+            config["con_temp_pret"])
+        return cls(**config)
 
     def call(self, inputs):
         '''
@@ -26,7 +46,7 @@ class FineTuning(tf.keras.Model):
                 4. date: (none, features)
                 Timesteps of forecast horizon are masked.
         '''
-        y_cont_temp = self.con_tem_pret(inputs)
+        y_cont_temp = self.con_temp_pret(inputs)
 
-        y_pred = y_cont_temp
+        y_pred = self.quantile_decoder(y_cont_temp)
         return y_pred
