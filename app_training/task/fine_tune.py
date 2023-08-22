@@ -118,9 +118,6 @@ def get_pre_trained_representation(channel):
 
 def train_test_split(ds, test_rate=0.15):
     '''Splits tf.data.Dataset to train and test datasets.'''
-    if test_rate == 0:
-        return ds, None
-
     nr_of_samples = ds.cardinality().numpy()
 
     train_size = int(nr_of_samples * (1 - test_rate))
@@ -185,9 +182,13 @@ if __name__ == '__main__':
     ts = input_pre_processor.batch_normalizer(ts_train, training=True)
 
     ds = tf.data.Dataset.from_tensor_slices(((dist, tre, sea, ts), qntl))
-    ds_train, ds_val = train_test_split(ds, test_rate=args.validation_rate)
+    ds_train = ds
+    ds_val = None
+    if args.validation_rate > 0:
+        ds_train, ds_val = train_test_split(ds, test_rate=args.validation_rate)
+        ds_val = ds_val.batch(args.mini_batch_size).prefetch(tf.data.AUTOTUNE)
+
     ds_train = ds_train.batch(args.mini_batch_size).prefetch(tf.data.AUTOTUNE)
-    ds_val = ds_val.batch(args.mini_batch_size).prefetch(tf.data.AUTOTUNE)
 
     con_temp_pret = get_pre_trained_representation(channel=channel)
 
