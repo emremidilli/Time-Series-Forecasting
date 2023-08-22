@@ -14,4 +14,4 @@ RUN pip install --upgrade pip && \
 
 WORKDIR /app
 
-ENTRYPOINT ["python", "pre_train.py"]
+ENTRYPOINT [ "python" ]
