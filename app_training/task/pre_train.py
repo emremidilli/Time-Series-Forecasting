@@ -35,7 +35,7 @@ from tensorflow.python.lib.io import file_io
 
 from tsf_model import InputPreProcessor, PreTraining
 
-from utils import CustomModelCheckpoint
+from utils import CustomModelCheckpoint, get_random_sample
 
 
 def get_args():
@@ -178,17 +178,6 @@ class CustomCallback(Callback):
             print('Stopping because threshold is achived...')
 
         gc.collect()
-
-
-def get_random_sample(lb, fc, ts, sampling_ratio):
-    np.random.seed(1)
-    size_of_sample = int(len(lb) * sampling_ratio)
-    all_indices = np.arange(len(lb))
-    np.random.shuffle(all_indices)
-    rand_indices = all_indices[:size_of_sample]
-    rand_indices = np.sort(rand_indices)
-
-    return lb[rand_indices], fc[rand_indices], ts[rand_indices]
 
 
 if __name__ == '__main__':

@@ -76,7 +76,6 @@ def get_args():
         type=int,
         help='nr_of_epochs'
     )
-
     parser.add_argument(
         '--resume_training',
         required=False,
@@ -84,6 +83,13 @@ def get_args():
         choices=[True, False],
         type=eval,
         help='resume_training'
+    )
+    parser.add_argument(
+        '--validation_rate',
+        required=False,
+        default=0.15,
+        type=float,
+        help='validation_rate'
     )
 
     try:
@@ -108,6 +114,21 @@ def get_pre_trained_representation(channel):
     con_temp_pret = pre_trained_model.encoder_representation
 
     return con_temp_pret
+
+
+def train_test_split(ds, test_rate=0.15):
+    '''Splits tf.data.Dataset to train and test datasets.'''
+    if test_rate == 0:
+        return ds, None
+
+    nr_of_samples = ds.cardinality().numpy()
+
+    train_size = int(nr_of_samples * (1 - test_rate))
+
+    ds_train = ds.take(train_size)
+    ds_test = ds.skip(train_size)
+
+    return ds_train, ds_test
 
 
 if __name__ == '__main__':
@@ -161,11 +182,12 @@ if __name__ == '__main__':
         msk_scalar=MSK_SCALAR
     )
     qntl = target_pre_processor((lb_train, fc_train))
-    ts_train = input_pre_processor.batch_normalizer(ts_train, training=True)
+    ts = input_pre_processor.batch_normalizer(ts_train, training=True)
 
-    ds_train = tf.data.Dataset.from_tensor_slices(
-        ((dist, tre, sea, ts_train,), qntl)).batch(
-            args.mini_batch_size).prefetch(tf.data.AUTOTUNE)
+    ds = tf.data.Dataset.from_tensor_slices(((dist, tre, sea, ts), qntl))
+    ds_train, ds_val = train_test_split(ds, test_rate=args.validation_rate)
+    ds_train = ds_train.batch(args.mini_batch_size).prefetch(tf.data.AUTOTUNE)
+    ds_val = ds_val.batch(args.mini_batch_size).prefetch(tf.data.AUTOTUNE)
 
     con_temp_pret = get_pre_trained_representation(channel=channel)
 
@@ -218,6 +240,7 @@ if __name__ == '__main__':
         ds_train,
         epochs=args.nr_of_epochs,
         verbose=2,
+        validation_data=ds_val,
         initial_epoch=starting_epoch,
         shuffle=False,
         callbacks=[tensorboard_callback, checkpoint_callback])
