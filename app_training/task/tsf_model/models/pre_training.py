@@ -152,11 +152,11 @@ class PreTraining(tf.keras.Model):
         x_fc_dist_sft, x_fc_tre_sft, x_fc_sea_sft = self.patch_shifter(
             (x_fc_dist, x_fc_tre, x_fc_sea, i))
         x_dist_false = self.lookback_forecast_concatter(
-            [x_lb_dist, x_fc_dist_sft])
+            [x_lb_dist_msk, x_fc_dist_sft])
         x_tre_false = self.lookback_forecast_concatter(
-            [x_lb_tre, x_fc_tre_sft])
+            [x_lb_tre_msk, x_fc_tre_sft])
         x_sea_false = self.lookback_forecast_concatter(
-            [x_lb_sea, x_fc_sea_sft])
+            [x_lb_sea_msk, x_fc_sea_sft])
 
         return (x_dist_true,
                 x_tre_true,
