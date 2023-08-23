@@ -10,8 +10,6 @@ import gc
 
 from io import BytesIO
 
-from keras.callbacks import Callback
-
 import numpy as np
 
 import os
@@ -163,7 +161,7 @@ def get_args():
     return args
 
 
-class CustomCallback(Callback):
+class CustomCallback(tf.keras.callbacks.Callback):
 
     def on_epoch_end(self, epoch, logs={}):
         '''
@@ -237,7 +235,7 @@ if __name__ == '__main__':
         iNrOfHeads=args.nr_of_heads,
         fDropoutRate=args.dropout_rate,
         iEncoderFfnUnits=args.encoder_ffn_units,
-        iEmbeddingDims=args.embedding_dims,
+        embedding_dims=args.embedding_dims,
         iProjectionHeadUnits=args.projection_head,
         iReducedDims=tre.shape[2],
         fMskRate=MASK_RATE,
@@ -280,6 +278,8 @@ if __name__ == '__main__':
         write_images=False,
         histogram_freq=1)
 
+    terminate_on_nan_callback = tf.keras.callbacks.TerminateOnNaN()
+
     starting_epoch = 0
     if args.resume_training is True:
         starting_epoch = checkpoint_callback.\
@@ -295,7 +295,11 @@ if __name__ == '__main__':
         verbose=2,
         initial_epoch=starting_epoch,
         shuffle=False,
-        callbacks=[custom_callback, tensorboard_callback, checkpoint_callback])
+        callbacks=[
+            terminate_on_nan_callback,
+            custom_callback,
+            tensorboard_callback,
+            checkpoint_callback])
 
     model.save(
         saved_model_dir,

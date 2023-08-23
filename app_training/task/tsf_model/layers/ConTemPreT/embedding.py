@@ -6,19 +6,19 @@ class PositionEmbedding(tf.keras.layers.Layer):
     LSTM layer that processes sequential input.
     '''
 
-    def __init__(self, iUnits, **kwargs):
+    def __init__(self, embedding_dims, **kwargs):
 
         super().__init__(**kwargs)
 
-        self.lstm = tf.keras.layers.LSTM(units=iUnits,
+        self.lstm = tf.keras.layers.LSTM(units=embedding_dims,
                                          return_sequences=True)
 
         self.layer_norm = tf.keras.layers.LayerNormalization(epsilon=1e-6)
 
     def call(self, x):
         '''
-        input: (None, timesteps, feature)
-        output: (None, timesteps, iUnits)
+        input: (None, timesteps, features)
+        output: (None, timesteps, features)
         '''
 
         y = self.lstm(x)
@@ -26,6 +26,91 @@ class PositionEmbedding(tf.keras.layers.Layer):
         y = self.layer_norm(y)
 
         return y
+
+
+# class PositionEmbedding(tf.keras.layers.Layer):
+#     '''
+#     LSTM layer that processes sequential input.
+#     '''
+
+#     class CustomLstmCell(tf.keras.layers.LSTMCell):
+#         '''
+#         LSTM cell that applies LayerNorm between hidden states.
+#         '''
+#         def __init__(self, units, **kwargs):
+#             self.activation = tf.keras.activations.get(
+#                 kwargs.get("activation", "tanh"))
+#             kwargs["activation"] = None
+#             super().__init__(units, **kwargs)
+#             self.layer_norm = tf.keras.layers.LayerNormalization(
+#             epsilon=1e-6)
+
+#         def call(self, inputs, states):
+#             outputs, new_states = super().call(inputs, states)
+#             norm_out = self.activation(self.layer_norm(outputs))
+#             return norm_out, [norm_out]
+
+#     def __init__(self, embedding_dims, **kwargs):
+#         super().__init__(**kwargs)
+#         self.custom_lstm_cell = self.CustomLstmCell(units=embedding_dims)
+#         self.lstm = tf.keras.layers.RNN(
+#             cell=self.custom_lstm_cell,
+#             return_sequences=True)
+
+#         self.layer_norm = tf.keras.layers.LayerNormalization(epsilon=1e-6)
+
+#     def call(self, x):
+#         '''
+#         input: (None, timesteps, features)
+#         output: (None, timesteps, features)
+#         '''
+
+#         y = self.lstm(x)
+
+#         y = self.layer_norm(y)
+
+#         return y
+
+
+# class PositionEmbedding(tf.keras.layers.Layer):
+#     def __init__(self, embedding_dims, **kwargs):
+#         super().__init__(**kwargs)
+#         self.embedding_dims = embedding_dims
+
+#         self.embedding = tf.keras.layers.Dense(
+#             units=embedding_dims,
+#             kernel_initializer='glorot_uniform',
+#             bias_initializer='glorot_uniform')
+
+#         self.layer_norm = tf.keras.layers.LayerNormalization(epsilon=1e-6)
+
+#     def positional_encoding(self, length, depth):
+#         import numpy as np
+
+#         depth = depth / 2
+
+#         positions = np.arange(length)[:, np.newaxis]     # (seq, 1)
+#         depths = np.arange(depth)[np.newaxis, :] / depth   # (1, depth)
+
+#         angle_rates = 1 / (10000**depths)         # (1, depth)
+#         angle_rads = positions * angle_rates      # (pos, depth)
+
+#         pos_encoding = np.concatenate(
+#             [np.sin(angle_rads), np.cos(angle_rads)],
+#             axis=-1)
+
+#         return tf.cast(pos_encoding, dtype=tf.float32)
+
+#     def call(self, inputs):
+#         pos_encodings = self.positional_encoding(
+#             length=inputs.shape[1],
+#             depth=self.embedding_dims)
+
+#         y = self.embedding(inputs)
+
+#         y = self.layer_norm(y)
+
+#         return y + pos_encodings
 
 
 class Time2Vec(tf.keras.layers.Layer):

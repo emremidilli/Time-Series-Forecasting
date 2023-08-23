@@ -228,6 +228,8 @@ if __name__ == '__main__':
         write_images=False,
         histogram_freq=1)
 
+    terminate_on_nan_callback = tf.keras.callbacks.TerminateOnNaN()
+
     starting_epoch = 0
     if args.resume_training is True:
         starting_epoch = checkpoint_callback.\
@@ -244,7 +246,10 @@ if __name__ == '__main__':
         validation_data=ds_val,
         initial_epoch=starting_epoch,
         shuffle=False,
-        callbacks=[tensorboard_callback, checkpoint_callback])
+        callbacks=[
+            terminate_on_nan_callback,
+            tensorboard_callback,
+            checkpoint_callback])
 
     model.save(
         saved_model_dir,

@@ -14,7 +14,7 @@ class PreTraining(tf.keras.Model):
                  iNrOfHeads,
                  fDropoutRate,
                  iEncoderFfnUnits,
-                 iEmbeddingDims,
+                 embedding_dims,
                  iProjectionHeadUnits,
                  iReducedDims,
                  fMskRate,
@@ -40,7 +40,7 @@ class PreTraining(tf.keras.Model):
             iNrOfHeads,
             fDropoutRate,
             iEncoderFfnUnits,
-            iEmbeddingDims
+            embedding_dims
         )
 
         self.lookback_forecast_concatter = tf.keras.layers.Concatenate(axis=1)

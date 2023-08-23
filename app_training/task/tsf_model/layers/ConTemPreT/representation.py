@@ -10,28 +10,34 @@ class Representation(tf.keras.layers.Layer):
             iNrOfHeads,
             fDropoutRate,
             iEncoderFfnUnits,
-            iEmbeddingDims,
+            embedding_dims,
             **kwargs):
 
         super().__init__(**kwargs)
 
-        self.pe_dist_temporal = PositionEmbedding(iUnits=iEmbeddingDims,
-                                                  name='pe_dist_temporal')
-        self.pe_tre_temporal = PositionEmbedding(iUnits=iEmbeddingDims,
-                                                 name='pe_tre_temporal')
-        self.pe_sea_temporal = PositionEmbedding(iUnits=iEmbeddingDims,
-                                                 name='pe_sea_temporal')
+        self.pe_dist_temporal = PositionEmbedding(
+            embedding_dims=embedding_dims,
+            name='pe_dist_temporal')
+        self.pe_tre_temporal = PositionEmbedding(
+            embedding_dims=embedding_dims,
+            name='pe_tre_temporal')
+        self.pe_sea_temporal = PositionEmbedding(
+            embedding_dims=embedding_dims,
+            name='pe_sea_temporal')
 
         self.temporal_to_contextual = tf.keras.layers.Permute((2, 1))
 
-        self.pe_dist_contextual = PositionEmbedding(iUnits=iEmbeddingDims,
-                                                    name='pe_dist_contextual')
-        self.pe_tre_contextual = PositionEmbedding(iUnits=iEmbeddingDims,
-                                                   name='pe_tre_contextual')
-        self.pe_sea_contextual = PositionEmbedding(iUnits=iEmbeddingDims,
-                                                   name='pe_tre_contextual')
+        self.pe_dist_contextual = PositionEmbedding(
+            embedding_dims=embedding_dims,
+            name='pe_dist_contextual')
+        self.pe_tre_contextual = PositionEmbedding(
+            embedding_dims=embedding_dims,
+            name='pe_tre_contextual')
+        self.pe_sea_contextual = PositionEmbedding(
+            embedding_dims=embedding_dims,
+            name='pe_tre_contextual')
 
-        self.time2vec = Time2Vec(embedding_dims=iEmbeddingDims,
+        self.time2vec = Time2Vec(embedding_dims=embedding_dims,
                                  name='time2vec')
 
         self.concat_temporals = tf.keras.layers.Concatenate(axis=2)
@@ -40,7 +46,7 @@ class Representation(tf.keras.layers.Layer):
         for i in range(iNrOfEncoderBlocks):
             self.encoders_temporal.append(
                 TransformerEncoder(
-                    embed_dim=iEmbeddingDims * 3,
+                    embed_dim=embedding_dims * 3,
                     num_heads=iNrOfHeads,
                     feedforward_dim=iEncoderFfnUnits * 3,
                     dropout_rate=fDropoutRate,
@@ -48,7 +54,7 @@ class Representation(tf.keras.layers.Layer):
                 )
             )
 
-        self.dense_reducer = tf.keras.layers.Dense(units=iEmbeddingDims)
+        self.dense_reducer = tf.keras.layers.Dense(units=embedding_dims)
         self.layer_norm_reducer = tf.keras.layers.LayerNormalization(
             epsilon=1e-6)
 
@@ -56,7 +62,7 @@ class Representation(tf.keras.layers.Layer):
         for i in range(iNrOfEncoderBlocks):
             self.encoders_contextual.append(
                 TransformerEncoder(
-                    embed_dim=iEmbeddingDims,
+                    embed_dim=embedding_dims,
                     num_heads=iNrOfHeads,
                     feedforward_dim=iEncoderFfnUnits,
                     dropout_rate=fDropoutRate,
@@ -72,7 +78,7 @@ class Representation(tf.keras.layers.Layer):
         for i in range(iNrOfEncoderBlocks):
             self.encoders_cont_temp.append(
                 TransformerEncoder(
-                    embed_dim=iEmbeddingDims,
+                    embed_dim=embedding_dims,
                     num_heads=iNrOfHeads,
                     feedforward_dim=iEncoderFfnUnits,
                     dropout_rate=fDropoutRate,
