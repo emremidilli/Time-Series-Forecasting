@@ -3,7 +3,7 @@ version: "3.9"
 services:
   app_training:
     build:
-      context: ./app_training
+      context: .
     deploy:
       resources:
         reservations:
@@ -12,4 +12,4 @@ services:
             count: 1
             capabilities: [gpu]
     volumes:
-       - ../tsf-bin:/tsf-bin
+       - ../../tsf-bin:/tsf-bin

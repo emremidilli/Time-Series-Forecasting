@@ -1,0 +1,15 @@
+services:
+  tsf_training_dev:
+    build:
+      context: .
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - driver: nvidia
+            count: 1
+            capabilities: [gpu]
+    volumes:
+       - ../../../tsf-bin:/tsf-bin
+       - ../task:/workspace:cached
+    command: /bin/sh -c "sleep infinity"

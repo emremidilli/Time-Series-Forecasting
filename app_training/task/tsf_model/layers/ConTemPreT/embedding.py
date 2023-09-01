@@ -2,30 +2,49 @@ import tensorflow as tf
 
 
 class PositionEmbedding(tf.keras.layers.Layer):
-    '''
-    LSTM layer that processes sequential input.
-    '''
-
+    '''Positional embedding from "Attention is all you need" paper.'''
     def __init__(self, embedding_dims, **kwargs):
-
         super().__init__(**kwargs)
+        self.embedding_dims = embedding_dims
 
-        self.lstm = tf.keras.layers.LSTM(units=embedding_dims,
-                                         return_sequences=True)
+        self.embedding = tf.keras.layers.Dense(
+            units=embedding_dims,
+            kernel_initializer='glorot_uniform',
+            bias_initializer='glorot_uniform')
 
         self.layer_norm = tf.keras.layers.LayerNormalization(epsilon=1e-6)
 
-    def call(self, x):
+    def positional_encoding(self, length, depth):
+        import numpy as np
+
+        depth = depth / 2
+
+        positions = np.arange(length)[:, np.newaxis]     # (seq, 1)
+        depths = np.arange(depth)[np.newaxis, :] / depth   # (1, depth)
+
+        angle_rates = 1 / (10000**depths)         # (1, depth)
+        angle_rads = positions * angle_rates      # (pos, depth)
+
+        pos_encoding = np.concatenate(
+            [np.sin(angle_rads), np.cos(angle_rads)],
+            axis=-1)
+
+        return tf.cast(pos_encoding, dtype=tf.float32)
+
+    def call(self, inputs):
         '''
         input: (None, timesteps, features)
         output: (None, timesteps, features)
         '''
+        pos_encodings = self.positional_encoding(
+            length=inputs.shape[1],
+            depth=self.embedding_dims)
 
-        y = self.lstm(x)
+        y = self.embedding(inputs)
 
         y = self.layer_norm(y)
 
-        return y
+        return y + pos_encodings
 
 
 class Time2Vec(tf.keras.layers.Layer):

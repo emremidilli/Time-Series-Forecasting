@@ -22,7 +22,7 @@ from settings import TRAINING_DATA_FOLDER, PATCH_SIZE, \
     ARTIFACTS_FOLDER, NR_OF_EPOCHS, \
     NR_OF_ENCODER_BLOCKS, NR_OF_HEADS, \
     DROPOUT_RATE, ENCODER_FFN_UNITS, EMBEDDING_DIMS, \
-    LEARNING_RATE, BETA_1, BETA_2, CLIP_NORM
+    LEARNING_RATE, CLIP_NORM
 
 import shutil
 
@@ -49,20 +49,6 @@ def get_args():
         default=LEARNING_RATE,
         type=float,
         help='learning_rate'
-    )
-    parser.add_argument(
-        '--beta_1',
-        required=False,
-        default=BETA_1,
-        type=float,
-        help='beta_1'
-    )
-    parser.add_argument(
-        '--beta_2',
-        required=False,
-        default=BETA_2,
-        type=float,
-        help='beta_2'
     )
     parser.add_argument(
         '--clip_norm',
@@ -124,7 +110,6 @@ def get_args():
         type=int,
         help='mini_batch_size'
     )
-
     parser.add_argument(
         '--nr_of_epochs',
         required=False,
@@ -132,7 +117,6 @@ def get_args():
         type=int,
         help='nr_of_epochs'
     )
-
     parser.add_argument(
         '--pre_train_ratio',
         required=False,
@@ -140,7 +124,6 @@ def get_args():
         type=float,
         help='pre_train_ratio'
     )
-
     parser.add_argument(
         '--resume_training',
         required=False,
@@ -246,14 +229,10 @@ if __name__ == '__main__':
 
     mae_optimizer = tf.keras.optimizers.Adam(
         learning_rate=args.learning_rate,
-        beta_1=args.beta_1,
-        beta_2=args.beta_2,
         clipnorm=args.clip_norm)
 
     cl_optimizer = tf.keras.optimizers.Adam(
         learning_rate=args.learning_rate,
-        beta_1=args.beta_1,
-        beta_2=args.beta_2,
         clipnorm=args.clip_norm)
 
     model.compile(

@@ -8,8 +8,8 @@ import os
 
 from settings import TRAINING_DATA_FOLDER, PATCH_SIZE, \
     POOL_SIZE_REDUCTION, POOL_SIZE_TREND, NR_OF_BINS, \
-    ARTIFACTS_FOLDER, QUANTILES, LEARNING_RATE, BETA_1, \
-    BETA_2, CLIP_NORM, MINI_BATCH_SIZE, NR_OF_EPOCHS, \
+    ARTIFACTS_FOLDER, QUANTILES, LEARNING_RATE, \
+    CLIP_NORM, MINI_BATCH_SIZE, NR_OF_EPOCHS, \
     NR_OF_FORECAST_PATCHES, MSK_SCALAR
 
 import shutil
@@ -37,20 +37,6 @@ def get_args():
         default=LEARNING_RATE,
         type=float,
         help='learning_rate'
-    )
-    parser.add_argument(
-        '--beta_1',
-        required=False,
-        default=BETA_1,
-        type=float,
-        help='beta_1'
-    )
-    parser.add_argument(
-        '--beta_2',
-        required=False,
-        default=BETA_2,
-        type=float,
-        help='beta_2'
     )
     parser.add_argument(
         '--clip_norm',
@@ -199,8 +185,6 @@ if __name__ == '__main__':
 
     optimizer = tf.keras.optimizers.Adam(
         learning_rate=args.learning_rate,
-        beta_1=args.beta_1,
-        beta_2=args.beta_2,
         clipnorm=args.clip_norm)
 
     model.compile(
