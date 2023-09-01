@@ -8,9 +8,7 @@ import os
 
 from settings import TRAINING_DATA_FOLDER, PATCH_SIZE, \
     POOL_SIZE_REDUCTION, POOL_SIZE_TREND, NR_OF_BINS, \
-    ARTIFACTS_FOLDER, QUANTILES, LEARNING_RATE, \
-    CLIP_NORM, MINI_BATCH_SIZE, NR_OF_EPOCHS, \
-    NR_OF_FORECAST_PATCHES, MSK_SCALAR
+    ARTIFACTS_FOLDER, QUANTILES, NR_OF_FORECAST_PATCHES, MSK_SCALAR
 
 import shutil
 
@@ -34,14 +32,14 @@ def get_args():
     parser.add_argument(
         '--learning_rate',
         required=False,
-        default=LEARNING_RATE,
+        default=1e-5,
         type=float,
         help='learning_rate'
     )
     parser.add_argument(
         '--clip_norm',
         required=False,
-        default=CLIP_NORM,
+        default=1.0,
         type=float,
         help='clip_norm'
     )
@@ -50,7 +48,7 @@ def get_args():
     parser.add_argument(
         '--mini_batch_size',
         required=False,
-        default=MINI_BATCH_SIZE,
+        default=64,
         type=int,
         help='mini_batch_size'
     )
@@ -58,7 +56,7 @@ def get_args():
     parser.add_argument(
         '--nr_of_epochs',
         required=False,
-        default=NR_OF_EPOCHS,
+        default=100,
         type=int,
         help='nr_of_epochs'
     )

@@ -1,7 +1,7 @@
 '''
 Trains a pre-training model for a univariate forecasting model.
 Pre-training is done on a small portion of the training dataset.
-PRE_TRAIN_RATIO is used to select the pre-training dataset
+A pre-training ratio is used to select the pre-training dataset
     from the training dataset.
 '''
 import argparse
@@ -16,13 +16,8 @@ import os
 
 from settings import TRAINING_DATA_FOLDER, PATCH_SIZE, \
     POOL_SIZE_REDUCTION, POOL_SIZE_TREND, NR_OF_BINS, \
-    PRE_TRAIN_RATIO, MINI_BATCH_SIZE, \
-    PROJECTION_HEAD, MASK_RATE, MSK_SCALAR, \
-    NR_OF_LOOKBACK_PATCHES, NR_OF_FORECAST_PATCHES, \
-    ARTIFACTS_FOLDER, NR_OF_EPOCHS, \
-    NR_OF_ENCODER_BLOCKS, NR_OF_HEADS, \
-    DROPOUT_RATE, ENCODER_FFN_UNITS, EMBEDDING_DIMS, \
-    LEARNING_RATE, CLIP_NORM
+    MASK_RATE, MSK_SCALAR, ARTIFACTS_FOLDER, \
+    NR_OF_LOOKBACK_PATCHES, NR_OF_FORECAST_PATCHES
 
 import shutil
 
@@ -46,14 +41,14 @@ def get_args():
     parser.add_argument(
         '--learning_rate',
         required=False,
-        default=LEARNING_RATE,
+        default=1e-5,
         type=float,
         help='learning_rate'
     )
     parser.add_argument(
         '--clip_norm',
         required=False,
-        default=CLIP_NORM,
+        default=1.0,
         type=float,
         help='clip_norm'
     )
@@ -62,42 +57,42 @@ def get_args():
     parser.add_argument(
         '--nr_of_encoder_blocks',
         required=False,
-        default=NR_OF_ENCODER_BLOCKS,
+        default=4,
         type=int,
         help='nr_of_encoder_blocks'
     )
     parser.add_argument(
         '--nr_of_heads',
         required=False,
-        default=NR_OF_HEADS,
+        default=4,
         type=int,
         help='nr_of_heads'
     )
     parser.add_argument(
         '--dropout_rate',
         required=False,
-        default=DROPOUT_RATE,
+        default=0.10,
         type=float,
         help='dropout_rate'
     )
     parser.add_argument(
         '--encoder_ffn_units',
         required=False,
-        default=ENCODER_FFN_UNITS,
+        default=32,
         type=int,
         help='encoder_ffn_units'
     )
     parser.add_argument(
         '--embedding_dims',
         required=False,
-        default=EMBEDDING_DIMS,
+        default=32,
         type=int,
         help='embedding_dims'
     )
     parser.add_argument(
         '--projection_head',
         required=False,
-        default=PROJECTION_HEAD,
+        default=8,
         type=int,
         help='projection_head'
     )
@@ -106,21 +101,21 @@ def get_args():
     parser.add_argument(
         '--mini_batch_size',
         required=False,
-        default=MINI_BATCH_SIZE,
+        default=64,
         type=int,
         help='mini_batch_size'
     )
     parser.add_argument(
         '--nr_of_epochs',
         required=False,
-        default=NR_OF_EPOCHS,
+        default=100,
         type=int,
         help='nr_of_epochs'
     )
     parser.add_argument(
         '--pre_train_ratio',
         required=False,
-        default=PRE_TRAIN_RATIO,
+        default=0.25,
         type=float,
         help='pre_train_ratio'
     )
