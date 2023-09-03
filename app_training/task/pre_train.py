@@ -28,7 +28,7 @@ from tensorflow.python.lib.io import file_io
 
 from tsf_model import InputPreProcessor, PreTraining
 
-from utils import CustomModelCheckpoint, get_random_sample
+from utils import CustomModelCheckpoint, CustomSchedule, get_random_sample
 
 
 def get_args():
@@ -57,7 +57,7 @@ def get_args():
     parser.add_argument(
         '--nr_of_encoder_blocks',
         required=False,
-        default=4,
+        default=1,
         type=int,
         help='nr_of_encoder_blocks'
     )
@@ -69,23 +69,16 @@ def get_args():
         help='nr_of_heads'
     )
     parser.add_argument(
-        '--dropout_rate',
-        required=False,
-        default=0.10,
-        type=float,
-        help='dropout_rate'
-    )
-    parser.add_argument(
         '--encoder_ffn_units',
         required=False,
-        default=32,
+        default=16,
         type=int,
         help='encoder_ffn_units'
     )
     parser.add_argument(
         '--embedding_dims',
         required=False,
-        default=32,
+        default=16,
         type=int,
         help='embedding_dims'
     )
@@ -95,6 +88,13 @@ def get_args():
         default=8,
         type=int,
         help='projection_head'
+    )
+    parser.add_argument(
+        '--dropout_rate',
+        required=False,
+        default=0.10,
+        type=float,
+        help='dropout_rate'
     )
 
     '''Training-related hyperparameters'''
@@ -115,14 +115,14 @@ def get_args():
     parser.add_argument(
         '--pre_train_ratio',
         required=False,
-        default=0.25,
+        default=0.05,
         type=float,
         help='pre_train_ratio'
     )
     parser.add_argument(
         '--resume_training',
         required=False,
-        default='False',
+        default='True',
         choices=[True, False],
         type=eval,
         help='resume_training'
@@ -143,7 +143,7 @@ class CustomCallback(tf.keras.callbacks.Callback):
 
     def on_epoch_end(self, epoch, logs={}):
         '''
-        used to stop the training when the threshold is achived.
+        Used to stop the training when the threshold is achived.
         Also cleans the RAM.
         '''
         cos_dist = logs.get('cos_dist')
@@ -222,12 +222,16 @@ if __name__ == '__main__':
         iNrOfLookbackPatches=NR_OF_LOOKBACK_PATCHES,
         iNrOfForecastPatches=NR_OF_FORECAST_PATCHES)
 
+    learning_rate = CustomSchedule(
+        d_model=args.embedding_dims
+    )
+
     mae_optimizer = tf.keras.optimizers.Adam(
-        learning_rate=args.learning_rate,
+        learning_rate=learning_rate,
         clipnorm=args.clip_norm)
 
     cl_optimizer = tf.keras.optimizers.Adam(
-        learning_rate=args.learning_rate,
+        learning_rate=learning_rate,
         clipnorm=args.clip_norm)
 
     model.compile(
