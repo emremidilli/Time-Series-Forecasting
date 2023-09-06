@@ -26,15 +26,15 @@ class FineTuning(tf.keras.Model):
         config = super().get_config()
         config.update(
             {
-                "con_temp_pret": self.con_temp_pret,
+                'con_temp_pret': self.con_temp_pret,
             }
         )
         return config
 
     @classmethod
     def from_config(cls, config):
-        config["con_temp_pret"] = tf.keras.layers.deserialize(
-            config["con_temp_pret"])
+        config['con_temp_pret'] = tf.keras.layers.deserialize(
+            config['con_temp_pret'])
         return cls(**config)
 
     def call(self, inputs):

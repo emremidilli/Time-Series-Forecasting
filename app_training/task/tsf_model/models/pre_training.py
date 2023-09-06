@@ -61,16 +61,8 @@ class PreTraining(tf.keras.Model):
         self.projection_head = ProjectionHead(iProjectionHeadUnits,
                                               name='projection_head')
 
-    def compile(self,
-                contrastive_optimizer,
-                masked_autoencoder_optimizer,
-                **kwargs):
-        super().compile(**kwargs)
-
-        # optimizers
-        self.contrastive_optimizer = contrastive_optimizer
-        self.masked_autoencoder_optimizer = masked_autoencoder_optimizer
-
+        # learning rate tracker
+        self.lr_tracker = tf.keras.metrics.Mean(name='lr')
         # losses
         self.loss_tracker_mpp = tf.keras.metrics.Mean(name='loss_mpp')
         self.loss_tracker_cl = tf.keras.metrics.Mean(name='loss_cl')
@@ -84,6 +76,29 @@ class PreTraining(tf.keras.Model):
         self.cos_sea = tf.keras.metrics.CosineSimilarity(name='cos_sea')
         self.cos_true = tf.keras.metrics.CosineSimilarity(name='cos_true')
         self.cos_false = tf.keras.metrics.CosineSimilarity(name='cos_false')
+
+    def compile(self, mae_optimizer, cl_optimizer, **kwargs):
+        super().compile(**kwargs)
+
+        self.mae_optimizer = mae_optimizer
+        self.cl_optimizer = cl_optimizer
+
+    def get_compile_config(self):
+        cfg = super().get_compile_config()
+        cfg.update({
+            'mae_optimizer': self.mae_optimizer,
+            'cl_optimizer': self.cl_optimizer
+        })
+
+        return cfg
+
+    def compile_from_config(self, config):
+        mae_optimizer = config['mae_optimizer']
+        cl_optimizer = config['cl_optimizer']
+
+        self.compile(
+            mae_optimizer=mae_optimizer,
+            cl_optimizer=cl_optimizer)
 
     def mask_patches(self, data):
         '''
@@ -202,7 +217,7 @@ class PreTraining(tf.keras.Model):
         gradients = tape.gradient(loss_mpp, trainable_vars)
 
         # update weights
-        self.masked_autoencoder_optimizer.apply_gradients(
+        self.mae_optimizer.apply_gradients(
             zip(gradients, trainable_vars))
 
         # compute own metrics
@@ -244,7 +259,7 @@ class PreTraining(tf.keras.Model):
         gradients = tape.gradient(loss_cl, trainable_vars)
 
         # update weights
-        self.contrastive_optimizer.apply_gradients(
+        self.cl_optimizer.apply_gradients(
             zip(gradients, trainable_vars))
 
         # compute own metrics
@@ -253,6 +268,8 @@ class PreTraining(tf.keras.Model):
             y_true=y_logits_anchor, y_pred=y_logits_true)
         self.cos_false.update_state(
             y_true=y_logits_anchor, y_pred=y_logits_false)
+
+        self.lr_tracker.update_state(self.cl_optimizer.lr)
 
         dic = {
             'loss_mpp': self.loss_tracker_mpp.result(),
@@ -264,7 +281,8 @@ class PreTraining(tf.keras.Model):
             'cos_tre': self.cos_tre.result(),
             'cos_sea': self.cos_sea.result(),
             'cos_true': self.cos_true.result(),
-            'cos_false': self.cos_false.result()
+            'cos_false': self.cos_false.result(),
+            'lr': self.lr_tracker.result()
         }
 
         return dic
@@ -279,6 +297,7 @@ class PreTraining(tf.keras.Model):
         return [
             self.loss_tracker_mpp,
             self.loss_tracker_cl,
+            self.lr_tracker,
             self.mae_dist,
             self.mae_tre,
             self.mae_sea,
