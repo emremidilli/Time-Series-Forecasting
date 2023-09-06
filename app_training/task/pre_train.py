@@ -18,7 +18,7 @@ import tensorflow as tf
 
 from tsf_model import InputPreProcessor, PreTraining
 
-from utils import CheckpointCallback, LearningRateCallback, \
+from utils import PreTrainingCheckpointCallback, LearningRateCallback, \
     get_random_sample, RamCleaner, get_pre_training_args, read_npy_file
 
 
@@ -64,7 +64,7 @@ if __name__ == '__main__':
         (dist, tre, sea, ts_train)).batch(
             args.mini_batch_size).prefetch(tf.data.AUTOTUNE)
 
-    checkpoint_callback = CheckpointCallback(
+    checkpoint_callback = PreTrainingCheckpointCallback(
         ckpt_dir=custom_ckpt_dir,
         epoch_freq=3)
 

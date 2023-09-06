@@ -5,7 +5,7 @@ import os
 import tensorflow as tf
 
 
-class CheckpointCallback(tf.keras.callbacks.Callback):
+class BaseCheckpointCallback(tf.keras.callbacks.Callback):
     '''Saves checkpoints for model, optimizer, epoch and step.'''
     def __init__(self, ckpt_dir, epoch_freq):
         super().__init__()
@@ -16,6 +16,10 @@ class CheckpointCallback(tf.keras.callbacks.Callback):
     def on_batch_end(self, batch, logs=None):
         '''Saves the batch number within an epoch'''
         self.step_nr = self.step_nr + 1
+
+
+class PreTrainingCheckpointCallback(BaseCheckpointCallback):
+    '''Checkpoint saver for pre-training model.'''
 
     def on_epoch_end(self, epoch, logs=None):
         '''Saves the model, optimizer, epoch and step.'''
@@ -60,6 +64,51 @@ class CheckpointCallback(tf.keras.callbacks.Callback):
             self.step_nr = step_nr
 
         return epoch_nr, step_nr, model, mae_optimizer, cl_optimizer
+
+
+class FineTuningCheckpointCallback(BaseCheckpointCallback):
+    '''Checkpoint saver for fine-tuning model.'''
+
+    def on_epoch_end(self, epoch, logs=None):
+        '''Saves the model, optimizer, epoch and step.'''
+        if epoch % self.epoch_freq == 0:
+            self.epoch_nr = epoch
+
+            checkpoint_epoch = tf.train.Checkpoint(
+                epoch_nr=tf.Variable(self.epoch_nr, dtype=tf.int64),
+                step_nr=tf.Variable(self.step_nr, dtype=tf.int64),
+                model=self.model,
+                optimizer=self.model.optimizer)
+
+            checkpoint_epoch.save(
+                file_prefix=self.ckpt_dir)
+
+    def get_most_recent_ckpt(self, model, optimizer):
+        '''
+        finds the latest checkpoint.
+        returns epoch_nr, step_nr, model, optimizer.
+        '''
+        ckpt_parent_dir = os.path.dirname(
+            self.ckpt_dir)
+
+        latest_ckpt = tf.train.latest_checkpoint(ckpt_parent_dir)
+
+        if latest_ckpt:
+            ckpt = tf.train.Checkpoint(
+                epoch_nr=tf.Variable(0, dtype=tf.int64),
+                step_nr=tf.Variable(0, dtype=tf.int64),
+                model=model,
+                optimizer=optimizer)
+
+            ckpt.restore(latest_ckpt)
+            epoch_nr = ckpt.epoch_nr.numpy()
+            step_nr = ckpt.step_nr.numpy()
+            model = ckpt.model
+            optimizer = ckpt.optimizer
+
+            self.step_nr = step_nr
+
+        return epoch_nr, step_nr, model, optimizer
 
 
 class LearningRateCallback(tf.keras.callbacks.Callback):

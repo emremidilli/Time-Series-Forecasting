@@ -99,3 +99,57 @@ def get_pre_training_args():
         sys.exit(0)
 
     return args
+
+
+def get_fine_tuning_args():
+    '''
+    Parses the args.
+    '''
+    parser = argparse.ArgumentParser()
+
+    # Optimizer-related hyperparameters.
+    parser.add_argument(
+        '--learning_rate',
+        required=False,
+        default=1e-5,
+        type=float,
+        help='learning_rate'
+    )
+    parser.add_argument(
+        '--clip_norm',
+        required=False,
+        default=1.0,
+        type=float,
+        help='clip_norm'
+    )
+
+    # Training-related hyperparameters.
+    parser.add_argument(
+        '--mini_batch_size',
+        required=False,
+        default=64,
+        type=int,
+        help='mini_batch_size'
+    )
+    parser.add_argument(
+        '--nr_of_epochs',
+        required=False,
+        default=100,
+        type=int,
+        help='nr_of_epochs'
+    )
+    parser.add_argument(
+        '--validation_rate',
+        required=False,
+        default=0.15,
+        type=float,
+        help='validation_rate'
+    )
+
+    try:
+        args = parser.parse_args()
+    except:
+        parser.print_help()
+        sys.exit(0)
+
+    return args
