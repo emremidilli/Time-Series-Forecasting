@@ -113,6 +113,7 @@ if __name__ == '__main__':
 
     learning_rate_callback = LearningRateCallback(
         d_model=args.embedding_dims,
+        warmup_steps=args.warmup_steps,
         remained_step_nr=starting_step)
 
     print(f'tensorboard --logdir=".{tensorboard_log_dir}" --bind_all')

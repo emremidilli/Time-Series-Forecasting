@@ -11,18 +11,18 @@ def get_pre_training_args():
 
     # Optimizer-related hyperparameters.
     parser.add_argument(
-        '--learning_rate',
-        required=False,
-        default=1e-5,
-        type=float,
-        help='learning_rate'
-    )
-    parser.add_argument(
         '--clip_norm',
         required=False,
         default=1.0,
         type=float,
         help='clip_norm'
+    )
+    parser.add_argument(
+        '--warmup_steps',
+        required=False,
+        default=4000,
+        type=int,
+        help='warmup_steps'
     )
 
     # Architecture-related hyperparameters.

@@ -180,7 +180,7 @@ class PreTraining(tf.keras.Model):
                 x_tre_false,
                 x_sea_false)
 
-    # @tf.function()
+    @tf.function()
     def train_step(self, data):
         '''
             trains a step in two phases:
