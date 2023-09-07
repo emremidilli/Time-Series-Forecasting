@@ -14,6 +14,8 @@ class MppDecoder(tf.keras.layers.Layer):
             units=iFfnUnits * nr_of_time_steps,
             use_bias=False)
 
+        self.layer_norm = tf.keras.layers.LayerNormalization()
+
         self.reshape = tf.keras.layers.Reshape(
             target_shape=(nr_of_time_steps, iFfnUnits))
 
@@ -26,6 +28,7 @@ class MppDecoder(tf.keras.layers.Layer):
         x = self.flatten(x)
 
         y = self.dense(x)
+        y = self.layer_norm(y)
         y = self.reshape(y)
 
         return y
