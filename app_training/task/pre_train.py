@@ -74,7 +74,8 @@ if __name__ == '__main__':
         log_dir=tensorboard_log_dir,
         write_graph=True,
         write_images=False,
-        histogram_freq=1)
+        histogram_freq=1,
+        profile_batch='50,70')
 
     terminate_on_nan_callback = tf.keras.callbacks.TerminateOnNaN()
 
