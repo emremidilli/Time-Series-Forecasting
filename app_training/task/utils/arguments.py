@@ -24,6 +24,13 @@ def get_pre_training_args():
         type=int,
         help='warmup_steps'
     )
+    parser.add_argument(
+        '--scale_factor',
+        required=False,
+        default=1.0,
+        type=float,
+        help='scale_factor'
+    )
 
     # Architecture-related hyperparameters.
     parser.add_argument(

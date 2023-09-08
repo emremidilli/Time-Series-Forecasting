@@ -113,12 +113,19 @@ class FineTuningCheckpointCallback(BaseCheckpointCallback):
 
 class LearningRateCallback(tf.keras.callbacks.Callback):
     '''Noam Learning rate schedule of "Attention is all you need paper"'''
-    def __init__(self, d_model, warmup_steps=4000, remained_step_nr=0):
+    def __init__(
+            self,
+            d_model,
+            warmup_steps=4000,
+            scale_factor=1.0,
+            remained_step_nr=0):
         super().__init__()
 
-        self.d_model = tf.cast(d_model, tf.float32)
+        self.d_model = tf.cast(d_model, dtype=tf.float32)
 
         self.warmup_steps = warmup_steps
+
+        self.scale_factor = tf.cast(scale_factor, dtype=tf.float32)
 
         self.step_nr = remained_step_nr
 
@@ -128,7 +135,9 @@ class LearningRateCallback(tf.keras.callbacks.Callback):
         arg1 = tf.math.rsqrt(step)
         arg2 = step * (self.warmup_steps ** -1.5)
 
-        return tf.math.rsqrt(self.d_model) * tf.math.minimum(arg1, arg2)
+        unscaled = tf.math.rsqrt(self.d_model) * tf.math.minimum(arg1, arg2)
+        scaled = self.scale_factor * unscaled
+        return scaled
 
     def on_batch_begin(self, batch, logs=None):
         '''sets the calculated learning rate to the optimzer'''

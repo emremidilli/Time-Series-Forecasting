@@ -66,7 +66,7 @@ if __name__ == '__main__':
 
     checkpoint_callback = PreTrainingCheckpointCallback(
         ckpt_dir=custom_ckpt_dir,
-        epoch_freq=3)
+        epoch_freq=5)
 
     ram_cleaner_callback = RamCleaner()
 
@@ -114,6 +114,7 @@ if __name__ == '__main__':
     learning_rate_callback = LearningRateCallback(
         d_model=args.embedding_dims,
         warmup_steps=args.warmup_steps,
+        scale_factor=args.scale_factor,
         remained_step_nr=starting_step)
 
     print(f'tensorboard --logdir=".{tensorboard_log_dir}" --bind_all')
