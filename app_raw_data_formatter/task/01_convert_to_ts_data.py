@@ -11,8 +11,6 @@ import os
 import shutil
 
 
-
-
 def aGetCommonTimeStampsAccrossChannels():
     '''
         reads the channel files and identifies the common timestamps accross each channel.
@@ -20,6 +18,9 @@ def aGetCommonTimeStampsAccrossChannels():
         inputs - raw data in channel files.
         returns - common time stamps in format of numpy array.
     '''
+    RAW_FREQUENCY = 'T'
+    RAW_FREQUENCY_NUMPY = 'm'
+
     arr = None
     aFileNames = os.listdir(RAW_DATA_FOLDER)
     for sFileName in aFileNames:
@@ -49,8 +50,6 @@ def dfConvertToTimeSeriesDataset(aCommonTimeStamps, sFileName):
 
         returns - converted pandas dataframe.
     '''
-
-
     aLookbackTimeSteps = list(range(-(LOOKBACK_COEFFICIENT*FORECAST_HORIZON) , 0))
     aForecastTimeSteps = list(range(0, FORECAST_HORIZON))
 
