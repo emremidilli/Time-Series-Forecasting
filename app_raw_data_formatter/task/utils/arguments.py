@@ -65,9 +65,14 @@ def get_args_to_build_date_features():
         help='channel')
 
     parser.add_argument(
+        '--raw_frequency',
+        required=True,
+        type=str,
+        help='raw_frequency')
+
+    parser.add_argument(
         '--datetime_features',
         required=True,
-        default="['month', 'day', 'dayofweek', 'hour', 'minute']",
         type=eval,
         help='datetime_features')
 

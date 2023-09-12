@@ -61,8 +61,11 @@ if __name__ == '__main__':
     dfSearch = dfTsDataset.query(
         '(group_id == @target_group)')[['time_idx', 'value']].copy()
 
-    dfLb = pd.DataFrame(index=aTimeIxs)
-    for i in range(-lookback_horizon, 0):
+    lookback_steps = range(-lookback_horizon, 0)
+    dfLb = pd.DataFrame(
+        index=aTimeIxs,
+        columns=lookback_steps)
+    for i in lookback_steps:
         dfFound = dfSearch.query('time_idx in (@aTimeIxs + @i)').copy()
         aFound = dfFound.loc[:, 'time_idx'].to_numpy() - i
 
@@ -70,8 +73,11 @@ if __name__ == '__main__':
 
     dfLb.dropna(inplace=True)
 
-    dfFc = pd.DataFrame(index=aTimeIxs)
-    for i in range(0, forecast_horizon):
+    forecast_steps = range(0, forecast_horizon)
+    dfFc = pd.DataFrame(
+        index=aTimeIxs,
+        columns=forecast_steps)
+    for i in forecast_steps:
         dfFound = dfSearch.query('time_idx in (@aTimeIxs + @i)').copy()
         aFound = dfFound.loc[:, 'time_idx'].to_numpy() - i
 

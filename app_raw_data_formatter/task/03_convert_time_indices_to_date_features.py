@@ -23,3 +23,5 @@ if __name__ == '__main__':
 
     np.save(os.path.join(training_data_dir, 'ts_train.npy'), ts_train)
     np.save(os.path.join(training_data_dir, 'ts_test.npy'), ts_test)
+
+    print(f'Date features are generated successfully for {channel}')
