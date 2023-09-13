@@ -8,7 +8,7 @@ from settings import TRAINING_DATASETS_FOLDER, CONVERTED_DATA_FOLDER
 
 import shutil
 
-from utils import get_args_to_build_datasets
+from utils import get_args_to_build_datasets, save_config_file
 
 
 if __name__ == '__main__':
@@ -40,9 +40,15 @@ if __name__ == '__main__':
     step_size = args.step_size
     channel = args.channel
 
-    sSubDirectory = os.path.join(TRAINING_DATASETS_FOLDER, channel)
-    if os.path.exists(sSubDirectory) is True:
-        shutil.rmtree(sSubDirectory)
+    sub_directory = os.path.join(TRAINING_DATASETS_FOLDER, channel)
+    if os.path.exists(sub_directory) is True:
+        shutil.rmtree(sub_directory)
+
+    os.makedirs(sub_directory)
+
+    save_config_file(
+        folder_dir=sub_directory,
+        args=args)
 
     dfTsDataset = pd.read_csv(
         os.path.join(CONVERTED_DATA_FOLDER, f'{channel}.csv'),
@@ -93,13 +99,10 @@ if __name__ == '__main__':
     fc = dfFc.to_numpy()
     ix = dfLb.index.to_numpy()
 
-    os.makedirs(sSubDirectory)
-    np.save(os.path.join(sSubDirectory, 'lb_train.npy'), lb[:-test_size])
-    np.save(os.path.join(sSubDirectory, 'fc_train.npy'), fc[:-test_size])
-    np.save(os.path.join(sSubDirectory, 'ix_train.npy'), ix[:-test_size])
+    np.save(os.path.join(sub_directory, 'lb_train.npy'), lb[:-test_size])
+    np.save(os.path.join(sub_directory, 'fc_train.npy'), fc[:-test_size])
+    np.save(os.path.join(sub_directory, 'ix_train.npy'), ix[:-test_size])
 
-    np.save(os.path.join(sSubDirectory, 'lb_test.npy'), lb[-test_size:])
-    np.save(os.path.join(sSubDirectory, 'fc_test.npy'), fc[-test_size:])
-    np.save(os.path.join(sSubDirectory, 'ix_test.npy'), ix[-test_size:])
-
-    print(f'Datasets for {channel} is built successfully.')
+    np.save(os.path.join(sub_directory, 'lb_test.npy'), lb[-test_size:])
+    np.save(os.path.join(sub_directory, 'fc_test.npy'), fc[-test_size:])
+    np.save(os.path.join(sub_directory, 'ix_test.npy'), ix[-test_size:])

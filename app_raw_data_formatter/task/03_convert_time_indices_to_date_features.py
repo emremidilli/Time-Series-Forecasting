@@ -4,7 +4,8 @@ import os
 
 from settings import TRAINING_DATASETS_FOLDER
 
-from utils import get_args_to_build_date_features, convert_unix_data
+from utils import get_args_to_build_date_features, convert_unix_data, \
+    save_config_file
 
 
 if __name__ == '__main__':
@@ -15,6 +16,10 @@ if __name__ == '__main__':
 
     training_data_dir = os.path.join(TRAINING_DATASETS_FOLDER, channel)
 
+    save_config_file(
+        folder_dir=training_data_dir,
+        args=args)
+
     ts_train = np.load(os.path.join(training_data_dir, 'ix_train.npy'))
     ts_test = np.load(os.path.join(training_data_dir, 'ix_test.npy'))
 
@@ -23,5 +28,3 @@ if __name__ == '__main__':
 
     np.save(os.path.join(training_data_dir, 'ts_train.npy'), ts_train)
     np.save(os.path.join(training_data_dir, 'ts_test.npy'), ts_test)
-
-    print(f'Date features are generated successfully for {channel}')
