@@ -30,8 +30,8 @@ if __name__ == '__main__':
     args = get_pre_training_args()
     print(args)
 
-    channel = input(f'Enter a channel name from {TRAINING_DATA_FOLDER}: \n')
-    resume_training = input('Resume training {Y, N}: \n').upper()
+    channel = args.channel
+    resume_training = args.resume_training
 
     artifacts_dir = os.path.join(ARTIFACTS_FOLDER, channel, 'pre_train')
     custom_ckpt_dir = os.path.join(artifacts_dir, 'checkpoints', 'ckpt')
