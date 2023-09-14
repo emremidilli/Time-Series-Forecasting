@@ -1,6 +1,14 @@
 #!/bin/bash
 
+build_image=$1
+
 cd ../app_raw_data_formatter/
+
+if [$build_image == "Y"]; then
+    docker-compose down
+
+    docker-compose build
+fi
 
 CHANNELS=("EURUSD" "GBPUSD" "USDCAD")
 

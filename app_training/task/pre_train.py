@@ -39,11 +39,14 @@ if __name__ == '__main__':
     tensorboard_log_dir = os.path.join(artifacts_dir, 'tboard_logs')
 
     lb_train = read_npy_file(
-        os.path.join(TRAINING_DATA_FOLDER, channel, 'lb_train.npy'))
+        os.path.join(TRAINING_DATA_FOLDER, channel, 'lb_train.npy'),
+        dtype='float32')
     fc_train = read_npy_file(
-        os.path.join(TRAINING_DATA_FOLDER, channel, 'fc_train.npy'))
+        os.path.join(TRAINING_DATA_FOLDER, channel, 'fc_train.npy'),
+        dtype='float32')
     ts_train = read_npy_file(
-        os.path.join(TRAINING_DATA_FOLDER, channel, 'ts_train.npy'))
+        os.path.join(TRAINING_DATA_FOLDER, channel, 'ts_train.npy'),
+        dtype='int32')
 
     lb_train, fc_train, ts_train = get_random_sample(
         lb=lb_train,

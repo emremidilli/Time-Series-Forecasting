@@ -114,6 +114,23 @@ def get_fine_tuning_args():
     '''
     parser = argparse.ArgumentParser()
 
+    parser.add_argument(
+        '--channel',
+        required=False,
+        default='EURUSD',
+        type=str,
+        help='channel'
+    )
+
+    parser.add_argument(
+        '--resume_training',
+        required=False,
+        default='N',
+        choices=['Y', 'N'],
+        type=str,
+        help='resume_training'
+    )
+
     # Optimizer-related hyperparameters.
     parser.add_argument(
         '--learning_rate',

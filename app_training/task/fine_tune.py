@@ -23,8 +23,8 @@ if __name__ == '__main__':
     args = get_fine_tuning_args()
     print(args)
 
-    channel = input(f'Enter a channel name from {TRAINING_DATA_FOLDER}: \n')
-    resume_training = input('Resume training {Y, N}: \n').upper()
+    channel = args.channel
+    resume_training = args.resume_training
 
     artifacts_dir = os.path.join(ARTIFACTS_FOLDER, channel, 'fine_tune')
     custom_ckpt_dir = os.path.join(artifacts_dir, 'checkpoints', 'ckpt')
@@ -36,11 +36,14 @@ if __name__ == '__main__':
                                          'saved_model')
 
     lb_train = read_npy_file(
-        os.path.join(TRAINING_DATA_FOLDER, channel, 'lb_train.npy'))
+        os.path.join(TRAINING_DATA_FOLDER, channel, 'lb_train.npy'),
+        dtype='float32')
     fc_train = read_npy_file(
-        os.path.join(TRAINING_DATA_FOLDER, channel, 'fc_train.npy'))
+        os.path.join(TRAINING_DATA_FOLDER, channel, 'fc_train.npy'),
+        dtype='float32')
     ts_train = read_npy_file(
-        os.path.join(TRAINING_DATA_FOLDER, channel, 'ts_train.npy'))
+        os.path.join(TRAINING_DATA_FOLDER, channel, 'ts_train.npy'),
+        dtype='int32')
 
     input_pre_processor = InputPreProcessor(
         iPatchSize=PATCH_SIZE,
