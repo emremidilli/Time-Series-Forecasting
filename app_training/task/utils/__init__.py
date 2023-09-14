@@ -1,5 +1,5 @@
 from .arguments import get_pre_training_args, \
-    get_fine_tuning_args  # noqa: F401
+    get_fine_tuning_args, get_data_format_config  # noqa: F401
 from .callbacks import RamCleaner, PreTrainingCheckpointCallback, \
     FineTuningCheckpointCallback, LearningRateCallback  # noqa: F401
 from .pipelines import read_npy_file  # noqa: F401

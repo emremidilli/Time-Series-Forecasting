@@ -19,7 +19,8 @@ import tensorflow as tf
 from tsf_model import InputPreProcessor, PreTraining
 
 from utils import PreTrainingCheckpointCallback, LearningRateCallback, \
-    get_random_sample, RamCleaner, get_pre_training_args, read_npy_file
+    get_random_sample, RamCleaner, get_pre_training_args, read_npy_file, \
+    get_data_format_config
 
 
 if __name__ == '__main__':
@@ -32,6 +33,11 @@ if __name__ == '__main__':
 
     channel = args.channel
     resume_training = args.resume_training
+
+    config = get_data_format_config(folder_path=TRAINING_DATA_FOLDER)
+
+    FORECAST_HORIZON = config['forecast_horizon']
+    LOOKBACK_HORIZON = FORECAST_HORIZON * config['lookback_coefficient']
 
     artifacts_dir = os.path.join(ARTIFACTS_FOLDER, channel, 'pre_train')
     custom_ckpt_dir = os.path.join(artifacts_dir, 'checkpoints', 'ckpt')

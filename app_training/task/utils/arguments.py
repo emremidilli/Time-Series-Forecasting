@@ -1,5 +1,9 @@
 import argparse
 
+import json
+
+import os
+
 import sys
 
 
@@ -194,3 +198,12 @@ def get_fine_tuning_args():
         sys.exit(0)
 
     return args
+
+
+def get_data_format_config(folder_path):
+    '''returns dictionary of dataformat config from datasets folder.'''
+    file_path = os.path.join(folder_path, 'config.json')
+    with open(file_path, 'r') as j:
+        contents = json.loads(j.read())
+
+    return contents
