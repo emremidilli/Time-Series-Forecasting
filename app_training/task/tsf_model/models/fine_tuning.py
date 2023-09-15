@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from tsf_model.layers.ConTemPreT.decoder import QuantileDecoder
+from tsf_model.layers.decoder import QuantileDecoder
 
 
 @tf.keras.saving.register_keras_serializable()

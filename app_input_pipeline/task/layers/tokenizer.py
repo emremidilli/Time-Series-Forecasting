@@ -7,6 +7,7 @@ class PatchTokenizer(tf.keras.layers.Layer):
         super().__init__(**kwargs)
         self.patch_size = patch_size
         self.trainable = False
+        self.reshaper = tf.keras.layers.Reshape((-1, self.patch_size))
 
     def call(self, x):
         '''
@@ -14,7 +15,8 @@ class PatchTokenizer(tf.keras.layers.Layer):
 
         outputs: (None, nr_of_patches, patch_size)
         '''
-        y = tf.reshape(x, (x.shape[0], -1, self.patch_size))
+
+        y = self.reshaper(x)
 
         return y
 

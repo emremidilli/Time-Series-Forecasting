@@ -1,77 +1,53 @@
-'''
-Trains a pre-training model for a univariate forecasting model.
-Pre-training is done on a small portion of the training dataset.
-A pre-training ratio is used to select the pre-training dataset
-    from the training dataset.
-'''
-
 import os
 
-from settings import TRAINING_DATA_FOLDER, PATCH_SIZE, \
-    POOL_SIZE_REDUCTION, POOL_SIZE_TREND, NR_OF_BINS, \
-    MASK_RATE, MSK_SCALAR, ARTIFACTS_FOLDER, \
-    NR_OF_LOOKBACK_PATCHES, NR_OF_FORECAST_PATCHES
+from settings import ARTIFACTS_FOLDER, PREPROCESSED_DATA_DIR, \
+    TRAINING_DATA_FOLDER
 
 import shutil
 
 import tensorflow as tf
 
-from tsf_model import InputPreProcessor, PreTraining
+from tsf_model import PreTraining
 
 from utils import PreTrainingCheckpointCallback, LearningRateCallback, \
-    get_random_sample, RamCleaner, get_pre_training_args, read_npy_file, \
-    get_data_format_config
+    RamCleaner, get_pre_training_args, get_data_format_config
 
 
 if __name__ == '__main__':
-    '''
-    Pre-trains a given channel.
-    A training dataset should be in format of (None, timesteps).
-    '''
+    '''Pre-trains a given channel.'''
+
     args = get_pre_training_args()
     print(args)
 
     channel = args.channel
     resume_training = args.resume_training
-
-    config = get_data_format_config(folder_path=TRAINING_DATA_FOLDER)
-
-    FORECAST_HORIZON = config['forecast_horizon']
-    LOOKBACK_HORIZON = FORECAST_HORIZON * config['lookback_coefficient']
+    mask_rate = args.mask_rate
+    mask_scalar = args.mask_scalar
+    mini_batch_size = args.mini_batch_size
+    clip_norm = args.clip_norm
+    nr_of_encoder_blocks = args.nr_of_encoder_blocks
+    nr_of_heads = args.nr_of_heads
+    dropout_rate = args.dropout_rate
+    encoder_ffn_units = args.encoder_ffn_units
+    embedding_dims = args.embedding_dims
+    projection_head = args.projection_head
+    warmup_steps = args.warmup_steps
+    scale_factor = args.scale_factor
 
     artifacts_dir = os.path.join(ARTIFACTS_FOLDER, channel, 'pre_train')
     custom_ckpt_dir = os.path.join(artifacts_dir, 'checkpoints', 'ckpt')
     saved_model_dir = os.path.join(artifacts_dir, 'saved_model')
     tensorboard_log_dir = os.path.join(artifacts_dir, 'tboard_logs')
+    dataset_dir = os.path.join(
+        PREPROCESSED_DATA_DIR, channel, 'pre_train', 'dataset')
 
-    lb_train = read_npy_file(
-        os.path.join(TRAINING_DATA_FOLDER, channel, 'lb_train.npy'),
-        dtype='float32')
-    fc_train = read_npy_file(
-        os.path.join(TRAINING_DATA_FOLDER, channel, 'fc_train.npy'),
-        dtype='float32')
-    ts_train = read_npy_file(
-        os.path.join(TRAINING_DATA_FOLDER, channel, 'ts_train.npy'),
-        dtype='int32')
+    config = get_data_format_config(
+        folder_path=os.path.join(TRAINING_DATA_FOLDER, channel))
 
-    lb_train, fc_train, ts_train = get_random_sample(
-        lb=lb_train,
-        fc=fc_train,
-        ts=ts_train,
-        sampling_ratio=args.pre_train_ratio)
+    ds_train = tf.data.Dataset.load(path=dataset_dir)
+    dist, tre, _, _ = next(iter(ds_train))
 
-    input_pre_processor = InputPreProcessor(
-        iPatchSize=PATCH_SIZE,
-        iPoolSizeReduction=POOL_SIZE_REDUCTION,
-        iPoolSizeTrend=POOL_SIZE_TREND,
-        iNrOfBins=NR_OF_BINS
-    )
-    dist, tre, sea = input_pre_processor((lb_train, fc_train))
-    ts_train = input_pre_processor.batch_normalizer(ts_train, training=True)
-
-    ds_train = tf.data.Dataset.from_tensor_slices(
-        (dist, tre, sea, ts_train)).batch(
-            args.mini_batch_size).prefetch(tf.data.AUTOTUNE)
+    ds_train = ds_train.batch(mini_batch_size).prefetch(tf.data.AUTOTUNE)
 
     checkpoint_callback = PreTrainingCheckpointCallback(
         ckpt_dir=custom_ckpt_dir,
@@ -88,25 +64,29 @@ if __name__ == '__main__':
 
     terminate_on_nan_callback = tf.keras.callbacks.TerminateOnNaN()
 
-    mae_optimizer = tf.keras.optimizers.Adam(clipnorm=args.clip_norm)
+    mae_optimizer = tf.keras.optimizers.Adam(clipnorm=clip_norm)
 
-    cl_optimizer = tf.keras.optimizers.Adam(clipnorm=args.clip_norm)
+    cl_optimizer = tf.keras.optimizers.Adam(clipnorm=clip_norm)
+
+    lookback_coefficient = config['lookback_coefficient']
+    nr_of_forecast_patches = int(dist.shape[0] / (lookback_coefficient + 1))
+    nr_of_lookback_patches = int(nr_of_forecast_patches * lookback_coefficient)
 
     starting_epoch = 0
     starting_step = 0
     model = PreTraining(
-        iNrOfEncoderBlocks=args.nr_of_encoder_blocks,
-        iNrOfHeads=args.nr_of_heads,
-        fDropoutRate=args.dropout_rate,
-        iEncoderFfnUnits=args.encoder_ffn_units,
-        embedding_dims=args.embedding_dims,
-        iProjectionHeadUnits=args.projection_head,
-        iReducedDims=tre.shape[2],
-        fMskRate=MASK_RATE,
-        msk_scalar=MSK_SCALAR,
-        iNrOfBins=NR_OF_BINS,
-        iNrOfLookbackPatches=NR_OF_LOOKBACK_PATCHES,
-        iNrOfForecastPatches=NR_OF_FORECAST_PATCHES)
+        iNrOfEncoderBlocks=nr_of_encoder_blocks,
+        iNrOfHeads=nr_of_heads,
+        fDropoutRate=dropout_rate,
+        iEncoderFfnUnits=encoder_ffn_units,
+        embedding_dims=embedding_dims,
+        iProjectionHeadUnits=projection_head,
+        iReducedDims=tre.shape[1],
+        fMskRate=mask_rate,
+        msk_scalar=mask_scalar,
+        iNrOfBins=dist.shape[1],
+        iNrOfLookbackPatches=nr_of_lookback_patches,
+        iNrOfForecastPatches=nr_of_forecast_patches)
     if resume_training == 'Y':
         starting_epoch, starting_step, model, mae_optimizer, cl_optimizer = \
             checkpoint_callback.get_most_recent_ckpt(
@@ -122,9 +102,9 @@ if __name__ == '__main__':
         cl_optimizer=cl_optimizer)
 
     learning_rate_callback = LearningRateCallback(
-        d_model=args.embedding_dims,
-        warmup_steps=args.warmup_steps,
-        scale_factor=args.scale_factor,
+        d_model=embedding_dims,
+        warmup_steps=warmup_steps,
+        scale_factor=scale_factor,
         remained_step_nr=starting_step)
 
     print(f'tensorboard --logdir=".{tensorboard_log_dir}" --bind_all')

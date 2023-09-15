@@ -1,8 +1,7 @@
 import tensorflow as tf
 
-from tsf_model.layers.ConTemPreT import Representation, \
-    MppDecoder, ProjectionHead
-from tsf_model.layers.pre_processing import PatchMasker, PatchShifter
+from tsf_model.layers import Representation, \
+    MppDecoder, ProjectionHead, PatchMasker, PatchShifter
 
 
 class PreTraining(tf.keras.Model):

@@ -16,19 +16,16 @@ def get_pre_training_args():
     parser.add_argument(
         '--channel',
         required=False,
-        default='EURUSD',
+        default='USDCAD',
         type=str,
-        help='channel'
-    )
-
+        help='channel')
     parser.add_argument(
         '--resume_training',
         required=False,
         default='N',
         choices=['Y', 'N'],
         type=str,
-        help='resume_training'
-    )
+        help='resume_training')
 
     # Optimizer-related hyperparameters.
     parser.add_argument(
@@ -36,22 +33,19 @@ def get_pre_training_args():
         required=False,
         default=1.0,
         type=float,
-        help='clip_norm'
-    )
+        help='clip_norm')
     parser.add_argument(
         '--warmup_steps',
         required=False,
         default=4000,
         type=int,
-        help='warmup_steps'
-    )
+        help='warmup_steps')
     parser.add_argument(
         '--scale_factor',
         required=False,
         default=1.0,
         type=float,
-        help='scale_factor'
-    )
+        help='scale_factor')
 
     # Architecture-related hyperparameters.
     parser.add_argument(
@@ -59,43 +53,37 @@ def get_pre_training_args():
         required=False,
         default=1,
         type=int,
-        help='nr_of_encoder_blocks'
-    )
+        help='nr_of_encoder_blocks')
     parser.add_argument(
         '--nr_of_heads',
         required=False,
         default=4,
         type=int,
-        help='nr_of_heads'
-    )
+        help='nr_of_heads')
     parser.add_argument(
         '--encoder_ffn_units',
         required=False,
         default=16,
         type=int,
-        help='encoder_ffn_units'
-    )
+        help='encoder_ffn_units')
     parser.add_argument(
         '--embedding_dims',
         required=False,
         default=16,
         type=int,
-        help='embedding_dims'
-    )
+        help='embedding_dims')
     parser.add_argument(
         '--projection_head',
         required=False,
         default=8,
         type=int,
-        help='projection_head'
-    )
+        help='projection_head')
     parser.add_argument(
         '--dropout_rate',
         required=False,
         default=0.10,
         type=float,
-        help='dropout_rate'
-    )
+        help='dropout_rate')
 
     # Training-related hyperparameters
     parser.add_argument(
@@ -103,22 +91,26 @@ def get_pre_training_args():
         required=False,
         default=64,
         type=int,
-        help='mini_batch_size'
-    )
+        help='mini_batch_size')
+
     parser.add_argument(
         '--nr_of_epochs',
         required=False,
         default=200,
         type=int,
-        help='nr_of_epochs'
-    )
+        help='nr_of_epochs')
     parser.add_argument(
-        '--pre_train_ratio',
+        '--mask_scalar',
         required=False,
-        default=0.05,
+        default=0.53,
         type=float,
-        help='pre_train_ratio'
-    )
+        help='mask_scalar')
+    parser.add_argument(
+        '--mask_rate',
+        required=False,
+        default=0.70,
+        type=float,
+        help='mask_rate')
 
     try:
         args = parser.parse_args()
@@ -138,7 +130,7 @@ def get_fine_tuning_args():
     parser.add_argument(
         '--channel',
         required=False,
-        default='EURUSD',
+        default='USDCAD',
         type=str,
         help='channel'
     )
@@ -189,6 +181,13 @@ def get_fine_tuning_args():
         default=0.15,
         type=float,
         help='validation_rate'
+    )
+    parser.add_argument(
+        '--quantiles',
+        required=False,
+        default='[0.10, 0.50, 0.90]',
+        type=eval,
+        help='quantiles'
     )
 
     try:

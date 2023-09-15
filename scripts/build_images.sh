@@ -1,6 +1,8 @@
 #!/bin/bash
 
-cd ../../app_training/
+app_name=$1
+
+cd ../$app_name/
 
 docker-compose down
 

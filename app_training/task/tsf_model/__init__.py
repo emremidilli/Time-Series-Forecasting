@@ -1,2 +1,1 @@
-from .models import InputPreProcessor, TargetPreProcessor, \
-    PreTraining, FineTuning  # noqa: F401
+from .models import PreTraining, FineTuning  # noqa: F401

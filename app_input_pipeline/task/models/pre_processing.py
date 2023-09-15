@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from tsf_model.layers.pre_processing import LookbackNormalizer, \
+from layers import LookbackNormalizer, \
     PatchTokenizer, DistributionTokenizer, TrendSeasonalityTokenizer, \
     LayerNormalizer, BatchNormalizer, QuantileTokenizer, PatchMasker
 

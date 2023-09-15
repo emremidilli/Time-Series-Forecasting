@@ -1,30 +1,32 @@
 import os
 
-from settings import TRAINING_DATA_FOLDER, PATCH_SIZE, \
-    POOL_SIZE_REDUCTION, POOL_SIZE_TREND, NR_OF_BINS, \
-    ARTIFACTS_FOLDER, QUANTILES, NR_OF_FORECAST_PATCHES, MSK_SCALAR
+from settings import TRAINING_DATA_FOLDER, ARTIFACTS_FOLDER,\
+    PREPROCESSED_DATA_DIR
 
 import shutil
 
 import tensorflow as tf
 
-from tsf_model import InputPreProcessor, TargetPreProcessor, FineTuning
+from tsf_model import FineTuning
 
-from utils import get_fine_tuning_args, read_npy_file, \
-    FineTuningCheckpointCallback, get_pre_trained_representation, \
-    train_test_split, RamCleaner
+from utils import get_fine_tuning_args, FineTuningCheckpointCallback, \
+    get_pre_trained_representation, train_test_split, RamCleaner, \
+    get_data_format_config
 
 
 if __name__ == '__main__':
-    '''
-    Fine tunes a given channel.
-    A training dataset should be in format of (None, timesteps).
-    '''
+    '''Fine tunes a given channel.'''
     args = get_fine_tuning_args()
     print(args)
 
     channel = args.channel
     resume_training = args.resume_training
+    validation_rate = args.validation_rate
+    mini_batch_size = args.mini_batch_size
+    quantiles = args.quantiles
+    learning_rate = args.learning_rate
+    clip_norm = args.clip_norm
+    nr_of_epochs = args.nr_of_epochs
 
     artifacts_dir = os.path.join(ARTIFACTS_FOLDER, channel, 'fine_tune')
     custom_ckpt_dir = os.path.join(artifacts_dir, 'checkpoints', 'ckpt')
@@ -34,56 +36,37 @@ if __name__ == '__main__':
                                          channel,
                                          'pre_train',
                                          'saved_model')
+    dataset_dir = os.path.join(
+        PREPROCESSED_DATA_DIR, channel, 'fine_tune', 'dataset')
 
-    lb_train = read_npy_file(
-        os.path.join(TRAINING_DATA_FOLDER, channel, 'lb_train.npy'),
-        dtype='float32')
-    fc_train = read_npy_file(
-        os.path.join(TRAINING_DATA_FOLDER, channel, 'fc_train.npy'),
-        dtype='float32')
-    ts_train = read_npy_file(
-        os.path.join(TRAINING_DATA_FOLDER, channel, 'ts_train.npy'),
-        dtype='int32')
+    config = get_data_format_config(
+        folder_path=os.path.join(TRAINING_DATA_FOLDER, channel))
 
-    input_pre_processor = InputPreProcessor(
-        iPatchSize=PATCH_SIZE,
-        iPoolSizeReduction=POOL_SIZE_REDUCTION,
-        iPoolSizeTrend=POOL_SIZE_TREND,
-        iNrOfBins=NR_OF_BINS
-    )
+    ds = tf.data.Dataset.load(path=dataset_dir)
 
-    target_pre_processor = TargetPreProcessor(
-        iPatchSize=PATCH_SIZE,
-        quantiles=QUANTILES)
+    (dist, _, _, _), _ = next(iter(ds))
+    lookback_coefficient = config['lookback_coefficient']
+    nr_of_forecast_patches = int(dist.shape[0] / (lookback_coefficient + 1))
+    nr_of_lookback_patches = int(nr_of_forecast_patches * lookback_coefficient)
 
-    dist, tre, sea = input_pre_processor((lb_train, fc_train))
-    dist, tre, sea = input_pre_processor.mask_forecast_patches(
-        inputs=(dist, tre, sea),
-        nr_of_patches=NR_OF_FORECAST_PATCHES,
-        msk_scalar=MSK_SCALAR
-    )
-    qntl = target_pre_processor((lb_train, fc_train))
-    ts = input_pre_processor.batch_normalizer(ts_train, training=True)
-
-    ds = tf.data.Dataset.from_tensor_slices(((dist, tre, sea, ts), qntl))
     ds_train = ds
     ds_val = None
-    if args.validation_rate > 0:
-        ds_train, ds_val = train_test_split(ds, test_rate=args.validation_rate)
-        ds_val = ds_val.batch(args.mini_batch_size).prefetch(tf.data.AUTOTUNE)
+    if validation_rate > 0:
+        ds_train, ds_val = train_test_split(ds, test_rate=validation_rate)
+        ds_val = ds_val.batch(mini_batch_size).prefetch(tf.data.AUTOTUNE)
 
-    ds_train = ds_train.batch(args.mini_batch_size).prefetch(tf.data.AUTOTUNE)
+    ds_train = ds_train.batch(mini_batch_size).prefetch(tf.data.AUTOTUNE)
 
     con_temp_pret = get_pre_trained_representation(pre_trained_model_dir)
 
     model = FineTuning(
         con_temp_pret=con_temp_pret,
-        nr_of_time_steps=NR_OF_FORECAST_PATCHES,
-        nr_of_quantiles=len(QUANTILES))
+        nr_of_time_steps=nr_of_lookback_patches,
+        nr_of_quantiles=len(quantiles))
 
     optimizer = tf.keras.optimizers.Adam(
-        learning_rate=args.learning_rate,
-        clipnorm=args.clip_norm)
+        learning_rate=learning_rate,
+        clipnorm=clip_norm)
 
     checkpoint_callback = FineTuningCheckpointCallback(
         ckpt_dir=custom_ckpt_dir,
@@ -119,7 +102,7 @@ if __name__ == '__main__':
     print(f'tensorboard --logdir=".{tensorboard_log_dir}" --bind_all')
     model.fit(
         ds_train,
-        epochs=args.nr_of_epochs,
+        epochs=nr_of_epochs,
         verbose=2,
         validation_data=ds_val,
         initial_epoch=starting_epoch,
