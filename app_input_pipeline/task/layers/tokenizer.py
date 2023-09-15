@@ -22,17 +22,17 @@ class PatchTokenizer(tf.keras.layers.Layer):
 
 
 class DistributionTokenizer(tf.keras.layers.Layer):
-    def __init__(self, iNrOfBins, fMin, fMax, **kwargs):
+    def __init__(self, nr_of_bins, fMin, fMax, **kwargs):
         super().__init__(**kwargs)
 
         self.trainable = False
 
-        self.iNrOfBins = iNrOfBins
+        self.nr_of_bins = nr_of_bins
 
         self.bin_boundaries = tf.linspace(
             start=fMin,
             stop=fMax,
-            num=self.iNrOfBins - 1
+            num=self.nr_of_bins - 1
         )
 
         self.oDiscritizer = tf.keras.layers.Discretization(
@@ -47,7 +47,7 @@ class DistributionTokenizer(tf.keras.layers.Layer):
         y = self.oDiscritizer(x)
 
         output_list = []
-        for i in range(0, self.iNrOfBins):
+        for i in range(0, self.nr_of_bins):
             output_list.append(tf.math.count_nonzero(y == i, axis=2))
 
         z = tf.stack(output_list, axis=2)
@@ -58,17 +58,17 @@ class DistributionTokenizer(tf.keras.layers.Layer):
 
 
 class TrendSeasonalityTokenizer(tf.keras.layers.Layer):
-    def __init__(self, iPoolSizeReduction, iPoolSizeTrend, **kwargs):
+    def __init__(self, pool_size_reduction, pool_size_trend, **kwargs):
         super().__init__(**kwargs)
 
         self.oAvgPoolReducer = tf.keras.layers.AveragePooling1D(
-            pool_size=iPoolSizeReduction,
-            strides=iPoolSizeReduction,
+            pool_size=pool_size_reduction,
+            strides=pool_size_reduction,
             padding='valid',
             data_format='channels_first')
 
         self.oAvgPoolTrend = tf.keras.layers.AveragePooling1D(
-            pool_size=iPoolSizeTrend,
+            pool_size=pool_size_trend,
             strides=1,
             padding='same',
             data_format='channels_first')

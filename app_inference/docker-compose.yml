@@ -1,0 +1,8 @@
+version: "3.9"
+
+services:
+  app_inference:
+    build:
+      context: .
+    volumes:
+       - ../../tsf-bin:/tsf-bin

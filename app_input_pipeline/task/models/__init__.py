@@ -1,1 +1,2 @@
-from .pre_processing import InputPreProcessor, TargetPreProcessor  # noqa: F401
+from .pre_processing import InputPreProcessorPT, \
+    InputPreProcessorFT, TargetPreProcessor  # noqa: F401

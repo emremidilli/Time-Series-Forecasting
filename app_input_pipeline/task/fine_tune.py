@@ -4,7 +4,7 @@ from settings import TRAINING_DATA_FOLDER, PREPROCESSING_DIR
 
 import tensorflow as tf
 
-from models import InputPreProcessor, TargetPreProcessor
+from models import InputPreProcessorFT, TargetPreProcessor
 
 from utils import read_npy_file, get_input_args_fine_tuning
 
@@ -38,24 +38,22 @@ if __name__ == '__main__':
 
     nr_of_forecast_patches = int(fc_train.shape[1] / patch_size)
 
-    input_pre_processor = InputPreProcessor(
-        iPatchSize=patch_size,
-        iPoolSizeReduction=pool_size_reduction,
-        iPoolSizeTrend=pool_size_trend,
-        iNrOfBins=nr_of_bins)
+    input_pre_processor = InputPreProcessorFT(
+        patch_size=patch_size,
+        pool_size_reduction=pool_size_reduction,
+        pool_size_trend=pool_size_trend,
+        nr_of_bins=nr_of_bins,
+        forecast_patches_to_mask=nr_of_forecast_patches,
+        mask_scalar=mask_scalar)
 
     target_pre_processor = TargetPreProcessor(
-        iPatchSize=patch_size,
+        patch_size=patch_size,
         quantiles=quantiles)
 
-    dist, tre, sea = input_pre_processor((lb_train, fc_train))
-    dist, tre, sea = input_pre_processor.mask_forecast_patches(
-        inputs=(dist, tre, sea),
-        nr_of_patches=nr_of_forecast_patches,
-        msk_scalar=mask_scalar
-    )
+    dist, tre, sea, ts = input_pre_processor(
+        (lb_train, ts_train),
+        training=True)
     qntl = target_pre_processor((lb_train, fc_train))
-    ts = input_pre_processor.batch_normalizer(ts_train, training=True)
 
     ds = tf.data.Dataset.from_tensor_slices(((dist, tre, sea, ts), qntl))
 

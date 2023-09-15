@@ -1,0 +1,8 @@
+services:
+  inference_dev:
+    build:
+      context: .
+    volumes:
+       - ../../../tsf-bin:/tsf-bin
+       - ../task:/workspace:cached
+    command: /bin/sh -c "sleep infinity"

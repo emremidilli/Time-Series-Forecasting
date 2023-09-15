@@ -4,7 +4,7 @@ from settings import TRAINING_DATA_FOLDER, PREPROCESSING_DIR
 
 import tensorflow as tf
 
-from models import InputPreProcessor
+from models import InputPreProcessorPT
 
 from utils import get_random_sample, read_npy_file, get_input_args_pre_training
 
@@ -41,17 +41,18 @@ if __name__ == '__main__':
         ts=ts_train,
         sampling_ratio=pre_train_ratio)
 
-    input_pre_processor = InputPreProcessor(
-        iPatchSize=patch_size,
-        iPoolSizeReduction=pool_size_reduction,
-        iPoolSizeTrend=pool_size_trend,
-        iNrOfBins=nr_of_bins)
+    input_pre_processor = InputPreProcessorPT(
+        patch_size=patch_size,
+        pool_size_reduction=pool_size_reduction,
+        pool_size_trend=pool_size_trend,
+        nr_of_bins=nr_of_bins)
 
-    dist, tre, sea = input_pre_processor((lb_train, fc_train))
-    ts_train = input_pre_processor.batch_normalizer(ts_train, training=True)
+    dist, tre, sea, ts = input_pre_processor(
+        (lb_train, fc_train, ts_train),
+        training=True)
 
     ds_train = tf.data.Dataset.from_tensor_slices(
-        (dist, tre, sea, ts_train))
+        (dist, tre, sea, ts))
 
     sub_dir = os.path.join(PREPROCESSING_DIR, channel, 'pre_train')
 
