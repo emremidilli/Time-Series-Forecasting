@@ -1,10 +1,8 @@
+from models import InputPreProcessorPT
+
 import os
 
-from settings import TRAINING_DATA_FOLDER, PREPROCESSING_DIR
-
 import tensorflow as tf
-
-from models import InputPreProcessorPT
 
 from utils import get_random_sample, read_npy_file, get_input_args_pre_training
 
@@ -25,14 +23,18 @@ if __name__ == '__main__':
     nr_of_bins = args.nr_of_bins
     pre_train_ratio = args.pre_train_ratio
 
+    training_data_folder = os.path.join(
+        os.environ['BIN_NAME'],
+        os.environ['FORMWATTED_NAME'])
+
     lb_train = read_npy_file(
-        os.path.join(TRAINING_DATA_FOLDER, channel, 'lb_train.npy'),
+        os.path.join(training_data_folder, channel, 'lb_train.npy'),
         dtype='float32')
     fc_train = read_npy_file(
-        os.path.join(TRAINING_DATA_FOLDER, channel, 'fc_train.npy'),
+        os.path.join(training_data_folder, channel, 'fc_train.npy'),
         dtype='float32')
     ts_train = read_npy_file(
-        os.path.join(TRAINING_DATA_FOLDER, channel, 'ts_train.npy'),
+        os.path.join(training_data_folder, channel, 'ts_train.npy'),
         dtype='int32')
 
     lb_train, fc_train, ts_train = get_random_sample(
@@ -54,7 +56,11 @@ if __name__ == '__main__':
     ds_train = tf.data.Dataset.from_tensor_slices(
         (dist, tre, sea, ts))
 
-    sub_dir = os.path.join(PREPROCESSING_DIR, channel, 'pre_train')
+    sub_dir = os.path.join(
+        os.environ['BIN_NAME'],
+        os.environ['PREPROCESSED_NAME'],
+        channel,
+        'pre_train')
 
     ds_train.save(
         os.path.join(sub_dir, 'dataset'))

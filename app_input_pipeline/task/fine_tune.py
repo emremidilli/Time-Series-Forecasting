@@ -1,10 +1,8 @@
+from models import InputPreProcessorFT, TargetPreProcessor
+
 import os
 
-from settings import TRAINING_DATA_FOLDER, PREPROCESSING_DIR
-
 import tensorflow as tf
-
-from models import InputPreProcessorFT, TargetPreProcessor
 
 from utils import read_npy_file, get_input_args_fine_tuning
 
@@ -26,14 +24,18 @@ if __name__ == '__main__':
     quantiles = args.quantiles
     mask_scalar = args.mask_scalar
 
+    training_data_folder = os.path.join(
+        os.environ['BIN_NAME'],
+        os.environ['FORMWATTED_NAME'])
+
     lb_train = read_npy_file(
-        os.path.join(TRAINING_DATA_FOLDER, channel, 'lb_train.npy'),
+        os.path.join(training_data_folder, channel, 'lb_train.npy'),
         dtype='float32')
     fc_train = read_npy_file(
-        os.path.join(TRAINING_DATA_FOLDER, channel, 'fc_train.npy'),
+        os.path.join(training_data_folder, channel, 'fc_train.npy'),
         dtype='float32')
     ts_train = read_npy_file(
-        os.path.join(TRAINING_DATA_FOLDER, channel, 'ts_train.npy'),
+        os.path.join(training_data_folder, channel, 'ts_train.npy'),
         dtype='int32')
 
     nr_of_forecast_patches = int(fc_train.shape[1] / patch_size)
@@ -57,7 +59,11 @@ if __name__ == '__main__':
 
     ds = tf.data.Dataset.from_tensor_slices(((dist, tre, sea, ts), qntl))
 
-    sub_dir = os.path.join(PREPROCESSING_DIR, channel, 'fine_tune')
+    sub_dir = os.path.join(
+        os.environ['BIN_NAME'],
+        os.environ['PREPROCESSED_NAME'],
+        channel,
+        'fine_tune')
 
     ds.save(
         os.path.join(sub_dir, 'dataset'))

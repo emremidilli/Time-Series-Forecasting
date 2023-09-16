@@ -124,6 +124,26 @@ def get_input_args_fine_tuning():
     return args
 
 
+def get_input_args_inference():
+    '''Parses the args for input of inference task.'''
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        '--channel',
+        required=False,
+        default='EURUSD',
+        type=str,
+        help='channel')
+
+    try:
+        args = parser.parse_args()
+    except:
+        parser.print_help()
+        sys.exit(0)
+
+    return args
+
+
 def get_data_format_config(folder_path):
     '''returns dictionary of dataformat config from datasets folder.'''
     file_path = os.path.join(folder_path, 'config.json')

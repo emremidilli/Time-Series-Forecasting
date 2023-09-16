@@ -1,3 +1,0 @@
-
-def get_args_for_inference():
-    ...
