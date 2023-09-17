@@ -56,7 +56,6 @@ if __name__ == '__main__':
     (dist, _, _, _), qtl = next(iter(ds))
     lookback_coefficient = config['lookback_coefficient']
     nr_of_forecast_patches = int(dist.shape[0] / (lookback_coefficient + 1))
-    nr_of_lookback_patches = int(nr_of_forecast_patches * lookback_coefficient)
 
     ds_train = ds
     ds_val = None
@@ -70,7 +69,7 @@ if __name__ == '__main__':
 
     model = FineTuning(
         con_temp_pret=con_temp_pret,
-        nr_of_time_steps=nr_of_lookback_patches,
+        nr_of_time_steps=nr_of_forecast_patches,
         nr_of_quantiles=qtl.shape[1])
 
     optimizer = tf.keras.optimizers.Adam(
