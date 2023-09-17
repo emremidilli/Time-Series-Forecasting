@@ -1,8 +1,5 @@
 import os
 
-from settings import TRAINING_DATA_FOLDER, ARTIFACTS_FOLDER,\
-    PREPROCESSED_DATA_DIR
-
 import shutil
 
 import tensorflow as tf
@@ -23,28 +20,40 @@ if __name__ == '__main__':
     resume_training = args.resume_training
     validation_rate = args.validation_rate
     mini_batch_size = args.mini_batch_size
-    quantiles = args.quantiles
     learning_rate = args.learning_rate
     clip_norm = args.clip_norm
     nr_of_epochs = args.nr_of_epochs
 
-    artifacts_dir = os.path.join(ARTIFACTS_FOLDER, channel, 'fine_tune')
+    artifacts_dir = os.path.join(
+        os.environ['BIN_NAME'],
+        os.environ['ARTIFACTS_NAME'],
+        channel,
+        'fine_tune')
     custom_ckpt_dir = os.path.join(artifacts_dir, 'checkpoints', 'ckpt')
     saved_model_dir = os.path.join(artifacts_dir, 'saved_model')
     tensorboard_log_dir = os.path.join(artifacts_dir, 'tboard_logs')
-    pre_trained_model_dir = os.path.join(ARTIFACTS_FOLDER,
-                                         channel,
-                                         'pre_train',
-                                         'saved_model')
+    pre_trained_model_dir = os.path.join(
+        os.environ['BIN_NAME'],
+        os.environ['ARTIFACTS_NAME'],
+        channel,
+        'pre_train',
+        'saved_model')
     dataset_dir = os.path.join(
-        PREPROCESSED_DATA_DIR, channel, 'fine_tune', 'dataset')
+        os.environ['BIN_NAME'],
+        os.environ['PREPROCESSED_NAME'],
+        channel,
+        'fine_tune',
+        'dataset')
 
     config = get_data_format_config(
-        folder_path=os.path.join(TRAINING_DATA_FOLDER, channel))
+        folder_path=os.path.join(
+            os.environ['BIN_NAME'],
+            os.environ['FORMWATTED_NAME'],
+            channel))
 
     ds = tf.data.Dataset.load(path=dataset_dir)
 
-    (dist, _, _, _), _ = next(iter(ds))
+    (dist, _, _, _), qtl = next(iter(ds))
     lookback_coefficient = config['lookback_coefficient']
     nr_of_forecast_patches = int(dist.shape[0] / (lookback_coefficient + 1))
     nr_of_lookback_patches = int(nr_of_forecast_patches * lookback_coefficient)
@@ -62,7 +71,7 @@ if __name__ == '__main__':
     model = FineTuning(
         con_temp_pret=con_temp_pret,
         nr_of_time_steps=nr_of_lookback_patches,
-        nr_of_quantiles=len(quantiles))
+        nr_of_quantiles=qtl.shape[1])
 
     optimizer = tf.keras.optimizers.Adam(
         learning_rate=learning_rate,

@@ -8,9 +8,7 @@ import sys
 
 
 def get_pre_training_args():
-    '''
-    Parses the args for pre-training.
-    '''
+    '''Parses the args for pre-training.'''
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
@@ -122,9 +120,7 @@ def get_pre_training_args():
 
 
 def get_fine_tuning_args():
-    '''
-    Parses the args.
-    '''
+    '''Parses the args for fine-tuning.'''
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
@@ -182,12 +178,42 @@ def get_fine_tuning_args():
         type=float,
         help='validation_rate'
     )
+
+    try:
+        args = parser.parse_args()
+    except:
+        parser.print_help()
+        sys.exit(0)
+
+    return args
+
+
+def get_inference_args():
+    '''Parses the args for inference.'''
+    parser = argparse.ArgumentParser()
+
     parser.add_argument(
-        '--quantiles',
+        '--input_dataset_dir',
         required=False,
-        default='[0.10, 0.50, 0.90]',
-        type=eval,
-        help='quantiles'
+        default="./tsf-bin/05_inference/EURUSD/input/",
+        type=str,
+        help='input_dataset_dir'
+    )
+
+    parser.add_argument(
+        '--model_dir',
+        required=False,
+        default="./tsf-bin/04_artifacts/EURUSD/fine_tune/saved_model/",
+        type=str,
+        help='model_dir'
+    )
+
+    parser.add_argument(
+        '--output_save_dir',
+        required=False,
+        default="./tsf-bin/05_inference/EURUSD/output/",
+        type=str,
+        help='output_save_dir'
     )
 
     try:

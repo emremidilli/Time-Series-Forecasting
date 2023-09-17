@@ -3,7 +3,7 @@ import tensorflow as tf
 from utils import read_npy_file, get_input_args_inference
 
 
-if __name__ == '__main_':
+if __name__ == '__main__':
     '''
     Receives directories for numpy inputs of
     1. lookback
@@ -14,6 +14,7 @@ if __name__ == '__main_':
     '''
 
     args = get_input_args_inference()
+    print(args)
 
     lb_dir = args.lb_dir
     ts_dir = args.ts_dir
@@ -23,8 +24,10 @@ if __name__ == '__main_':
     lb = read_npy_file(lb_dir, dtype='float32')
     ts = read_npy_file(ts_dir, dtype='int32')
 
-    pre_processor = tf.keras.models.load(pre_processor_dir)
+    pre_processor = tf.keras.models.load_model(pre_processor_dir)
 
-    ds = pre_processor((lb, ts), training=False)
+    (dist, tre, sea, ts) = pre_processor((lb, ts), training=False)
+
+    ds = tf.data.Dataset.from_tensor_slices((dist, tre, sea, ts))
 
     ds.save(save_dir)

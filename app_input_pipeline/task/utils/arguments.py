@@ -129,11 +129,28 @@ def get_input_args_inference():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        '--channel',
+        '--lb_dir',
         required=False,
-        default='EURUSD',
         type=str,
-        help='channel')
+        help='lb_dir')
+
+    parser.add_argument(
+        '--ts_dir',
+        required=False,
+        type=str,
+        help='ts_dir')
+
+    parser.add_argument(
+        '--pre_processor_dir',
+        required=False,
+        type=str,
+        help='pre_processor_dir')
+
+    parser.add_argument(
+        '--save_dir',
+        required=False,
+        type=str,
+        help='save_dir')
 
     try:
         args = parser.parse_args()

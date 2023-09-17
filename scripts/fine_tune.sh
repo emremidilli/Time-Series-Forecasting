@@ -22,3 +22,5 @@ docker-compose run --rm app_training \
     --mini_batch_size=$mini_batch_size \
     --nr_of_epochs=$nr_of_epochs \
     --validation_rate=$validation_rate
+
+echo "fine-tuning is successfull for " $channel

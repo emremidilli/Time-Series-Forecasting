@@ -10,6 +10,8 @@ services:
             count: 1
             capabilities: [gpu]
     volumes:
-       - ../../../tsf-bin:/tsf-bin
+       - ../../../tsf-bin:/workspace/tsf-bin
        - ../task:/workspace:cached
     command: /bin/sh -c "sleep infinity"
+    env_file:
+      - ../../dir_names.env

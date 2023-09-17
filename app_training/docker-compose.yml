@@ -12,4 +12,8 @@ services:
             count: 1
             capabilities: [gpu]
     volumes:
-       - ../../tsf-bin:/tsf-bin
+      - ../../tsf-bin:/app/tsf-bin
+    env_file:
+      - ../dir_names.env
+
+

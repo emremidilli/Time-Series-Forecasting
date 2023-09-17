@@ -1,8 +1,5 @@
 import os
 
-from settings import ARTIFACTS_FOLDER, PREPROCESSED_DATA_DIR, \
-    TRAINING_DATA_FOLDER
-
 import shutil
 
 import tensorflow as tf
@@ -34,15 +31,26 @@ if __name__ == '__main__':
     warmup_steps = args.warmup_steps
     scale_factor = args.scale_factor
 
-    artifacts_dir = os.path.join(ARTIFACTS_FOLDER, channel, 'pre_train')
+    artifacts_dir = os.path.join(
+        os.environ['BIN_NAME'],
+        os.environ['ARTIFACTS_NAME'],
+        channel,
+        'pre_train')
     custom_ckpt_dir = os.path.join(artifacts_dir, 'checkpoints', 'ckpt')
     saved_model_dir = os.path.join(artifacts_dir, 'saved_model')
     tensorboard_log_dir = os.path.join(artifacts_dir, 'tboard_logs')
     dataset_dir = os.path.join(
-        PREPROCESSED_DATA_DIR, channel, 'pre_train', 'dataset')
+        os.environ['BIN_NAME'],
+        os.environ['PREPROCESSED_NAME'],
+        channel,
+        'pre_train',
+        'dataset')
 
     config = get_data_format_config(
-        folder_path=os.path.join(TRAINING_DATA_FOLDER, channel))
+        folder_path=os.path.join(
+            os.environ['BIN_NAME'],
+            os.environ['FORMWATTED_NAME'],
+            channel))
 
     ds_train = tf.data.Dataset.load(path=dataset_dir)
     dist, tre, _, _ = next(iter(ds_train))
