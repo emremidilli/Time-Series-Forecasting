@@ -1,5 +1,6 @@
+import numpy as np
+
 import tensorflow as tf
-import tensorflow_probability as tfp
 
 
 class PatchTokenizer(tf.keras.layers.Layer):
@@ -118,6 +119,7 @@ class QuantileTokenizer(tf.keras.layers.Layer):
             timesteps are patches.
             features are quantiles.
         '''
-        y = tfp.stats.percentile(x, self.percentiles, axis=2)
+        y = np.percentile(x, self.percentiles, axis=2, method='nearest')
+        y = tf.convert_to_tensor(y, dtype=tf.float32)
         y = tf.transpose(y, perm=[1, 2, 0])
         return y
