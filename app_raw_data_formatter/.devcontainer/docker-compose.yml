@@ -5,5 +5,7 @@ services:
       context: .
     volumes:
       - ../task:/workspace:cached
-      - ../../../tsf-bin:/tsf-bin
+      - ../../../tsf-bin:/workspace/tsf-bin
+    env_file:
+      - ../../dir_names.env
     command: /bin/sh -c "sleep infinity"

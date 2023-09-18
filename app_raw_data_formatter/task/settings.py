@@ -1,6 +1,0 @@
-SERVER = '..'
-BIN_FOLDER = f'{SERVER}/tsf-bin'
-
-RAW_DATA_FOLDER = f'{BIN_FOLDER}/00 - Raw Data'
-CONVERTED_DATA_FOLDER = f'{BIN_FOLDER}/01 - Converted Data'
-TRAINING_DATASETS_FOLDER = f'{BIN_FOLDER}/02 - Training Datasets'

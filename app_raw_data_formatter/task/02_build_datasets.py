@@ -4,8 +4,6 @@ import os
 
 import pandas as pd
 
-from settings import TRAINING_DATASETS_FOLDER, CONVERTED_DATA_FOLDER
-
 import shutil
 
 from utils import get_args_to_build_datasets, save_config_file
@@ -40,7 +38,10 @@ if __name__ == '__main__':
     step_size = args.step_size
     channel = args.channel
 
-    sub_directory = os.path.join(TRAINING_DATASETS_FOLDER, channel)
+    sub_directory = os.path.join(
+        os.environ.get('BIN_NAME'),
+        os.environ.get('FORMWATTED_NAME'),
+        channel)
     if os.path.exists(sub_directory) is True:
         shutil.rmtree(sub_directory)
 
@@ -51,7 +52,10 @@ if __name__ == '__main__':
         args=args)
 
     dfTsDataset = pd.read_csv(
-        os.path.join(CONVERTED_DATA_FOLDER, f'{channel}.csv'),
+        os.path.join(
+            os.environ.get('BIN_NAME'),
+            os.environ.get('CONVERTED_DATA_NAME'),
+            f'{channel}.csv'),
         delimiter=';')
 
     aTimeIxs = np.arange(

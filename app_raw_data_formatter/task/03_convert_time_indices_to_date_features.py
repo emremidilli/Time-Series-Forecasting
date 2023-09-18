@@ -2,8 +2,6 @@ import numpy as np
 
 import os
 
-from settings import TRAINING_DATASETS_FOLDER
-
 from utils import get_args_to_build_date_features, convert_unix_data, \
     save_config_file
 
@@ -14,7 +12,10 @@ if __name__ == '__main__':
     raw_frequency = args.raw_frequency
     datetime_features = args.datetime_features
 
-    training_data_dir = os.path.join(TRAINING_DATASETS_FOLDER, channel)
+    training_data_dir = os.path.join(
+        os.environ.get('BIN_NAME'),
+        os.environ.get('FORMWATTED_NAME'),
+        channel)
 
     save_config_file(
         folder_dir=training_data_dir,
