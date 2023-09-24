@@ -9,7 +9,7 @@ input_save_dir="./tsf-bin/05_inference/$channel/input/"
 model_dir="./tsf-bin/04_artifacts/$channel/fine_tune/saved_model/"
 output_save_dir="./tsf-bin/05_inference/$channel/output/"
 
-echo "starting to preprocess"
+echo "inference is started"
 
 cd ../app_input_pipeline/
 docker-compose run --rm app_input_pipeline \
@@ -26,4 +26,4 @@ docker-compose run --rm app_training \
     --model_dir=$model_dir \
     --output_save_dir=$output_save_dir
 
-echo "datasets are preprocessed."
+echo "inference is completed."

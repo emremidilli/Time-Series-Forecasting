@@ -28,6 +28,10 @@ if __name__ == '__main__':
 
     (dist, tre, sea, ts) = pre_processor((lb, ts), training=False)
 
-    ds = tf.data.Dataset.from_tensor_slices((dist, tre, sea, ts))
+    aMin = tf.math.reduce_min(lb, axis=1)
+    aMax = tf.math.reduce_max(lb, axis=1)
+
+    ds = tf.data.Dataset.from_tensor_slices(
+        ((dist, tre, sea, ts), (aMin, aMax)))
 
     ds.save(save_dir)

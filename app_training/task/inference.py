@@ -15,10 +15,16 @@ if __name__ == '__main__':
 
     ds = ds.batch(len(ds))
 
-    numpy_inputs = list(ds.as_numpy_iterator())[0]
+    ds_input, ds_stat = list(ds.as_numpy_iterator())[0]
 
-    pred = predictor.predict(numpy_inputs)
+    pred = predictor.predict(ds_input)
 
-    ds_pred = tf.data.Dataset.from_tensor_slices(pred)
+    min_lb, max_lb = ds_stat
+    min_lb = tf.expand_dims(tf.expand_dims(min_lb, 1), 1)
+    max_lb = tf.expand_dims(tf.expand_dims(max_lb, 1), 1)
+
+    pred_inverse_normalized = ((max_lb - min_lb) * pred) + min_lb
+
+    ds_pred = tf.data.Dataset.from_tensor_slices(pred_inverse_normalized)
 
     ds_pred.save(output_save_dir)

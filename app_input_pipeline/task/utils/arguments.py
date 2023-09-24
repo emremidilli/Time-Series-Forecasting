@@ -131,24 +131,45 @@ def get_input_args_inference():
     parser.add_argument(
         '--lb_dir',
         required=False,
+        default=os.path.join(
+            './tsf-bin',
+            '02_training_datasets',
+            'EURUSD',
+            'lb_test.npy'),
         type=str,
         help='lb_dir')
 
     parser.add_argument(
         '--ts_dir',
         required=False,
+        default=os.path.join(
+            './tsf-bin',
+            '02_training_datasets',
+            'EURUSD',
+            'ts_test.npy'),
         type=str,
         help='ts_dir')
 
     parser.add_argument(
         '--pre_processor_dir',
         required=False,
+        default=os.path.join(
+            './tsf-bin',
+            '03_preprocessing',
+            'EURUSD',
+            'fine_tune',
+            'input_preprocessor'),
         type=str,
         help='pre_processor_dir')
 
     parser.add_argument(
         '--save_dir',
         required=False,
+        default=os.path.join(
+            './tsf-bin',
+            '05_inference',
+            'EURUSD',
+            'input'),
         type=str,
         help='save_dir')
 
