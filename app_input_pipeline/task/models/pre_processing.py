@@ -2,7 +2,7 @@ import tensorflow as tf
 
 from layers import LookbackNormalizer, \
     PatchTokenizer, DistributionTokenizer, TrendSeasonalityTokenizer, \
-    LayerNormalizer, BatchNormalizer, QuantileTokenizer
+    LayerNormalizer, BatchNormalizer
 
 
 class BasePreProcessor(tf.keras.Model):
@@ -181,12 +181,11 @@ class InputPreProcessorFT(tf.keras.Model):
 
 
 class TargetPreProcessor(tf.keras.Model):
-    '''Preprocess to prouce target features.'''
-    def __init__(self, patch_size, quantiles, **kwargs):
+    '''Preprocess to produce target features.'''
+    def __init__(self, patch_size, **kwargs):
         super().__init__(**kwargs)
         self.base_pre_processor = BasePreProcessor(patch_size=patch_size)
-
-        self.quantile_tokenizer = QuantileTokenizer(quantiles=quantiles)
+        self.reshaper = tf.keras.layers.Reshape((-1, 1))
 
     def call(self, inputs):
         '''
@@ -194,12 +193,12 @@ class TargetPreProcessor(tf.keras.Model):
             1. x_lb: (None, timesteps)
             2. x_fc: (None, timesteps)
         returns:
-            1. qntl: (None, timesteps, features)
+            1. x_fc: (None, timesteps, features)
         '''
         x_lb, x_fc = inputs
 
         _, x_fc = self.base_pre_processor((x_lb, x_fc))
 
-        qntl = self.quantile_tokenizer(x_fc)
+        x_fc = self.reshaper(x_fc)
 
-        return qntl
+        return x_fc

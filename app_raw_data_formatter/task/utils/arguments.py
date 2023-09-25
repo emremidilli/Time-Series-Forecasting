@@ -45,7 +45,7 @@ def get_args_to_build_datasets():
     parser.add_argument(
         '--test_size',
         required=True,
-        type=int,
+        type=float,
         help='test_size')
 
     try:

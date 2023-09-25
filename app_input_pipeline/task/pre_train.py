@@ -25,7 +25,7 @@ if __name__ == '__main__':
 
     training_data_folder = os.path.join(
         os.environ['BIN_NAME'],
-        os.environ['FORMWATTED_NAME'])
+        os.environ['FORMATTED_NAME'])
 
     lb_train = read_npy_file(
         os.path.join(training_data_folder, channel, 'lb_train.npy'),

@@ -48,14 +48,12 @@ if __name__ == '__main__':
     config = get_data_format_config(
         folder_path=os.path.join(
             os.environ['BIN_NAME'],
-            os.environ['FORMWATTED_NAME'],
+            os.environ['FORMATTED_NAME'],
             channel))
 
     ds = tf.data.Dataset.load(path=dataset_dir)
 
-    (dist, _, _, _), qtl = next(iter(ds))
-    lookback_coefficient = config['lookback_coefficient']
-    nr_of_forecast_patches = int(dist.shape[0] / (lookback_coefficient + 1))
+    (_, _, _, _), trg = next(iter(ds))
 
     ds_train = ds
     ds_val = None
@@ -69,8 +67,7 @@ if __name__ == '__main__':
 
     model = FineTuning(
         con_temp_pret=con_temp_pret,
-        nr_of_time_steps=nr_of_forecast_patches,
-        nr_of_quantiles=qtl.shape[1])
+        nr_of_time_steps=trg.shape[1])
 
     optimizer = tf.keras.optimizers.Adam(
         learning_rate=learning_rate,

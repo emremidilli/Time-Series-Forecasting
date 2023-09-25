@@ -40,7 +40,7 @@ if __name__ == '__main__':
 
     sub_directory = os.path.join(
         os.environ.get('BIN_NAME'),
-        os.environ.get('FORMWATTED_NAME'),
+        os.environ.get('FORMATTED_NAME'),
         channel)
     if os.path.exists(sub_directory) is True:
         shutil.rmtree(sub_directory)
@@ -103,6 +103,9 @@ if __name__ == '__main__':
     fc = dfFc.to_numpy()
     ix = dfLb.index.to_numpy()
 
+    test_size = int(len(lb) * test_size)
+    train_size = int(len(lb)) - test_size
+
     np.save(os.path.join(sub_directory, 'lb_train.npy'), lb[:-test_size])
     np.save(os.path.join(sub_directory, 'fc_train.npy'), fc[:-test_size])
     np.save(os.path.join(sub_directory, 'ix_train.npy'), ix[:-test_size])
@@ -110,3 +113,5 @@ if __name__ == '__main__':
     np.save(os.path.join(sub_directory, 'lb_test.npy'), lb[-test_size:])
     np.save(os.path.join(sub_directory, 'fc_test.npy'), fc[-test_size:])
     np.save(os.path.join(sub_directory, 'ix_test.npy'), ix[-test_size:])
+
+    print(f'Completed.\tTrain-Test size: {train_size} - {test_size}')

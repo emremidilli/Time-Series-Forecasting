@@ -14,7 +14,7 @@ if __name__ == '__main__':
 
     training_data_dir = os.path.join(
         os.environ.get('BIN_NAME'),
-        os.environ.get('FORMWATTED_NAME'),
+        os.environ.get('FORMATTED_NAME'),
         channel)
 
     save_config_file(

@@ -102,13 +102,6 @@ def get_input_args_fine_tuning():
         help='nr_of_bins')
 
     parser.add_argument(
-        '--quantiles',
-        required=False,
-        default="[0.10, 0.50, 0.90]",
-        type=eval,
-        help='quantiles')
-
-    parser.add_argument(
         '--mask_scalar',
         required=False,
         default=0.53,

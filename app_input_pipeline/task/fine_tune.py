@@ -21,12 +21,11 @@ if __name__ == '__main__':
     pool_size_reduction = args.pool_size_reduction
     pool_size_trend = args.pool_size_trend
     nr_of_bins = args.nr_of_bins
-    quantiles = args.quantiles
     mask_scalar = args.mask_scalar
 
     training_data_folder = os.path.join(
         os.environ['BIN_NAME'],
-        os.environ['FORMWATTED_NAME'])
+        os.environ['FORMATTED_NAME'])
 
     lb_train = read_npy_file(
         os.path.join(training_data_folder, channel, 'lb_train.npy'),
@@ -49,15 +48,14 @@ if __name__ == '__main__':
         mask_scalar=mask_scalar)
 
     target_pre_processor = TargetPreProcessor(
-        patch_size=patch_size,
-        quantiles=quantiles)
+        patch_size=patch_size)
 
     dist, tre, sea, ts = input_pre_processor(
         (lb_train, ts_train),
         training=True)
-    qntl = target_pre_processor((lb_train, fc_train))
+    lbl = target_pre_processor((lb_train, fc_train))
 
-    ds = tf.data.Dataset.from_tensor_slices(((dist, tre, sea, ts), qntl))
+    ds = tf.data.Dataset.from_tensor_slices(((dist, tre, sea, ts), lbl))
 
     sub_dir = os.path.join(
         os.environ['BIN_NAME'],

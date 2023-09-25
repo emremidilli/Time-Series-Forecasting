@@ -49,7 +49,7 @@ if __name__ == '__main__':
     config = get_data_format_config(
         folder_path=os.path.join(
             os.environ['BIN_NAME'],
-            os.environ['FORMWATTED_NAME'],
+            os.environ['FORMATTED_NAME'],
             channel))
 
     ds_train = tf.data.Dataset.load(path=dataset_dir)
