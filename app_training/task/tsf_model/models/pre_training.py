@@ -128,14 +128,14 @@ class PreTraining(tf.keras.Model):
 
     def augment_pairs(self, data):
         '''
-            Augments an input. In each augmentation, different patches are
-                masked & shifted randomly.
-            Only lookbacks are masked. Forecast are not masked.
-            In each augmentation, forecast patches are shifted (rolled) by
-                random amount.
+        Augments an input. In each augmentation, different patches are
+            masked & shifted randomly.
+        Only lookbacks are masked. Forecast are not masked.
+        In each augmentation, forecast patches are shifted (rolled) by
+            random amount.
 
-            returns: tuples of 6 elements. Each element contains merged
-                lookback and forecast patches.
+        returns: tuples of 6 elements. Each element contains merged
+            lookback and forecast patches.
         '''
         x_dist, x_tre, x_sea = data
         x_lb_dist = x_dist[:, :self.nr_of_lookback_patches]

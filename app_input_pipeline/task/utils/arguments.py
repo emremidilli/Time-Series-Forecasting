@@ -14,21 +14,21 @@ def get_input_args_pre_training():
     parser.add_argument(
         '--channel',
         required=False,
-        default='EURUSD',
+        default='ETTh1',
         type=str,
         help='channel')
 
     parser.add_argument(
         '--patch_size',
         required=False,
-        default=30,
+        default=24,
         type=int,
         help='patch_size')
 
     parser.add_argument(
         '--pool_size_reduction',
         required=False,
-        default=5,
+        default=2,
         type=int,
         help='pool_size_reduction')
 
@@ -42,14 +42,14 @@ def get_input_args_pre_training():
     parser.add_argument(
         '--nr_of_bins',
         required=False,
-        default=8,
+        default=10,
         type=int,
         help='nr_of_bins')
 
     parser.add_argument(
         '--pre_train_ratio',
         required=False,
-        default=0.05,
+        default=0.10,
         type=float,
         help='pre_train_ratio')
 
@@ -69,7 +69,7 @@ def get_input_args_fine_tuning():
     parser.add_argument(
         '--channel',
         required=False,
-        default='EURUSD',
+        default='ETTh1',
         type=str,
         help='channel')
 

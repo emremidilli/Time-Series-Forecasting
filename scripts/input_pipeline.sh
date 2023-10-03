@@ -1,9 +1,9 @@
 #!/bin/bash
 
 patch_size=24
-pool_size_reduction=5
+pool_size_reduction=2
 pool_size_trend=2
-nr_of_bins=8
+nr_of_bins=10
 pre_train_ratio=0.10
 mask_scalar=0.53
 

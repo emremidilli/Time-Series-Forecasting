@@ -14,7 +14,7 @@ def get_pre_training_args():
     parser.add_argument(
         '--channel',
         required=False,
-        default='USDCAD',
+        default='ETTh1',
         type=str,
         help='channel')
     parser.add_argument(
@@ -126,19 +126,17 @@ def get_fine_tuning_args():
     parser.add_argument(
         '--channel',
         required=False,
-        default='USDCAD',
+        default='ETTh1',
         type=str,
-        help='channel'
-    )
+        help='channel')
 
     parser.add_argument(
         '--resume_training',
         required=False,
-        default='N',
+        default='Y',
         choices=['Y', 'N'],
         type=str,
-        help='resume_training'
-    )
+        help='resume_training')
 
     # Optimizer-related hyperparameters.
     parser.add_argument(
@@ -146,38 +144,58 @@ def get_fine_tuning_args():
         required=False,
         default=1e-5,
         type=float,
-        help='learning_rate'
-    )
+        help='learning_rate')
+
     parser.add_argument(
         '--clip_norm',
         required=False,
         default=1.0,
         type=float,
-        help='clip_norm'
-    )
+        help='clip_norm')
+
+    parser.add_argument(
+        '--alpha_regulizer',
+        required=False,
+        default=0.10,
+        type=float,
+        help='alpha_regulizer')
+
+    parser.add_argument(
+        '--l1_ratio',
+        required=False,
+        default=0.10,
+        type=float,
+        help='l1_ratio')
 
     # Training-related hyperparameters.
     parser.add_argument(
         '--mini_batch_size',
         required=False,
-        default=64,
+        default=32,
         type=int,
-        help='mini_batch_size'
-    )
+        help='mini_batch_size')
+
     parser.add_argument(
         '--nr_of_epochs',
         required=False,
-        default=100,
+        default=900,
         type=int,
-        help='nr_of_epochs'
-    )
+        help='nr_of_epochs')
+
     parser.add_argument(
         '--validation_rate',
         required=False,
         default=0.15,
         type=float,
-        help='validation_rate'
-    )
+        help='validation_rate')
+
+    parser.add_argument(
+        '--trainable_encoder',
+        required=False,
+        default='Y',
+        type=str,
+        choices=['Y', 'N'],
+        help='trainable_encoder')
 
     try:
         args = parser.parse_args()
@@ -197,24 +215,21 @@ def get_inference_args():
         required=False,
         default="./tsf-bin/05_inference/EURUSD/input/",
         type=str,
-        help='input_dataset_dir'
-    )
+        help='input_dataset_dir')
 
     parser.add_argument(
         '--model_dir',
         required=False,
         default="./tsf-bin/04_artifacts/EURUSD/fine_tune/saved_model/",
         type=str,
-        help='model_dir'
-    )
+        help='model_dir')
 
     parser.add_argument(
         '--output_save_dir',
         required=False,
         default="./tsf-bin/05_inference/EURUSD/output/",
         type=str,
-        help='output_save_dir'
-    )
+        help='output_save_dir')
 
     try:
         args = parser.parse_args()

@@ -6,17 +6,22 @@ from tsf_model.layers.decoder import SingleStepDecoder
 @tf.keras.saving.register_keras_serializable()
 class FineTuning(tf.keras.Model):
     '''Keras model for fine-tuning purpose.'''
-    def __init__(self,
-                 con_temp_pret,
-                 nr_of_time_steps,
-                 **kwargs):
+    def __init__(
+            self,
+            con_temp_pret,
+            nr_of_time_steps,
+            alpha_regulizer=0.20,
+            l1_ratio=0.50,
+            **kwargs):
         super().__init__(**kwargs)
 
         self.con_temp_pret = con_temp_pret
-        self.con_temp_pret.trainable = False
+        # self.con_temp_pret.trainable = False
 
         self.single_step_decoder = SingleStepDecoder(
-            nr_of_time_steps=nr_of_time_steps)
+            nr_of_time_steps=nr_of_time_steps,
+            alpha_regulizer=alpha_regulizer,
+            l1_ratio=l1_ratio)
 
     def get_config(self):
         config = super().get_config()

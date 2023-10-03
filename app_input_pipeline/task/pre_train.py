@@ -37,12 +37,6 @@ if __name__ == '__main__':
         os.path.join(training_data_folder, channel, 'ts_train.npy'),
         dtype='int32')
 
-    lb_train, fc_train, ts_train = get_random_sample(
-        lb=lb_train,
-        fc=fc_train,
-        ts=ts_train,
-        sampling_ratio=pre_train_ratio)
-
     input_pre_processor = InputPreProcessorPT(
         patch_size=patch_size,
         pool_size_reduction=pool_size_reduction,
@@ -52,6 +46,13 @@ if __name__ == '__main__':
     dist, tre, sea, ts = input_pre_processor(
         (lb_train, fc_train, ts_train),
         training=True)
+
+    dist, tre, sea, ts = get_random_sample(
+        dist=dist,
+        tre=tre,
+        sea=sea,
+        ts=ts,
+        sampling_ratio=pre_train_ratio)
 
     ds_train = tf.data.Dataset.from_tensor_slices(
         (dist, tre, sea, ts))

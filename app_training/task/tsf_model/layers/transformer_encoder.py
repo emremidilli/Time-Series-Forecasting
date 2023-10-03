@@ -4,7 +4,6 @@ import tensorflow as tf
 class TransformerEncoder(tf.keras.layers.Layer):
     '''
     Single encoder block from "Attention is all you need paper."
-    As difference, elu activation is employed instead of relu.
     '''
     def __init__(self,
                  embed_dim,
@@ -21,13 +20,13 @@ class TransformerEncoder(tf.keras.layers.Layer):
         self.dropout1 = tf.keras.layers.Dropout(dropout_rate)
 
         self.feedforward = tf.keras.Sequential([
-            tf.keras.layers.Dense(feedforward_dim, activation='elu'),
+            tf.keras.layers.Dense(feedforward_dim, activation='ReLU'),
             tf.keras.layers.Dense(embed_dim)
         ])
         self.norm2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)
         self.dropout2 = tf.keras.layers.Dropout(dropout_rate)
 
-    def call(self, inputs, training=False):
+    def call(self, inputs, training=True):
         attn_output = self.attention(inputs, inputs)
         attn_output = self.dropout1(attn_output, training=training)
         out1 = self.norm1(inputs + attn_output)

@@ -3,7 +3,6 @@ import tensorflow as tf
 
 class MppDecoder(tf.keras.layers.Layer):
     '''Decoder for masked patch prediction task.'''
-
     def __init__(self, iFfnUnits, nr_of_time_steps, **kwargs):
         super().__init__(**kwargs)
 
@@ -62,55 +61,43 @@ class ProjectionHead(tf.keras.layers.Layer):
         return y
 
 
-class QuantileDecoder(tf.keras.layers.Layer):
-    '''Decoder for quantile predictor.'''
-    def __init__(self, nr_of_time_steps, nr_of_quantiles, **kwargs):
-        super().__init__(**kwargs)
-
-        self.flatten = tf.keras.layers.Flatten()
-
-        self.dense = tf.keras.layers.Dense(
-            units=nr_of_quantiles * nr_of_time_steps,
-            use_bias=False)
-
-        self.reshape = tf.keras.layers.Reshape(
-            target_shape=(nr_of_time_steps, nr_of_quantiles))
-
-    def call(self, x):
-        '''
-        input: (None, timesteps, feature)
-        output: (None, timesteps, feature)
-        '''
-
-        x = self.flatten(x)
-
-        y = self.dense(x)
-
-        y = self.reshape(y)
-
-        return y
-
-
 class SingleStepDecoder(tf.keras.layers.Layer):
     '''Decoder for singe-step predictor.'''
-    def __init__(self, nr_of_time_steps, **kwargs):
+    def __init__(
+            self,
+            nr_of_time_steps,
+            alpha_regulizer=0.20,
+            l1_ratio=0.50,
+            **kwargs):
         super().__init__(**kwargs)
 
-        self.flatten = tf.keras.layers.Flatten()
+        self.feed_forward = tf.keras.Sequential([
+            tf.keras.layers.Flatten(),
+            tf.keras.layers.Dense(units=nr_of_time_steps * 3),
+            tf.keras.layers.LayerNormalization(epsilon=1e-6),
+            tf.keras.layers.Dense(units=nr_of_time_steps * 2),
+            tf.keras.layers.LayerNormalization(epsilon=1e-6),
+            tf.keras.layers.Dense(units=nr_of_time_steps),
+            tf.keras.layers.Reshape(target_shape=(nr_of_time_steps, 1))
+        ])
 
-        self.dense_1 = tf.keras.layers.Dense(
-            units=nr_of_time_steps * 3,
-            use_bias=True)
+        # self.dense_1 = tf.keras.layers.Dense(
+        #     units=nr_of_time_steps * 3,
+        #     kernel_regularizer=tf.keras.regularizers.L1L2(
+        #         l1=l1_ratio * alpha_regulizer,
+        #         l2=(1 - l1_ratio) * alpha_regulizer))
 
-        self.dense_2 = tf.keras.layers.Dense(
-            units=nr_of_time_steps * 2,
-            use_bias=True)
+        # self.dense_2 = tf.keras.layers.Dense(
+        #     units=nr_of_time_steps * 2,
+        #     kernel_regularizer=tf.keras.regularizers.L1L2(
+        #         l1=l1_ratio * alpha_regulizer,
+        #         l2=(1 - l1_ratio) * alpha_regulizer))
 
-        self.dense_3 = tf.keras.layers.Dense(
-            units=nr_of_time_steps)
-
-        self.reshape = tf.keras.layers.Reshape(
-            target_shape=(nr_of_time_steps, 1))
+        # self.dense_3 = tf.keras.layers.Dense(
+        #     units=nr_of_time_steps,
+        #     kernel_regularizer=tf.keras.regularizers.L1L2(
+        #         l1=l1_ratio * alpha_regulizer,
+        #         l2=(1 - l1_ratio) * alpha_regulizer))
 
     def call(self, x):
         '''
@@ -118,10 +105,6 @@ class SingleStepDecoder(tf.keras.layers.Layer):
         output: (None, timesteps, 1)
         '''
 
-        x = self.flatten(x)
-        y = self.dense_1(x)
-        y = self.dense_2(y)
-        y = self.dense_3(y)
-        y = self.reshape(y)
+        y = self.feed_forward(x)
 
         return y

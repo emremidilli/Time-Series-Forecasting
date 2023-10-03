@@ -59,7 +59,7 @@ if __name__ == '__main__':
 
     checkpoint_callback = PreTrainingCheckpointCallback(
         ckpt_dir=custom_ckpt_dir,
-        epoch_freq=5)
+        epoch_freq=25)
 
     ram_cleaner_callback = RamCleaner()
 
@@ -125,7 +125,7 @@ if __name__ == '__main__':
         callbacks=[
             terminate_on_nan_callback,
             ram_cleaner_callback,
-            tensorboard_callback,
+            # tensorboard_callback,
             learning_rate_callback,
             checkpoint_callback])
 

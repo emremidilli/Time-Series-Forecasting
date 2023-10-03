@@ -36,10 +36,10 @@ main() {
     echo "done"
 }
 
-main "ETTh1" 168 4 "h" "['month','day','dayofweek','hour']"
-main "ETTh2" 168 4 "h" "['month','day','dayofweek','hour']"
-main "ETTm1" 168 4 "15m" "['month','day','dayofweek','hour','minute']"
-main "ETTm2" 168 4 "15m" "['month','day','dayofweek','hour','minute']"
-main "electricity" 168 4 "h" "['month','day','dayofweek','hour']"
-main "traffic" 168 4 "h" "['month','day','dayofweek','hour']"
-main "weather" 168 4 "10m" "['month','day','dayofweek','hour','minute']"
+main "ETTh1" 168 2 "h" "['month','day','dayofweek','hour']"
+main "ETTh2" 168 2 "h" "['month','day','dayofweek','hour']"
+main "ETTm1" 168 2 "15m" "['month','day','dayofweek','hour','minute']"
+main "ETTm2" 168 2 "15m" "['month','day','dayofweek','hour','minute']"
+main "electricity" 168 2 "h" "['month','day','dayofweek','hour']"
+main "traffic" 168 2 "h" "['month','day','dayofweek','hour']"
+main "weather" 168 2 "10m" "['month','day','dayofweek','hour','minute']"

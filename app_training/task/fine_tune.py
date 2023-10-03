@@ -20,9 +20,12 @@ if __name__ == '__main__':
     resume_training = args.resume_training
     validation_rate = args.validation_rate
     mini_batch_size = args.mini_batch_size
+    trainable_encoder = args.trainable_encoder
     learning_rate = args.learning_rate
     clip_norm = args.clip_norm
     nr_of_epochs = args.nr_of_epochs
+    alpha_regulizer = args.alpha_regulizer
+    l1_ratio = args.l1_ratio
 
     artifacts_dir = os.path.join(
         os.environ['BIN_NAME'],
@@ -67,7 +70,7 @@ if __name__ == '__main__':
 
     model = FineTuning(
         con_temp_pret=con_temp_pret,
-        nr_of_time_steps=trg.shape[1])
+        nr_of_time_steps=trg.shape[0])
 
     optimizer = tf.keras.optimizers.Adam(
         learning_rate=learning_rate,
@@ -75,7 +78,7 @@ if __name__ == '__main__':
 
     checkpoint_callback = FineTuningCheckpointCallback(
         ckpt_dir=custom_ckpt_dir,
-        epoch_freq=3)
+        epoch_freq=10)
 
     tensorboard_callback = tf.keras.callbacks.TensorBoard(
         log_dir=tensorboard_log_dir,
@@ -95,14 +98,25 @@ if __name__ == '__main__':
         shutil.rmtree(artifacts_dir, ignore_errors=True)
         os.makedirs(artifacts_dir)
 
+    if trainable_encoder == 'Y':
+        model.con_temp_pret.trainable = True
+    elif trainable_encoder == 'N':
+        model.con_temp_pret.trainable = False
+
     model.compile(
+        run_eagerly=False,
         optimizer=optimizer,
         loss=tf.keras.losses.MeanSquaredError(name='mse'),
         metrics=[
             tf.keras.metrics.MeanAbsoluteError(name='mae'),
             tf.keras.metrics.CosineSimilarity(name='cos')
-        ]
-    )
+        ])
+
+    callbacks = [
+        terminate_on_nan_callback,
+        # tensorboard_callback,
+        checkpoint_callback,
+        ram_cleaner_callback]
 
     print(f'tensorboard --logdir=".{tensorboard_log_dir}" --bind_all')
     model.fit(
@@ -112,11 +126,7 @@ if __name__ == '__main__':
         validation_data=ds_val,
         initial_epoch=starting_epoch,
         shuffle=False,
-        callbacks=[
-            terminate_on_nan_callback,
-            tensorboard_callback,
-            checkpoint_callback,
-            ram_cleaner_callback])
+        callbacks=callbacks)
 
     model.save(
         saved_model_dir,

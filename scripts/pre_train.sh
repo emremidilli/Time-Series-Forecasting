@@ -9,17 +9,17 @@ warmup_steps=1000
 scale_factor=0.10
 nr_of_encoder_blocks=4
 nr_of_heads=4
-encoder_ffn_units=128
-embedding_dims=128
-projection_head=32
+encoder_ffn_units=64
+embedding_dims=64
+projection_head=16
 dropout_rate=0.10
-mini_batch_size=64
-pre_train_ratio=0.25
+mini_batch_size=16
 mask_rate=0.70
 mask_scalar=0.53
 
+cd ../app_training/
+
 main() {
-    cd ../app_training/
 
     echo "starting to pre-train" $channel
 

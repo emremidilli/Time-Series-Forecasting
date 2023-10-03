@@ -1,16 +1,21 @@
 import numpy as np
 
+import tensorflow as tf
 
-def get_random_sample(lb, fc, ts, sampling_ratio):
-    '''Picks random elements from the numpy arrays.'''
+
+def get_random_sample(dist, tre, sea, ts, sampling_ratio):
+    '''Picks random elements from tf.tensors.'''
     np.random.seed(1)
-    size_of_sample = int(len(lb) * sampling_ratio)
-    all_indices = np.arange(len(lb))
+    size_of_sample = int(len(dist) * sampling_ratio)
+    all_indices = np.arange(len(dist))
     np.random.shuffle(all_indices)
     rand_indices = all_indices[:size_of_sample]
     rand_indices = np.sort(rand_indices)
 
-    return lb[rand_indices], fc[rand_indices], ts[rand_indices]
+    return tf.gather(dist, rand_indices), \
+        tf.gather(tre, rand_indices), \
+        tf.gather(sea, rand_indices), \
+        tf.gather(ts, rand_indices)
 
 
 def train_test_split(ds, test_rate=0.15):
