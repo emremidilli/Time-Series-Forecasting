@@ -22,6 +22,8 @@ if __name__ == '__main__':
     pool_size_trend = args.pool_size_trend
     nr_of_bins = args.nr_of_bins
     mask_scalar = args.mask_scalar
+    begin_scalar = args.begin_scalar
+    end_scalar = args.end_scalar
 
     training_data_folder = os.path.join(
         os.environ['BIN_NAME'],
@@ -48,14 +50,17 @@ if __name__ == '__main__':
         mask_scalar=mask_scalar)
 
     target_pre_processor = TargetPreProcessor(
-        patch_size=patch_size)
+        patch_size=patch_size,
+        begin_scalar=begin_scalar,
+        end_scalar=end_scalar)
 
     dist, tre, sea, ts = input_pre_processor(
         (lb_train, ts_train),
         training=True)
-    lbl = target_pre_processor((lb_train, fc_train))
+    lbl, lbl_shifted = target_pre_processor((lb_train, fc_train))
 
-    ds = tf.data.Dataset.from_tensor_slices(((dist, tre, sea, ts), lbl))
+    ds = tf.data.Dataset.from_tensor_slices(
+        ((dist, tre, sea, ts, lbl_shifted), lbl))
 
     sub_dir = os.path.join(
         os.environ['BIN_NAME'],

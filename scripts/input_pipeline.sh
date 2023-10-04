@@ -6,6 +6,8 @@ pool_size_trend=2
 nr_of_bins=10
 pre_train_ratio=0.10
 mask_scalar=0.53
+begin_scalar=0.50
+end_scalar=0.51
 
 main() {
     channel=$1
@@ -30,16 +32,11 @@ main() {
         --pool_size_reduction=$pool_size_reduction \
         --pool_size_trend=$pool_size_trend \
         --nr_of_bins=$nr_of_bins \
-        --mask_scalar=$mask_scalar
+        --mask_scalar=$mask_scalar \
+        --begin_scalar=$begin_scalar \
+        --end_scalar=$end_scalar
 
     echo "Bulding input pipelines is successfull for " $channel
 }
 
 main "ETTh1"
-main "ETTh2"
-main "ETTm1"
-main "ETTm2"
-main "electricity"
-main "traffic"
-main "weather"
-

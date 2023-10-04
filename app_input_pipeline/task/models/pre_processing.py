@@ -203,18 +203,20 @@ class InputPreProcessorFT(tf.keras.Model):
 
 class TargetPreProcessor(tf.keras.Model):
     '''Preprocess to produce target features.'''
-    def __init__(self, patch_size, **kwargs):
+    def __init__(self, patch_size, begin_scalar, end_scalar, **kwargs):
         super().__init__(**kwargs)
         self.base_pre_processor = BasePreProcessor(patch_size=patch_size)
         self.reshaper = tf.keras.layers.Reshape((-1, 1))
+        self.begin_scalar = begin_scalar
+        self.end_scalar = end_scalar
 
     def call(self, inputs):
         '''
         input:
-            1. x_lb: (None, timesteps)
-            2. x_fc: (None, timesteps)
-        returns:
-            1. x_fc: (None, timesteps, features)
+        x_lb: (None, timesteps)
+        x_fc: (None, timesteps)
+        y: (None, timesteps, 1)
+        y_shifted: (None, timesteps, 1)
         '''
         x_lb, x_fc = inputs
 
@@ -222,4 +224,15 @@ class TargetPreProcessor(tf.keras.Model):
 
         x_fc = self.reshaper(x_fc)
 
-        return x_fc
+        z = tf.roll(x_fc, shift=1, axis=1)
+        beg_token = tf.zeros_like(z) + self.begin_scalar
+        end_token = tf.zeros_like(z) + self.end_scalar
+        z = tf.keras.layers.Concatenate(axis=1)(
+            [
+                tf.expand_dims(beg_token[:, 0], axis=1),
+                x_fc,
+                tf.expand_dims(end_token[:, 0], axis=1),
+            ])
+        y = z[:, 1:]
+        y_shifted = z[:, :-1]
+        return (y, y_shifted)

@@ -13,6 +13,11 @@ mini_batch_size=64
 l1_ratio=0.50
 alpha_regulizer=0.10
 
+nr_of_layers=1
+hidden_dims=64
+nr_of_heads=1
+dropout_rate=0.10
+
 cd ../app_training/
 
 main() {
@@ -29,7 +34,11 @@ main() {
         --validation_rate=$validation_rate \
         --alpha_regulizer=$alpha_regulizer \
         --l1_ratio=$l1_ratio \
-        --trainable_encoder=$trainable_encoder
+        --trainable_encoder=$trainable_encoder \
+        --nr_of_layers=$nr_of_layers \
+        --hidden_dims=$hidden_dims \
+        --nr_of_heads=$nr_of_heads \
+        --dropout_rate=$dropout_rate
 
     echo "fine-tuning is successfull for " $channel
 }

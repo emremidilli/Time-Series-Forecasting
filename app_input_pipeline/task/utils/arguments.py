@@ -76,14 +76,14 @@ def get_input_args_fine_tuning():
     parser.add_argument(
         '--patch_size',
         required=False,
-        default=30,
+        default=24,
         type=int,
         help='patch_size')
 
     parser.add_argument(
         '--pool_size_reduction',
         required=False,
-        default=5,
+        default=2,
         type=int,
         help='pool_size_reduction')
 
@@ -97,7 +97,7 @@ def get_input_args_fine_tuning():
     parser.add_argument(
         '--nr_of_bins',
         required=False,
-        default=8,
+        default=10,
         type=int,
         help='nr_of_bins')
 
@@ -107,6 +107,20 @@ def get_input_args_fine_tuning():
         default=0.53,
         type=float,
         help='mask_scalar')
+
+    parser.add_argument(
+        '--begin_scalar',
+        required=False,
+        default=0.50,
+        type=float,
+        help='begin_scalar')
+
+    parser.add_argument(
+        '--end_scalar',
+        required=False,
+        default=0.50,
+        type=float,
+        help='end_scalar')
 
     try:
         args = parser.parse_args()

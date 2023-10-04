@@ -1,3 +1,5 @@
+from . import CausalSelfAttention, CrossAttention, FeedForward
+
 import tensorflow as tf
 
 
@@ -19,10 +21,9 @@ class MppDecoder(tf.keras.layers.Layer):
 
     def call(self, x):
         '''
-        input: (None, timesteps, feature)
-        output: (None, timesteps, feature)
+        x: (None, timesteps, feature)
+        y: (None, timesteps, feature)
         '''
-
         x = self.flatten(x)
 
         y = self.dense(x)
@@ -61,50 +62,94 @@ class ProjectionHead(tf.keras.layers.Layer):
         return y
 
 
+class DecoderBlock(tf.keras.layers.Layer):
+    '''Transformer decoder block.'''
+    def __init__(
+            self,
+            *,
+            hidden_dims,
+            nr_of_heads,
+            dropout_rate,
+            dff,
+            **kwargs):
+        super().__init__(**kwargs)
+
+        self.hidden_dims = hidden_dims
+        self.nr_of_heads = nr_of_heads
+        self.dropout_rate = dropout_rate
+
+        self.causal_self_attn = CausalSelfAttention(
+            num_heads=nr_of_heads,
+            key_dim=hidden_dims)
+
+        self.cross_attn = CrossAttention(
+            num_heads=nr_of_heads,
+            key_dim=hidden_dims)
+
+        self.ffn = FeedForward(
+            d_model=hidden_dims,
+            dff=dff,
+            dropout_rate=dropout_rate)
+
+    def call(self, inputs):
+        '''
+        x: (None, time_steps, features)
+        context: (None, time_steps, features)
+        y: (None, time_steps, features)
+        '''
+        x, context = inputs
+        x = self.causal_self_attn(x=x)
+        x = self.cross_attn(x=x, context=context)
+
+        # Cache the last attention scores for plotting later
+        self.last_attn_scores = self.cross_attn.last_attn_scores
+
+        y = self.ffn(x)
+        return y
+
+
 class SingleStepDecoder(tf.keras.layers.Layer):
     '''Decoder for singe-step predictor.'''
     def __init__(
             self,
-            nr_of_time_steps,
-            alpha_regulizer=0.20,
-            l1_ratio=0.50,
+            *,
+            num_layers,
+            hidden_dims,
+            nr_of_heads,
+            dff,
+            dropout_rate,
             **kwargs):
         super().__init__(**kwargs)
 
-        self.feed_forward = tf.keras.Sequential([
-            tf.keras.layers.Flatten(),
-            tf.keras.layers.Dense(units=nr_of_time_steps * 3),
-            tf.keras.layers.LayerNormalization(epsilon=1e-6),
-            tf.keras.layers.Dense(units=nr_of_time_steps * 2),
-            tf.keras.layers.LayerNormalization(epsilon=1e-6),
-            tf.keras.layers.Dense(units=nr_of_time_steps),
-            tf.keras.layers.Reshape(target_shape=(nr_of_time_steps, 1))
-        ])
+        self.num_layers = num_layers
+        self.hidden_dims = hidden_dims
+        self.nr_of_heads = nr_of_heads
+        self.dff = dff
+        self.dropout_rate = dropout_rate
 
-        # self.dense_1 = tf.keras.layers.Dense(
-        #     units=nr_of_time_steps * 3,
-        #     kernel_regularizer=tf.keras.regularizers.L1L2(
-        #         l1=l1_ratio * alpha_regulizer,
-        #         l2=(1 - l1_ratio) * alpha_regulizer))
+        self.dropout = tf.keras.layers.Dropout(dropout_rate)
+        self.dec_layers = [
+            DecoderBlock(
+                hidden_dims=hidden_dims,
+                nr_of_heads=nr_of_heads,
+                dff=dff,
+                dropout_rate=dropout_rate)
+            for _ in range(num_layers)]
 
-        # self.dense_2 = tf.keras.layers.Dense(
-        #     units=nr_of_time_steps * 2,
-        #     kernel_regularizer=tf.keras.regularizers.L1L2(
-        #         l1=l1_ratio * alpha_regulizer,
-        #         l2=(1 - l1_ratio) * alpha_regulizer))
+        self.last_attn_scores = None
 
-        # self.dense_3 = tf.keras.layers.Dense(
-        #     units=nr_of_time_steps,
-        #     kernel_regularizer=tf.keras.regularizers.L1L2(
-        #         l1=l1_ratio * alpha_regulizer,
-        #         l2=(1 - l1_ratio) * alpha_regulizer))
-
-    def call(self, x):
+    def call(self, inputs):
         '''
-        input: (None, timesteps, feature)
-        output: (None, timesteps, 1)
+        x: (None, time_steps, features)
+        y: (None, time_steps, features)
         '''
+        x, context = inputs
+        x = self.dropout(x)
 
-        y = self.feed_forward(x)
+        for i in range(self.num_layers):
+            x = self.dec_layers[i]((x, context))
+
+        y = x
+        self.last_attn_scores = self.dec_layers[-1].last_attn_scores
 
         return y

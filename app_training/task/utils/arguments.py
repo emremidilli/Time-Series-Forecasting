@@ -133,7 +133,7 @@ def get_fine_tuning_args():
     parser.add_argument(
         '--resume_training',
         required=False,
-        default='Y',
+        default='N',
         choices=['Y', 'N'],
         type=str,
         help='resume_training')
@@ -196,6 +196,34 @@ def get_fine_tuning_args():
         type=str,
         choices=['Y', 'N'],
         help='trainable_encoder')
+
+    parser.add_argument(
+        '--nr_of_layers',
+        required=False,
+        default=1,
+        type=int,
+        help='nr_of_layers')
+
+    parser.add_argument(
+        '--hidden_dims',
+        required=False,
+        default=64,
+        type=int,
+        help='hidden_dims')
+
+    parser.add_argument(
+        '--nr_of_heads',
+        required=False,
+        default=1,
+        type=int,
+        help='nr_of_heads')
+
+    parser.add_argument(
+        '--dropout_rate',
+        required=False,
+        default=0.10,
+        type=float,
+        help='dropout_rate')
 
     try:
         args = parser.parse_args()

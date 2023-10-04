@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from tsf_model.layers.decoder import SingleStepDecoder
+from tsf_model.layers import PositionEmbedding, SingleStepDecoder
 
 
 @tf.keras.saving.register_keras_serializable()
@@ -8,20 +8,27 @@ class FineTuning(tf.keras.Model):
     '''Keras model for fine-tuning purpose.'''
     def __init__(
             self,
+            num_layers,
+            hidden_dims,
+            nr_of_heads,
+            dff,
+            dropout_rate,
             con_temp_pret,
-            nr_of_time_steps,
-            alpha_regulizer=0.20,
-            l1_ratio=0.50,
             **kwargs):
         super().__init__(**kwargs)
 
-        self.con_temp_pret = con_temp_pret
-        # self.con_temp_pret.trainable = False
+        self.pe = PositionEmbedding(embedding_dims=hidden_dims)
 
-        self.single_step_decoder = SingleStepDecoder(
-            nr_of_time_steps=nr_of_time_steps,
-            alpha_regulizer=alpha_regulizer,
-            l1_ratio=l1_ratio)
+        self.con_temp_pret = con_temp_pret
+
+        self.decoder = SingleStepDecoder(
+            num_layers=num_layers,
+            hidden_dims=hidden_dims,
+            nr_of_heads=nr_of_heads,
+            dff=dff,
+            dropout_rate=dropout_rate)
+
+        self.dense = tf.keras.layers.Dense(1)
 
     def get_config(self):
         config = super().get_config()
@@ -45,10 +52,13 @@ class FineTuning(tf.keras.Model):
             2. tre: (none, timesteps, features)
             3. sea: (none, timesteps, features)
             4. date: (none, features)
+            5. shifted: (none, timesteps, 1)
             Timesteps of forecast horizon are masked.
-        output: (none, timesteps, 1)
+        y: (none, timesteps, 1)
         '''
-        y_cont_temp = self.con_temp_pret(inputs)
-
-        y_pred = self.single_step_decoder(y_cont_temp)
-        return y_pred
+        dist, tre, sea, date, shifted = inputs
+        t = self.con_temp_pret((dist, tre, sea, date))
+        z = self.pe(shifted)
+        y = self.decoder((z, t))
+        y = self.dense(y)
+        return y

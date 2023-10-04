@@ -26,6 +26,10 @@ if __name__ == '__main__':
     nr_of_epochs = args.nr_of_epochs
     alpha_regulizer = args.alpha_regulizer
     l1_ratio = args.l1_ratio
+    nr_of_layers = args.nr_of_layers
+    hidden_dims = args.hidden_dims
+    nr_of_heads = args.nr_of_heads
+    dropout_rate = args.dropout_rate
 
     artifacts_dir = os.path.join(
         os.environ['BIN_NAME'],
@@ -56,8 +60,6 @@ if __name__ == '__main__':
 
     ds = tf.data.Dataset.load(path=dataset_dir)
 
-    (_, _, _, _), trg = next(iter(ds))
-
     ds_train = ds
     ds_val = None
     if validation_rate > 0:
@@ -69,8 +71,12 @@ if __name__ == '__main__':
     con_temp_pret = get_pre_trained_representation(pre_trained_model_dir)
 
     model = FineTuning(
-        con_temp_pret=con_temp_pret,
-        nr_of_time_steps=trg.shape[0])
+        num_layers=nr_of_layers,
+        hidden_dims=hidden_dims,
+        nr_of_heads=nr_of_heads,
+        dff=hidden_dims,
+        dropout_rate=dropout_rate,
+        con_temp_pret=con_temp_pret)
 
     optimizer = tf.keras.optimizers.Adam(
         learning_rate=learning_rate,
@@ -104,7 +110,7 @@ if __name__ == '__main__':
         model.con_temp_pret.trainable = False
 
     model.compile(
-        run_eagerly=False,
+        run_eagerly=True,
         optimizer=optimizer,
         loss=tf.keras.losses.MeanSquaredError(name='mse'),
         metrics=[
