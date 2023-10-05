@@ -140,8 +140,8 @@ def get_input_args_inference():
         required=False,
         default=os.path.join(
             './tsf-bin',
-            '02_training_datasets',
-            'EURUSD',
+            os.environ['FORMATTED_NAME'],
+            'ETTh1',
             'lb_test.npy'),
         type=str,
         help='lb_dir')
@@ -151,8 +151,8 @@ def get_input_args_inference():
         required=False,
         default=os.path.join(
             './tsf-bin',
-            '02_training_datasets',
-            'EURUSD',
+            os.environ['FORMATTED_NAME'],
+            'ETTh1',
             'ts_test.npy'),
         type=str,
         help='ts_dir')
@@ -162,8 +162,8 @@ def get_input_args_inference():
         required=False,
         default=os.path.join(
             './tsf-bin',
-            '03_preprocessing',
-            'EURUSD',
+            os.environ['PREPROCESSED_NAME'],
+            'ETTh1',
             'fine_tune',
             'input_preprocessor'),
         type=str,
@@ -174,8 +174,8 @@ def get_input_args_inference():
         required=False,
         default=os.path.join(
             './tsf-bin',
-            '05_inference',
-            'EURUSD',
+            os.environ['INFERENCE_NAME'],
+            'ETTh1',
             'input'),
         type=str,
         help='save_dir')

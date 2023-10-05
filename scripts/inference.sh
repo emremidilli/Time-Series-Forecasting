@@ -8,6 +8,8 @@ pre_processor_dir="./tsf-bin/03_preprocessing/$channel/fine_tune/input_preproces
 input_save_dir="./tsf-bin/05_inference/$channel/input/"
 model_dir="./tsf-bin/04_artifacts/$channel/fine_tune/saved_model/"
 output_save_dir="./tsf-bin/05_inference/$channel/output/"
+nr_of_forecasting_steps=168
+begin_scalar=0.50
 
 cd ../app_input_pipeline/
 
@@ -27,7 +29,9 @@ main() {
         inference.py \
         --input_dataset_dir=$input_save_dir \
         --model_dir=$model_dir \
-        --output_save_dir=$output_save_dir
+        --output_save_dir=$output_save_dir \
+        --nr_of_forecasting_steps=$nr_of_forecasting_steps \
+        --begin_scalar=$begin_scalar
 
     echo "inference is completed."
 }

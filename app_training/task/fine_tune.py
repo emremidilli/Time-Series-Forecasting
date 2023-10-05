@@ -110,7 +110,7 @@ if __name__ == '__main__':
         model.con_temp_pret.trainable = False
 
     model.compile(
-        run_eagerly=True,
+        run_eagerly=False,
         optimizer=optimizer,
         loss=tf.keras.losses.MeanSquaredError(name='mse'),
         metrics=[

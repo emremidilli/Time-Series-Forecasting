@@ -241,23 +241,37 @@ def get_inference_args():
     parser.add_argument(
         '--input_dataset_dir',
         required=False,
-        default="./tsf-bin/05_inference/EURUSD/input/",
+        default="./tsf-bin/05_inference/ETTh1/input/",
         type=str,
         help='input_dataset_dir')
 
     parser.add_argument(
         '--model_dir',
         required=False,
-        default="./tsf-bin/04_artifacts/EURUSD/fine_tune/saved_model/",
+        default="./tsf-bin/04_artifacts/ETTh1/fine_tune/saved_model/",
         type=str,
         help='model_dir')
 
     parser.add_argument(
         '--output_save_dir',
         required=False,
-        default="./tsf-bin/05_inference/EURUSD/output/",
+        default="./tsf-bin/05_inference/ETTh1/output/",
         type=str,
         help='output_save_dir')
+
+    parser.add_argument(
+        '--nr_of_forecasting_steps',
+        required=False,
+        default=168,
+        type=int,
+        help='nr_of_forecasting_steps')
+
+    parser.add_argument(
+        '--begin_scalar',
+        required=False,
+        default=0.50,
+        type=float,
+        help='begin_scalar')
 
     try:
         args = parser.parse_args()
