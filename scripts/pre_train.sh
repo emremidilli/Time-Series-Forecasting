@@ -7,15 +7,15 @@ nr_of_epochs=$3
 clip_norm=1.0
 warmup_steps=1000
 scale_factor=0.10
-nr_of_encoder_blocks=4
-nr_of_heads=4
+nr_of_encoder_blocks=1
+nr_of_heads=1
 encoder_ffn_units=64
 embedding_dims=64
 projection_head=16
 dropout_rate=0.10
 mini_batch_size=16
 mask_rate=0.70
-mask_scalar=0.53
+mask_scalar=0.001
 
 cd ../app_training/
 

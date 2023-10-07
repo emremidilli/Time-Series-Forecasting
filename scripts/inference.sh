@@ -2,14 +2,14 @@
 
 channel=$1
 
-lb_dir="./tsf-bin/02_formatted_data/$channel/lb_train.npy"
-ts_dir="./tsf-bin/02_formatted_data/$channel/ts_train.npy"
+lb_dir="./tsf-bin/02_formatted_data/$channel/lb_test.npy"
+ts_dir="./tsf-bin/02_formatted_data/$channel/ts_test.npy"
 pre_processor_dir="./tsf-bin/03_preprocessing/$channel/fine_tune/input_preprocessor/"
 input_save_dir="./tsf-bin/05_inference/$channel/input/"
 model_dir="./tsf-bin/04_artifacts/$channel/fine_tune/saved_model/"
 output_save_dir="./tsf-bin/05_inference/$channel/output/"
 nr_of_forecasting_steps=168
-begin_scalar=0.50
+begin_scalar=-1.0
 
 cd ../app_input_pipeline/
 

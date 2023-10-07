@@ -5,9 +5,9 @@ pool_size_reduction=2
 pool_size_trend=2
 nr_of_bins=10
 pre_train_ratio=0.10
-mask_scalar=0.53
-begin_scalar=0.50
-end_scalar=0.51
+mask_scalar=0.001
+begin_scalar=-1.0
+end_scalar=-1.0
 
 main() {
     channel=$1

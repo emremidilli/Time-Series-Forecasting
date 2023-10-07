@@ -6,7 +6,7 @@ nr_of_epochs=$3
 trainable_encoder=$4
 validation_rate=$5
 
-learning_rate=0.00001
+learning_rate=0.0001
 clip_norm=1.0
 mini_batch_size=64
 
