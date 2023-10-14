@@ -2,7 +2,7 @@
 
 channel=ETTh1
 
-bash input_pipeline.sh
+bash input_pipeline.sh $channel
 
 bash pre_train.sh $channel N 200
 

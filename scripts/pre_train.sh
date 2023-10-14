@@ -13,7 +13,7 @@ encoder_ffn_units=64
 embedding_dims=64
 projection_head=16
 dropout_rate=0.10
-mini_batch_size=16
+mini_batch_size=128
 mask_rate=0.70
 mask_scalar=0.001
 

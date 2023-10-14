@@ -54,9 +54,8 @@ if __name__ == '__main__':
         begin_scalar=begin_scalar,
         end_scalar=end_scalar)
 
-    dist, tre, sea, ts = input_pre_processor(
-        (lb_train, ts_train),
-        training=True)
+    input_pre_processor.adapt(inputs=(lb_train, ts_train))
+    dist, tre, sea, ts = input_pre_processor(inputs=(lb_train, ts_train))
     lbl, lbl_shifted = target_pre_processor((lb_train, fc_train))
 
     ds = tf.data.Dataset.from_tensor_slices(
@@ -71,12 +70,10 @@ if __name__ == '__main__':
     ds.save(
         os.path.join(sub_dir, 'dataset'))
 
-    input_pre_processor.save(
-        os.path.join(sub_dir, 'input_preprocessor'),
-        overwrite=True,
-        save_format='tf')
+    tf.saved_model.save(
+        obj=input_pre_processor,
+        export_dir=os.path.join(sub_dir, 'input_preprocessor'))
 
-    target_pre_processor.save(
-        os.path.join(sub_dir, 'target_preprocessor'),
-        overwrite=True,
-        save_format='tf')
+    tf.saved_model.save(
+        obj=target_pre_processor,
+        export_dir=os.path.join(sub_dir, 'target_preprocessor'))

@@ -43,9 +43,8 @@ if __name__ == '__main__':
         pool_size_trend=pool_size_trend,
         nr_of_bins=nr_of_bins)
 
-    dist, tre, sea, ts = input_pre_processor(
-        (lb_train, fc_train, ts_train),
-        training=True)
+    input_pre_processor.adapt((lb_train, fc_train, ts_train))
+    dist, tre, sea, ts = input_pre_processor((lb_train, fc_train, ts_train))
 
     dist, tre, sea, ts = get_random_sample(
         dist=dist,
@@ -66,7 +65,6 @@ if __name__ == '__main__':
     ds_train.save(
         os.path.join(sub_dir, 'dataset'))
 
-    input_pre_processor.save(
-        os.path.join(sub_dir, 'input_preprocessor'),
-        overwrite=True,
-        save_format='tf')
+    tf.saved_model.save(
+        obj=input_pre_processor,
+        export_dir=os.path.join(sub_dir, 'input_preprocessor'))

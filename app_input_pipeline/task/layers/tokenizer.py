@@ -30,8 +30,7 @@ class DistributionTokenizer(tf.keras.layers.Layer):
         self.bin_boundaries = tf.linspace(
             start=fMin,
             stop=fMax,
-            num=self.nr_of_bins - 1
-        )
+            num=self.nr_of_bins - 1)
 
         self.oDiscritizer = tf.keras.layers.Discretization(
             bin_boundaries=self.bin_boundaries)

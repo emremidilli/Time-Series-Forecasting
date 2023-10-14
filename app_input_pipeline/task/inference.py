@@ -24,9 +24,9 @@ if __name__ == '__main__':
     lb = read_npy_file(lb_dir, dtype='float32')
     ts = read_npy_file(ts_dir, dtype='int32')
 
-    pre_processor = tf.keras.models.load_model(pre_processor_dir)
+    pre_processor = tf.saved_model.load(pre_processor_dir)
 
-    (dist, tre, sea, ts) = pre_processor((lb, ts), training=False)
+    (dist, tre, sea, ts) = pre_processor((lb, ts))
 
     aMin = tf.math.reduce_min(lb, axis=1)
     aMax = tf.math.reduce_max(lb, axis=1)

@@ -8,7 +8,7 @@ validation_rate=$5
 
 learning_rate=0.0001
 clip_norm=1.0
-mini_batch_size=64
+mini_batch_size=128
 
 l1_ratio=0.50
 alpha_regulizer=0.10

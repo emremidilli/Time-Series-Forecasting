@@ -1,10 +1,14 @@
 import tensorflow as tf
 
 from layers import LookbackNormalizer, PatchTokenizer, \
-    DistributionTokenizer, TrendSeasonalityTokenizer, BatchNormalizer
+    DistributionTokenizer, TrendSeasonalityTokenizer
 
 
 class BasePreProcessor(tf.keras.Model):
+    '''
+    Base pre-processor that performs lookback normalization
+    and patch tokenization.
+    '''
     def __init__(self,
                  patch_size,
                  **kwargs):
@@ -27,13 +31,11 @@ class BasePreProcessor(tf.keras.Model):
         '''
         x_lb, x_fc = inputs
 
-        # lookback normalize
         if x_fc is not None:
             x_fc = self.lookback_normalizer((x_lb, x_fc))
 
         x_lb = self.lookback_normalizer((x_lb, x_lb))
 
-        # tokenize
         x_lb = self.patch_tokenizer(x_lb)
         if x_fc is not None:
             x_fc = self.patch_tokenizer(x_fc)
@@ -42,7 +44,12 @@ class BasePreProcessor(tf.keras.Model):
 
 
 class InputPreProcessorPT(tf.keras.Model):
-    '''Preprocess for input of pre-training.'''
+    '''
+    Preprocess for input of pre-training.
+    Distribution, trend and seasonility components are prepared.
+    Trend, seasonality components and timestamp features are normalized.
+    Distribution is not normalized since its data is within 0 and 1.
+    '''
     def __init__(self,
                  patch_size,
                  pool_size_reduction,
@@ -63,22 +70,35 @@ class InputPreProcessorPT(tf.keras.Model):
             pool_size_trend=pool_size_trend)
         self.lb_fc_concatter = tf.keras.layers.Concatenate(axis=1)
 
-        self.batch_norm_dist_lb = tf.keras.layers.BatchNormalization(
-            epsilon=1e-6)
-        self.batch_norm_dist_fc = tf.keras.layers.BatchNormalization(
-            epsilon=1e-6)
+        self.tre_normalizer = tf.keras.layers.Normalization(axis=None)
+        self.sea_normalizer = tf.keras.layers.Normalization(axis=None)
+        self.ts_normalizer = tf.keras.layers.Normalization(axis=1)
 
-        self.batch_norm_tre_lb = tf.keras.layers.BatchNormalization(
-            epsilon=1e-6)
-        self.batch_norm_tre_fc = tf.keras.layers.BatchNormalization(
-            epsilon=1e-6)
+    def adapt(self, inputs):
+        '''
+        Adapts the mean and standard deviaiton of
+        trend, seasonality and timestamp features.
+        inputs: tuple of 3 elements.
+        Each element is a tf.data.Dataset object.
+            1. x_lb: (None, timesteps)
+            2. x_fc: (None, timesteps)
+            3. x_ts: (None, features)
+        '''
+        x_lb, x_fc, x_ts = inputs
 
-        self.batch_norm_sea_lb = tf.keras.layers.BatchNormalization(
-            epsilon=1e-6)
-        self.batch_norm_sea_fc = tf.keras.layers.BatchNormalization(
-            epsilon=1e-6)
+        x_lb, x_fc = self.base_pre_processor((x_lb, x_fc))
 
-        self.batch_normalizer = BatchNormalizer()
+        x_lb_tre, x_lb_sea = self.trend_seasonality_tokenizer(x_lb)
+
+        x_fc_tre, x_fc_sea = self.trend_seasonality_tokenizer(x_fc)
+
+        x_tre = self.lb_fc_concatter((x_lb_tre, x_fc_tre))
+        x_sea = self.lb_fc_concatter((x_lb_sea, x_fc_sea))
+        x_ts = tf.cast(x_ts, dtype=tf.float32)
+
+        self.tre_normalizer.adapt(x_tre)
+        self.sea_normalizer.adapt(x_sea)
+        self.ts_normalizer.adapt(x_ts)
 
     def call(self, inputs, training=False):
         '''
@@ -89,10 +109,10 @@ class InputPreProcessorPT(tf.keras.Model):
             3. x_ts: (None, features)
 
         returns tuple of 4 elemements.
-            1. dist: (None, timesteps, features)
-            2. tre: (None, timesteps, features)
-            3. sea: (None, timesteps, features)
-            4. ts: (None, features)
+            1. y_dist: (None, timesteps, features)
+            2. y_tre: (None, timesteps, features)
+            3. y_sea: (None, timesteps, features)
+            4. y_ts: (None, features)
         '''
 
         x_lb, x_fc, x_ts = inputs
@@ -102,28 +122,31 @@ class InputPreProcessorPT(tf.keras.Model):
         x_lb_dist = self.distribution_tokenizer(x_lb)
         x_lb_tre, x_lb_sea = self.trend_seasonality_tokenizer(x_lb)
 
-        x_lb_dist = self.batch_norm_dist_lb(x_lb_dist)
-        x_lb_tre = self.batch_norm_tre_lb(x_lb_tre)
-        x_lb_sea = self.batch_norm_sea_lb(x_lb_sea)
-
         x_fc_dist = self.distribution_tokenizer(x_fc)
         x_fc_tre, x_fc_sea = self.trend_seasonality_tokenizer(x_fc)
 
-        x_fc_dist = self.batch_norm_dist_fc(x_fc_dist)
-        x_fc_tre = self.batch_norm_tre_fc(x_fc_tre)
-        x_fc_sea = self.batch_norm_sea_fc(x_fc_sea)
+        x_dist = self.lb_fc_concatter((x_lb_dist, x_fc_dist))
+        x_tre = self.lb_fc_concatter((x_lb_tre, x_fc_tre))
+        x_sea = self.lb_fc_concatter((x_lb_sea, x_fc_sea))
+        x_ts = tf.cast(x_ts, dtype=tf.float32)
 
-        dist = self.lb_fc_concatter((x_lb_dist, x_fc_dist))
-        tre = self.lb_fc_concatter((x_lb_tre, x_fc_tre))
-        sea = self.lb_fc_concatter((x_lb_sea, x_fc_sea))
+        y_dist = x_dist
+        y_tre = self.tre_normalizer(x_tre)
+        y_sea = self.sea_normalizer(x_sea)
+        y_ts = self.ts_normalizer(x_ts)
 
-        y_ts = self.batch_normalizer(x_ts)
-
-        return (dist, tre, sea, y_ts)
+        return (y_dist, y_tre, y_sea, y_ts)
 
 
 class InputPreProcessorFT(tf.keras.Model):
-    '''Preprocess for input of fine-tuning models.'''
+    '''
+    Preprocess for input of fine-tuning models.
+    Distribution, trend and seasonility components are prepared.
+    Trend, seasonality components and timestamp features are normalized.
+    Distribution is not normalized since its data is within 0 and 1.
+    Unlikely to pre-training, only lookback patches are normalized.
+    Forecast patches are replaced with mask_scalar value.
+    '''
     def __init__(self,
                  patch_size,
                  pool_size_reduction,
@@ -149,40 +172,55 @@ class InputPreProcessorFT(tf.keras.Model):
             pool_size_trend=pool_size_trend)
         self.lb_fc_concatter = tf.keras.layers.Concatenate(axis=1)
 
-        self.batch_norm_dist_lb = tf.keras.layers.BatchNormalization(
-            epsilon=1e-6)
+        self.tre_normalizer = tf.keras.layers.Normalization(axis=None)
+        self.sea_normalizer = tf.keras.layers.Normalization(axis=None)
+        self.ts_normalizer = tf.keras.layers.Normalization(axis=1)
 
-        self.batch_norm_tre_lb = tf.keras.layers.BatchNormalization(
-            epsilon=1e-6)
-
-        self.batch_norm_sea_lb = tf.keras.layers.BatchNormalization(
-            epsilon=1e-6)
-
-        self.batch_normalizer = BatchNormalizer()
-
-    def call(self, inputs, training=False):
+    def adapt(self, inputs):
         '''
-            inputs: tuple of 2 elements.
-            Each element is a tf.data.Dataset object.
-                1. x_lb: (None, timesteps)
-                2. x_ts: (None, featires) timestamp features
-
-            returns tuple of 3 elemements.
-                1. dist: (None, timesteps, feature)
-                2. tre: (None, timesteps, feature)
-                3. sea: (None, timesteps, feature)
+        Adapts the mean and standard deviaiton of
+        trend, seasonality and timestamp features.
+        inputs: tuple of 2 elements.
+        Each element is a tf.data.Dataset object.
+            1. x_lb: (None, timesteps)
+            2. x_ts: (None, feature) timestamp features
         '''
-
         (x_lb, x_ts) = inputs
+
+        x_ts = tf.cast(x_ts, dtype=tf.float32)
+
+        x_lb, _ = self.base_pre_processor((x_lb, None))
+
+        x_lb_tre, x_lb_sea = self.trend_seasonality_tokenizer(x_lb)
+
+        self.tre_normalizer.adapt(x_lb_tre)
+        self.sea_normalizer.adapt(x_lb_sea)
+        self.ts_normalizer.adapt(x_ts)
+
+    def call(self, inputs):
+        '''
+        inputs: tuple of 2 elements.
+        Each element is a tf.data.Dataset object.
+            1. x_lb: (None, timesteps)
+            2. x_ts: (None, feature) timestamp features
+
+        returns tuple of 3 elemements.
+            1. dist: (None, timesteps, feature)
+            2. tre: (None, timesteps, feature)
+            3. sea: (None, timesteps, feature)
+        '''
+        (x_lb, x_ts) = inputs
+
+        x_ts = tf.cast(x_ts, dtype=tf.float32)
 
         x_lb, _ = self.base_pre_processor((x_lb, None))
 
         x_lb_dist = self.distribution_tokenizer(x_lb)
         x_lb_tre, x_lb_sea = self.trend_seasonality_tokenizer(x_lb)
 
-        x_lb_dist = self.batch_norm_dist_lb(x_lb_dist)
-        x_lb_tre = self.batch_norm_tre_lb(x_lb_tre)
-        x_lb_sea = self.batch_norm_sea_lb(x_lb_sea)
+        x_lb_tre = self.tre_normalizer(x_lb_tre)
+        x_lb_sea = self.sea_normalizer(x_lb_sea)
+        x_ts = self.ts_normalizer(x_ts)
 
         x_fc_dist = tf.zeros_like(x_lb_dist) + self.mask_scalar
         x_fc_tre = tf.zeros_like(x_lb_tre) + self.mask_scalar
@@ -192,13 +230,13 @@ class InputPreProcessorFT(tf.keras.Model):
         x_fc_tre = x_fc_tre[:, :self.forecast_patches_to_mask]
         x_fc_sea = x_fc_sea[:, :self.forecast_patches_to_mask]
 
-        dist = self.lb_fc_concatter((x_lb_dist, x_fc_dist))
-        tre = self.lb_fc_concatter((x_lb_tre, x_fc_tre))
-        sea = self.lb_fc_concatter((x_lb_sea, x_fc_sea))
+        y_dist = self.lb_fc_concatter((x_lb_dist, x_fc_dist))
+        y_tre = self.lb_fc_concatter((x_lb_tre, x_fc_tre))
+        y_sea = self.lb_fc_concatter((x_lb_sea, x_fc_sea))
 
-        y_ts = self.batch_normalizer(x_ts)
+        y_ts = x_ts
 
-        return (dist, tre, sea, y_ts)
+        return (y_dist, y_tre, y_sea, y_ts)
 
 
 class TargetPreProcessor(tf.keras.Model):

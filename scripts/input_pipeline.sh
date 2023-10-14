@@ -1,5 +1,6 @@
 #!/bin/bash
 
+channel=$1
 patch_size=24
 pool_size_reduction=2
 pool_size_trend=2
@@ -10,7 +11,6 @@ begin_scalar=-1.0
 end_scalar=-1.0
 
 main() {
-    channel=$1
     cd ../app_input_pipeline/
     echo "starting to build input pipeline for " $channel
 
@@ -39,4 +39,4 @@ main() {
     echo "Bulding input pipelines is successfull for " $channel
 }
 
-main "ETTh1"
+main
