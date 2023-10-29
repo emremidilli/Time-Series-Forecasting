@@ -6,7 +6,7 @@ nr_of_epochs=$3
 trainable_encoder=$4
 validation_rate=$5
 
-learning_rate=0.0001
+learning_rate=0.00005
 clip_norm=1.0
 mini_batch_size=128
 
@@ -14,7 +14,7 @@ l1_ratio=0.50
 alpha_regulizer=0.10
 
 nr_of_layers=1
-hidden_dims=64
+hidden_dims=256
 nr_of_heads=1
 dropout_rate=0.10
 

@@ -308,11 +308,11 @@ class PreTraining(tf.keras.Model):
 
     def call(self, inputs):
         '''
-            input: tuple of 4 arrays.
-                1. dist: (none, timesteps, features)
-                2. tre: (none, timesteps, features)
-                3. sea: (none, timesteps, features)
-                4. date: (none, features)
+        input: tuple of 4 arrays.
+            1. dist: (none, timesteps, features)
+            2. tre: (none, timesteps, features)
+            3. sea: (none, timesteps, features)
+            4. date: (none, features)
         '''
         y_cont_temp = self.encoder_representation(inputs)
 
