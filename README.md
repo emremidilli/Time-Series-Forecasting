@@ -1,5 +1,5 @@
 # Folder Structure
-
+```
 .
 ├── 00_raw_data
 │   ├── ETTh1.csv
@@ -37,3 +37,4 @@
         ├── dataset
         ├── input_preprocessor
         └── target_preprocessor
+```
