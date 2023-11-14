@@ -12,11 +12,12 @@ from utils import get_fine_tuning_args, FineTuningCheckpointCallback, \
 
 
 if __name__ == '__main__':
-    '''Fine tunes a given channel.'''
+    '''Fine tunes a given model.'''
     args = get_fine_tuning_args()
     print(args)
 
-    channel = args.channel
+    model_id = args.model_id
+    pre_trained_model_id = args.pre_trained_model_id
     resume_training = args.resume_training
     validation_rate = args.validation_rate
     mini_batch_size = args.mini_batch_size
@@ -34,21 +35,16 @@ if __name__ == '__main__':
     artifacts_dir = os.path.join(
         os.environ['BIN_NAME'],
         os.environ['ARTIFACTS_NAME'],
-        channel,
+        model_id,
         'fine_tune')
     custom_ckpt_dir = os.path.join(artifacts_dir, 'checkpoints', 'ckpt')
     saved_model_dir = os.path.join(artifacts_dir, 'saved_model')
     tensorboard_log_dir = os.path.join(artifacts_dir, 'tboard_logs')
-    pre_trained_model_dir = os.path.join(
-        os.environ['BIN_NAME'],
-        os.environ['ARTIFACTS_NAME'],
-        channel,
-        'pre_train',
-        'saved_model')
+
     dataset_dir = os.path.join(
         os.environ['BIN_NAME'],
         os.environ['PREPROCESSED_NAME'],
-        channel,
+        model_id,
         'fine_tune',
         'dataset')
 
@@ -56,7 +52,7 @@ if __name__ == '__main__':
         folder_path=os.path.join(
             os.environ['BIN_NAME'],
             os.environ['FORMATTED_NAME'],
-            channel))
+            model_id))
 
     ds = tf.data.Dataset.load(path=dataset_dir)
 
@@ -68,7 +64,13 @@ if __name__ == '__main__':
 
     ds_train = ds_train.batch(mini_batch_size).prefetch(tf.data.AUTOTUNE)
 
-    con_temp_pret = get_pre_trained_representation(pre_trained_model_dir)
+    con_temp_pret = get_pre_trained_representation(
+        pre_trained_model_dir=os.path.join(
+            os.environ['BIN_NAME'],
+            os.environ['ARTIFACTS_NAME'],
+            pre_trained_model_id,
+            'pre_train',
+            'saved_model'))
 
     model = FineTuning(
         num_layers=nr_of_layers,

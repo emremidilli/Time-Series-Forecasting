@@ -11,12 +11,12 @@ from utils import PreTrainingCheckpointCallback, LearningRateCallback, \
 
 
 if __name__ == '__main__':
-    '''Pre-trains a given channel.'''
+    '''Pre-trains a model.'''
 
     args = get_pre_training_args()
     print(args)
 
-    channel = args.channel
+    model_id = args.model_id
     resume_training = args.resume_training
     mask_rate = args.mask_rate
     mask_scalar = args.mask_scalar
@@ -34,7 +34,7 @@ if __name__ == '__main__':
     artifacts_dir = os.path.join(
         os.environ['BIN_NAME'],
         os.environ['ARTIFACTS_NAME'],
-        channel,
+        model_id,
         'pre_train')
     custom_ckpt_dir = os.path.join(artifacts_dir, 'checkpoints', 'ckpt')
     saved_model_dir = os.path.join(artifacts_dir, 'saved_model')
@@ -42,7 +42,7 @@ if __name__ == '__main__':
     dataset_dir = os.path.join(
         os.environ['BIN_NAME'],
         os.environ['PREPROCESSED_NAME'],
-        channel,
+        model_id,
         'pre_train',
         'dataset')
 
@@ -50,7 +50,7 @@ if __name__ == '__main__':
         folder_path=os.path.join(
             os.environ['BIN_NAME'],
             os.environ['FORMATTED_NAME'],
-            channel))
+            model_id))
 
     ds_train = tf.data.Dataset.load(path=dataset_dir)
     dist, tre, _, _ = next(iter(ds_train))

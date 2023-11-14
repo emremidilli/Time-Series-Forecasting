@@ -12,11 +12,11 @@ def get_pre_training_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        '--channel',
+        '--model_id',
         required=False,
         default='ETTh1',
         type=str,
-        help='channel')
+        help='model_id')
     parser.add_argument(
         '--resume_training',
         required=False,
@@ -124,11 +124,18 @@ def get_fine_tuning_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        '--channel',
+        '--model_id',
         required=False,
         default='ETTh1',
         type=str,
-        help='channel')
+        help='model_id')
+
+    parser.add_argument(
+        '--pre_trained_model_id',
+        required=False,
+        default='ETTh1',
+        type=str,
+        help='pre_trained_model_id')
 
     parser.add_argument(
         '--resume_training',
