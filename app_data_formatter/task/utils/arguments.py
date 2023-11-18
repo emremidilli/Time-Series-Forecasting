@@ -13,16 +13,22 @@ def get_args_to_build_datasets():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        '--channel',
+        '--model_id',
         required=True,
         type=str,
-        help='channel')
+        help='model_id')
 
     parser.add_argument(
-        '--target_group',
+        '--dataset_id',
         required=True,
         type=str,
-        help='target_group')
+        help='dataset_id')
+
+    parser.add_argument(
+        '--list_of_covariates',
+        required=True,
+        type=eval,
+        help='list_of_covariates')
 
     parser.add_argument(
         '--forecast_horizon',
@@ -47,26 +53,6 @@ def get_args_to_build_datasets():
         required=True,
         type=float,
         help='test_size')
-
-    try:
-        args = parser.parse_args()
-    except:  # noqa: E722
-        parser.print_help()
-        sys.exit(0)
-
-    return args
-
-
-def get_args_to_build_date_features():
-    '''Parses the args to build date features.'''
-
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument(
-        '--channel',
-        required=True,
-        type=str,
-        help='channel')
 
     parser.add_argument(
         '--raw_frequency',

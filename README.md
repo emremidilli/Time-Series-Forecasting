@@ -1,26 +1,10 @@
 # Folder Structure
+
+
 ```
 .
-├── 00_raw_data
-│   ├── ETTh1.csv
-│   ├── ETTh2.csv
-│   ├── ETTm1.csv
-│   ├── ETTm2.csv
-│   ├── electricity.csv
-│   ├── exchange_rate.csv
-│   ├── national_illness.csv
-│   ├── traffic.csv
-│   └── weather.csv
 ├── 01_converted_data
-│   ├── ETTh1.csv
-│   ├── ETTh2.csv
-│   ├── ETTm1.csv
-│   ├── ETTm2.csv
-│   ├── electricity.csv
-│   ├── exchange_rate.csv
-│   ├── national_illness.csv
-│   ├── traffic.csv
-│   └── weather.csv
+│   └── dataset_name.csv
 ├── 02_formatted_data
 │   └── model_id
 │       ├── config.json
