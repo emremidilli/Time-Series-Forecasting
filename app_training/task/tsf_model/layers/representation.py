@@ -6,10 +6,10 @@ import tensorflow as tf
 class Representation(tf.keras.layers.Layer):
     def __init__(
             self,
-            iNrOfEncoderBlocks,
-            iNrOfHeads,
-            fDropoutRate,
-            iEncoderFfnUnits,
+            nr_of_encoder_blocks,
+            nr_of_heads,
+            dropout_rate,
+            encoder_ffn_units,
             embedding_dims,
             **kwargs):
 
@@ -43,13 +43,13 @@ class Representation(tf.keras.layers.Layer):
         self.concat_temporals = tf.keras.layers.Concatenate(axis=2)
 
         self.encoders_temporal = []
-        for i in range(iNrOfEncoderBlocks):
+        for i in range(nr_of_encoder_blocks):
             self.encoders_temporal.append(
                 TransformerEncoder(
                     embed_dim=embedding_dims * 3,
-                    num_heads=iNrOfHeads,
-                    feedforward_dim=iEncoderFfnUnits * 3,
-                    dropout_rate=fDropoutRate,
+                    num_heads=nr_of_heads,
+                    feedforward_dim=encoder_ffn_units * 3,
+                    dropout_rate=dropout_rate,
                     name=f'encoders_temporal{i}'
                 )
             )
@@ -59,13 +59,13 @@ class Representation(tf.keras.layers.Layer):
             epsilon=1e-6)
 
         self.encoders_contextual = []
-        for i in range(iNrOfEncoderBlocks):
+        for i in range(nr_of_encoder_blocks):
             self.encoders_contextual.append(
                 TransformerEncoder(
                     embed_dim=embedding_dims,
-                    num_heads=iNrOfHeads,
-                    feedforward_dim=iEncoderFfnUnits,
-                    dropout_rate=fDropoutRate,
+                    num_heads=nr_of_heads,
+                    feedforward_dim=encoder_ffn_units,
+                    dropout_rate=dropout_rate,
                     name=f'encoders_contextual{i}'
                 )
             )
@@ -75,13 +75,13 @@ class Representation(tf.keras.layers.Layer):
         self.concat_temporal_contextual = tf.keras.layers.Concatenate(axis=1)
 
         self.encoders_cont_temp = []
-        for i in range(iNrOfEncoderBlocks):
+        for i in range(nr_of_encoder_blocks):
             self.encoders_cont_temp.append(
                 TransformerEncoder(
                     embed_dim=embedding_dims,
-                    num_heads=iNrOfHeads,
-                    feedforward_dim=iEncoderFfnUnits,
-                    dropout_rate=fDropoutRate,
+                    num_heads=nr_of_heads,
+                    feedforward_dim=encoder_ffn_units,
+                    dropout_rate=dropout_rate,
                     name=f'encoders_cont_temp{i}'
                 )
             )

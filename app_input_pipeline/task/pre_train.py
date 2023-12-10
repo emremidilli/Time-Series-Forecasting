@@ -4,7 +4,7 @@ import os
 
 import tensorflow as tf
 
-from utils import get_random_sample, read_npy_file, get_input_args_pre_training
+from utils import read_npy_file, get_input_args_pre_training
 
 
 if __name__ == '__main__':
@@ -16,51 +16,40 @@ if __name__ == '__main__':
     args = get_input_args_pre_training()
     print(args)
 
-    channel = args.channel
+    model_id = args.model_id
     patch_size = args.patch_size
-    pool_size_reduction = args.pool_size_reduction
     pool_size_trend = args.pool_size_trend
-    nr_of_bins = args.nr_of_bins
-    pre_train_ratio = args.pre_train_ratio
 
     training_data_folder = os.path.join(
         os.environ['BIN_NAME'],
         os.environ['FORMATTED_NAME'])
 
     lb_train = read_npy_file(
-        os.path.join(training_data_folder, channel, 'lb_train.npy'),
+        os.path.join(training_data_folder, model_id, 'lb_train.npy'),
         dtype='float32')
     fc_train = read_npy_file(
-        os.path.join(training_data_folder, channel, 'fc_train.npy'),
+        os.path.join(training_data_folder, model_id, 'fc_train.npy'),
         dtype='float32')
     ts_train = read_npy_file(
-        os.path.join(training_data_folder, channel, 'ts_train.npy'),
+        os.path.join(training_data_folder, model_id, 'ts_train.npy'),
         dtype='int32')
 
+    nr_of_covariates = lb_train.shape[-1]
     input_pre_processor = InputPreProcessorPT(
         patch_size=patch_size,
-        pool_size_reduction=pool_size_reduction,
         pool_size_trend=pool_size_trend,
-        nr_of_bins=nr_of_bins)
+        nr_of_covariates=nr_of_covariates)
 
     input_pre_processor.adapt((lb_train, fc_train, ts_train))
-    dist, tre, sea, ts = input_pre_processor((lb_train, fc_train, ts_train))
-
-    dist, tre, sea, ts = get_random_sample(
-        dist=dist,
-        tre=tre,
-        sea=sea,
-        ts=ts,
-        sampling_ratio=pre_train_ratio)
+    tre, sea, res, ts = input_pre_processor((lb_train, fc_train, ts_train))
 
     ds_train = tf.data.Dataset.from_tensor_slices(
-        (dist, tre, sea, ts))
+        (tre, sea, res, ts))
 
     sub_dir = os.path.join(
         os.environ['BIN_NAME'],
         os.environ['PREPROCESSED_NAME'],
-        channel,
-        'pre_train')
+        model_id)
 
     ds_train.save(
         os.path.join(sub_dir, 'dataset'))

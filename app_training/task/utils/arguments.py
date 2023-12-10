@@ -14,7 +14,7 @@ def get_pre_training_args():
     parser.add_argument(
         '--model_id',
         required=False,
-        default='ETTh1',
+        default='model_01',
         type=str,
         help='model_id')
     parser.add_argument(

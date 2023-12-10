@@ -11,7 +11,7 @@ from utils import PreTrainingCheckpointCallback, LearningRateCallback, \
 
 
 if __name__ == '__main__':
-    '''Pre-trains a model.'''
+    '''Pre-trains a foundation model.'''
 
     args = get_pre_training_args()
     print(args)
@@ -43,7 +43,6 @@ if __name__ == '__main__':
         os.environ['BIN_NAME'],
         os.environ['PREPROCESSED_NAME'],
         model_id,
-        'pre_train',
         'dataset')
 
     config = get_data_format_config(
@@ -53,7 +52,7 @@ if __name__ == '__main__':
             model_id))
 
     ds_train = tf.data.Dataset.load(path=dataset_dir)
-    dist, tre, _, _ = next(iter(ds_train))
+    tre, _, _, _ = next(iter(ds_train))
 
     ds_train = ds_train.batch(mini_batch_size).prefetch(tf.data.AUTOTUNE)
 
@@ -77,24 +76,23 @@ if __name__ == '__main__':
     cl_optimizer = tf.keras.optimizers.Adam(clipnorm=clip_norm)
 
     lookback_coefficient = config['lookback_coefficient']
-    nr_of_forecast_patches = int(dist.shape[0] / (lookback_coefficient + 1))
+    nr_of_forecast_patches = int(tre.shape[0] / (lookback_coefficient + 1))
     nr_of_lookback_patches = int(nr_of_forecast_patches * lookback_coefficient)
 
     starting_epoch = 0
     starting_step = 0
     model = PreTraining(
-        iNrOfEncoderBlocks=nr_of_encoder_blocks,
-        iNrOfHeads=nr_of_heads,
-        fDropoutRate=dropout_rate,
-        iEncoderFfnUnits=encoder_ffn_units,
+        nr_of_encoder_blocks=nr_of_encoder_blocks,
+        nr_of_heads=nr_of_heads,
+        dropout_rate=dropout_rate,
+        encoder_ffn_units=encoder_ffn_units,
         embedding_dims=embedding_dims,
-        iProjectionHeadUnits=projection_head,
-        iReducedDims=tre.shape[1],
-        fMskRate=mask_rate,
+        projection_head_units=projection_head,
+        reduced_dims=tre.shape[1],
+        msk_rate=mask_rate,
         msk_scalar=mask_scalar,
-        iNrOfBins=dist.shape[1],
-        iNrOfLookbackPatches=nr_of_lookback_patches,
-        iNrOfForecastPatches=nr_of_forecast_patches)
+        nr_of_lookback_patches=nr_of_lookback_patches,
+        nr_of_forecast_patches=nr_of_forecast_patches)
     if resume_training == 'Y':
         starting_epoch, starting_step, model, mae_optimizer, cl_optimizer = \
             checkpoint_callback.get_most_recent_ckpt(

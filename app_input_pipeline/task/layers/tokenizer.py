@@ -2,69 +2,38 @@ import tensorflow as tf
 
 
 class PatchTokenizer(tf.keras.layers.Layer):
-    def __init__(self, patch_size, **kwargs):
+    '''
+    A patch tokenizer that reshapes sub-series in patches.
+    '''
+    def __init__(self, patch_size, nr_of_covariates, **kwargs):
         super().__init__(**kwargs)
         self.patch_size = patch_size
         self.trainable = False
-        self.reshaper = tf.keras.layers.Reshape((-1, self.patch_size))
+        self.nr_of_covariates = nr_of_covariates
+
+        self.reshaper = tf.keras.layers.Reshape(
+            (-1, patch_size, nr_of_covariates))
 
     def call(self, x):
         '''
-        x: (None, nr_of_time_steps)
-        outputs: (None, nr_of_patches, patch_size)
+        inputs:
+            x: (None, nr_of_time_steps, nr_of_covariates)
+        outputs:
+            y: (None, nr_of_patches, patch_size, nr_of_covariates)
         '''
-
         y = self.reshaper(x)
-
         return y
 
 
-class DistributionTokenizer(tf.keras.layers.Layer):
-    def __init__(self, nr_of_bins, fMin, fMax, **kwargs):
-        super().__init__(**kwargs)
-
-        self.trainable = False
-
-        self.nr_of_bins = nr_of_bins
-
-        self.bin_boundaries = tf.linspace(
-            start=fMin,
-            stop=fMax,
-            num=self.nr_of_bins - 1)
-
-        self.oDiscritizer = tf.keras.layers.Discretization(
-            bin_boundaries=self.bin_boundaries)
-
-    def call(self, x):
-        '''
-        inputs: lookback normalized input (None, timesteps, feature)
-
-        returns: (None, timesteps, feature)
-        '''
-        y = self.oDiscritizer(x)
-
-        output_list = []
-        for i in range(0, self.nr_of_bins):
-            output_list.append(tf.math.count_nonzero(y == i, axis=2))
-
-        z = tf.stack(output_list, axis=2)
-
-        z = tf.math.divide(z, tf.expand_dims(tf.reduce_sum(z, axis=2), 2))
-
-        return z
-
-
 class TrendSeasonalityTokenizer(tf.keras.layers.Layer):
-    def __init__(self, pool_size_reduction, pool_size_trend, **kwargs):
+    '''
+    A tokenizer that decomposes a time-series into
+    trend, seasonality and residual components.
+    '''
+    def __init__(self, pool_size_trend, nr_of_covariates, **kwargs):
         super().__init__(**kwargs)
 
-        self.oAvgPoolReducer = tf.keras.layers.AveragePooling1D(
-            pool_size=pool_size_reduction,
-            strides=pool_size_reduction,
-            padding='valid',
-            data_format='channels_first')
-
-        self.oAvgPoolTrend = tf.keras.layers.AveragePooling1D(
+        self.avg_pool_trend = tf.keras.layers.AveragePooling1D(
             pool_size=pool_size_trend,
             strides=1,
             padding='same',
@@ -72,25 +41,66 @@ class TrendSeasonalityTokenizer(tf.keras.layers.Layer):
 
         self.trainable = False
 
+        self.nr_of_covariates = nr_of_covariates
+
     def call(self, x):
         '''
-            x: lookback normalized series that is patched
-            (None, nr_of_patches, patch_size)
+        x: lookback normalized series that is patched
+        (None, timesteps, features, covariates)
 
-            for each patch
-                reduces the input by avg pooling
-                calculate the trend component by avg pooling
-                calculate thte seasonality componenet by
-                    subtracting the trend componenet from sampled
+        for each patch
+            reduces the input by avg pooling
+            calculates the trend component by avg pooling
+            calculates the seasonality componenet by
+                subtracting the trend component from
+                the original input
+                outliers of seasonality component has been replaced
+                according to mu +- 3std
+            calculates the residual component by subtracting
+                trend and seasonality components from the
+                original input.
 
-            returns:  tuple of 2 elements
-                1. trend component - (None, nr_of_patches, patch_size)
-                2. seasonality component - (None, nr_of_patches, patch_size)
+        returns:  tuple of 2 elements
+            1. y_trend - (None, timesteps, features, covariates)
+            2. y_seasonality - (None, timesteps, features, covariates)
+            3. y_residual - (None, timesteps, features, covariates)
         '''
-        x_reduced = self.oAvgPoolReducer(x)
 
-        y_trend = self.oAvgPoolTrend(x_reduced)
+        tres = tf.TensorArray(tf.float32, size=0, dynamic_size=True)
+        seas = tf.TensorArray(tf.float32, size=0, dynamic_size=True)
+        reses = tf.TensorArray(tf.float32, size=0, dynamic_size=True)
+        for i in range(0, self.nr_of_covariates):
+            to_decompose = x[:, :, :, i]
 
-        y_seasonality = tf.subtract(x_reduced, y_trend)
+            tre_to_add = self.avg_pool_trend(to_decompose)
 
-        return (y_trend, y_seasonality)
+            sea_to_add = tf.subtract(to_decompose, tre_to_add)
+
+            mu = tf.reduce_mean(sea_to_add)
+            std = tf.reduce_mean(sea_to_add)
+
+            ucl = tf.add(mu, tf.multiply(std, 3))
+            lcl = tf.add(mu, tf.multiply(std, -3))
+
+            ucl = tf.zeros_like(sea_to_add) + ucl
+            lcl = tf.zeros_like(sea_to_add) + lcl
+
+            sea_to_add = tf.minimum(sea_to_add, ucl)
+            sea_to_add = tf.maximum(sea_to_add, lcl)
+
+            res_to_add = tf.subtract(to_decompose, tre_to_add)
+            res_to_add = tf.subtract(res_to_add, sea_to_add)
+
+            tres = tres.write(i, tre_to_add)
+            seas = seas.write(i, sea_to_add)
+            reses = reses.write(i, res_to_add)
+
+        y_trend = tres.stack()
+        y_seasonality = seas.stack()
+        y_residual = reses.stack()
+
+        y_trend = tf.transpose(y_trend, perm=[1, 2, 3, 0])
+        y_seasonality = tf.transpose(y_seasonality, perm=[1, 2, 3, 0])
+        y_residual = tf.transpose(y_residual, perm=[1, 2, 3, 0])
+
+        return (y_trend, y_seasonality, y_residual)

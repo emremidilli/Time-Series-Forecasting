@@ -9,7 +9,7 @@ if __name__ == '__main__':
     1. lookback
     2. date_features
     Pre-processes them by a pre-processor based on
-        given channel
+        given model_id
     Pre-processed data is saved in tf.data.Dataset format.
     '''
 

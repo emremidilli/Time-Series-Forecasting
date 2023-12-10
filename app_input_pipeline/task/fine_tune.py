@@ -16,7 +16,7 @@ if __name__ == '__main__':
     args = get_input_args_fine_tuning()
     print(args)
 
-    channel = args.channel
+    model_id = args.model_id
     patch_size = args.patch_size
     pool_size_reduction = args.pool_size_reduction
     pool_size_trend = args.pool_size_trend
@@ -30,13 +30,13 @@ if __name__ == '__main__':
         os.environ['FORMATTED_NAME'])
 
     lb_train = read_npy_file(
-        os.path.join(training_data_folder, channel, 'lb_train.npy'),
+        os.path.join(training_data_folder, model_id, 'lb_train.npy'),
         dtype='float32')
     fc_train = read_npy_file(
-        os.path.join(training_data_folder, channel, 'fc_train.npy'),
+        os.path.join(training_data_folder, model_id, 'fc_train.npy'),
         dtype='float32')
     ts_train = read_npy_file(
-        os.path.join(training_data_folder, channel, 'ts_train.npy'),
+        os.path.join(training_data_folder, model_id, 'ts_train.npy'),
         dtype='int32')
 
     nr_of_forecast_patches = int(fc_train.shape[1] / patch_size)
@@ -64,7 +64,7 @@ if __name__ == '__main__':
     sub_dir = os.path.join(
         os.environ['BIN_NAME'],
         os.environ['PREPROCESSED_NAME'],
-        channel,
+        model_id,
         'fine_tune')
 
     ds.save(

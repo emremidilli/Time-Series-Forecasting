@@ -10,11 +10,14 @@ class LookbackNormalizer(tf.keras.layers.Layer):
     def call(self, inputs):
         '''
         inputs: tuple of 2 elements.
-            1. x_lb: original lookback series (None, nr_of_lookback_time_steps)
-            2. x: series to normalize (None, nr_of_time_steps)
+            1. x_lb: original lookback series
+                (None, nr_of_lookback_time_steps, nr_of_covariates)
+            2. x: series to normalize
+                (None, nr_of_time_steps, nr_of_covariates)
 
-        returns
-            1. r: the normalized series (None, nr_of_time_steps)
+        returns:
+            1. r: the normalized series
+                (None, nr_of_time_steps, nr_of_covaraites)
         '''
         x_lb, x = inputs
 

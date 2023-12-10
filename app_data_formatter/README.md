@@ -16,7 +16,7 @@
         └── ts_train.npy
 ```
 
-# Purpose
+# Objective
 
 Reads a dataset from converted data folder.
 

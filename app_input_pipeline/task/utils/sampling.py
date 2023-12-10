@@ -3,18 +3,18 @@ import numpy as np
 import tensorflow as tf
 
 
-def get_random_sample(dist, tre, sea, ts, sampling_ratio):
+def get_random_sample(tre, sea, res, ts, sampling_ratio):
     '''Picks random elements from tf.tensors.'''
     np.random.seed(1)
-    size_of_sample = int(len(dist) * sampling_ratio)
-    all_indices = np.arange(len(dist))
+    size_of_sample = int(len(tre) * sampling_ratio)
+    all_indices = np.arange(len(tre))
     np.random.shuffle(all_indices)
     rand_indices = all_indices[:size_of_sample]
     rand_indices = np.sort(rand_indices)
 
-    return tf.gather(dist, rand_indices), \
-        tf.gather(tre, rand_indices), \
+    return tf.gather(tre, rand_indices), \
         tf.gather(sea, rand_indices), \
+        tf.gather(res, rand_indices), \
         tf.gather(ts, rand_indices)
 
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-channel=$1
+model_id=$1
 resume_training=$2
 nr_of_epochs=$3
 
@@ -21,11 +21,11 @@ cd ../app_training/
 
 main() {
 
-    echo "starting to pre-train" $channel
+    echo "starting to pre-train" $model_id
 
     docker-compose run --rm app_training \
         pre_train.py \
-        --channel=$channel \
+        --model_id=$model_id \
         --resume_training=$resume_training \
         --nr_of_epochs=$nr_of_epochs \
         --mask_rate=$mask_rate \
@@ -41,7 +41,7 @@ main() {
         --warmup_steps=$warmup_steps \
         --scale_factor=$scale_factor
 
-    echo "pre-training is successfull for " $channel
+    echo "pre-training is successfull for " $model_id
 
 }
 

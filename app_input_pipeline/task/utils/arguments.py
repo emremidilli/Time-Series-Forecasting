@@ -12,11 +12,11 @@ def get_input_args_pre_training():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        '--channel',
+        '--model_id',
         required=False,
-        default='ETTh1',
+        default='model_01',
         type=str,
-        help='channel')
+        help='model_id')
 
     parser.add_argument(
         '--patch_size',
@@ -26,32 +26,11 @@ def get_input_args_pre_training():
         help='patch_size')
 
     parser.add_argument(
-        '--pool_size_reduction',
-        required=False,
-        default=2,
-        type=int,
-        help='pool_size_reduction')
-
-    parser.add_argument(
         '--pool_size_trend',
         required=False,
         default=2,
         type=int,
         help='pool_size_trend')
-
-    parser.add_argument(
-        '--nr_of_bins',
-        required=False,
-        default=10,
-        type=int,
-        help='nr_of_bins')
-
-    parser.add_argument(
-        '--pre_train_ratio',
-        required=False,
-        default=0.10,
-        type=float,
-        help='pre_train_ratio')
 
     try:
         args = parser.parse_args()
@@ -67,11 +46,11 @@ def get_input_args_fine_tuning():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        '--channel',
+        '--model_id',
         required=False,
         default='ETTh1',
         type=str,
-        help='channel')
+        help='model_id')
 
     parser.add_argument(
         '--patch_size',
