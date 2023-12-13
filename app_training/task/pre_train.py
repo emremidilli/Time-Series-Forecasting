@@ -36,9 +36,11 @@ if __name__ == '__main__':
         os.environ['ARTIFACTS_NAME'],
         model_id,
         'pre_train')
+
     custom_ckpt_dir = os.path.join(artifacts_dir, 'checkpoints', 'ckpt')
     saved_model_dir = os.path.join(artifacts_dir, 'saved_model')
     tensorboard_log_dir = os.path.join(artifacts_dir, 'tboard_logs')
+    csv_logs_dir = os.path.join(artifacts_dir, 'csv_logs', 'training.log')
     dataset_dir = os.path.join(
         os.environ['BIN_NAME'],
         os.environ['PREPROCESSED_NAME'],
@@ -68,6 +70,11 @@ if __name__ == '__main__':
         write_images=False,
         histogram_freq=1,
         profile_batch='50,70')
+
+    csv_logger_callback = tf.keras.callbacks.CSVLogger(
+        filename=csv_logs_dir,
+        separator=";",
+        append=True)
 
     terminate_on_nan_callback = tf.keras.callbacks.TerminateOnNaN()
 
@@ -103,6 +110,8 @@ if __name__ == '__main__':
         shutil.rmtree(artifacts_dir, ignore_errors=True)
         os.makedirs(artifacts_dir)
 
+        os.makedirs(os.path.dirname(csv_logs_dir))
+
     model.compile(
         mae_optimizer=mae_optimizer,
         cl_optimizer=cl_optimizer)
@@ -125,7 +134,8 @@ if __name__ == '__main__':
             ram_cleaner_callback,
             # tensorboard_callback,
             learning_rate_callback,
-            checkpoint_callback])
+            checkpoint_callback,
+            csv_logger_callback])
 
     model.save(
         saved_model_dir,
