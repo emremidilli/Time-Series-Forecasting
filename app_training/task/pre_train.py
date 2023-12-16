@@ -7,7 +7,7 @@ import tensorflow as tf
 from tsf_model import PreTraining
 
 from utils import PreTrainingCheckpointCallback, LearningRateCallback, \
-    RamCleaner, get_pre_training_args, get_data_format_config
+    RamCleaner, get_pre_training_args, get_data_format_config, train_test_split
 
 
 if __name__ == '__main__':
@@ -30,12 +30,12 @@ if __name__ == '__main__':
     projection_head = args.projection_head
     warmup_steps = args.warmup_steps
     scale_factor = args.scale_factor
+    validation_rate = args.validation_rate
 
     artifacts_dir = os.path.join(
         os.environ['BIN_NAME'],
         os.environ['ARTIFACTS_NAME'],
-        model_id,
-        'pre_train')
+        model_id)
 
     custom_ckpt_dir = os.path.join(artifacts_dir, 'checkpoints', 'ckpt')
     saved_model_dir = os.path.join(artifacts_dir, 'saved_model')
@@ -53,8 +53,14 @@ if __name__ == '__main__':
             os.environ['FORMATTED_NAME'],
             model_id))
 
-    ds_train = tf.data.Dataset.load(path=dataset_dir)
-    tre, _, _, _ = next(iter(ds_train))
+    ds = tf.data.Dataset.load(path=dataset_dir)
+    tre, _, _, _ = next(iter(ds))
+
+    ds_train = ds
+    ds_val = None
+    if validation_rate > 0:
+        ds_train, ds_val = train_test_split(ds, test_rate=validation_rate)
+        ds_val = ds_val.batch(mini_batch_size).prefetch(tf.data.AUTOTUNE)
 
     ds_train = ds_train.batch(mini_batch_size).prefetch(tf.data.AUTOTUNE)
 
@@ -125,6 +131,7 @@ if __name__ == '__main__':
     print(f'tensorboard --logdir=".{tensorboard_log_dir}" --bind_all')
     history = model.fit(
         ds_train,
+        validation_data=ds_val,
         epochs=args.nr_of_epochs,
         verbose=2,
         initial_epoch=starting_epoch,

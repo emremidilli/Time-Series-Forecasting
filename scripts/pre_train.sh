@@ -16,6 +16,7 @@ dropout_rate=0.10
 mini_batch_size=128
 mask_rate=0.70
 mask_scalar=0.001
+validation_rate=0.15
 
 cd ../app_training/
 
@@ -39,7 +40,8 @@ main() {
         --embedding_dims=$embedding_dims \
         --projection_head=$projection_head \
         --warmup_steps=$warmup_steps \
-        --scale_factor=$scale_factor
+        --scale_factor=$scale_factor \
+        --validation_rate=$validation_rate
 
     echo "pre-training is successfull for " $model_id
 

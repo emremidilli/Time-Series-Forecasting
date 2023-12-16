@@ -110,6 +110,13 @@ def get_pre_training_args():
         type=float,
         help='mask_rate')
 
+    parser.add_argument(
+        '--validation_rate',
+        required=False,
+        default=0.15,
+        type=float,
+        help='validation_rate')
+
     try:
         args = parser.parse_args()
     except:
