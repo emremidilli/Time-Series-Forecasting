@@ -17,6 +17,8 @@ mini_batch_size=128
 mask_rate=0.70
 mask_scalar=0.001
 validation_rate=0.15
+mae_threshold=0.10
+cl_threshold=0.25
 
 cd ../app_training/
 
@@ -41,7 +43,9 @@ main() {
         --projection_head=$projection_head \
         --warmup_steps=$warmup_steps \
         --scale_factor=$scale_factor \
-        --validation_rate=$validation_rate
+        --validation_rate=$validation_rate \
+        --mae_threshold=$mae_threshold \
+        --cl_threshold=$cl_threshold
 
     echo "pre-training is successfull for " $model_id
 

@@ -117,6 +117,20 @@ def get_pre_training_args():
         type=float,
         help='validation_rate')
 
+    parser.add_argument(
+        '--mae_threshold',
+        required=False,
+        default=0.1,
+        type=float,
+        help='mae_threshold')
+
+    parser.add_argument(
+        '--cl_threshold',
+        required=False,
+        default=0.1,
+        type=float,
+        help='cl_threshold')
+
     try:
         args = parser.parse_args()
     except:

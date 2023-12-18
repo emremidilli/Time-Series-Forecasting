@@ -22,6 +22,8 @@ class PreTraining(tf.keras.Model):
             msk_scalar,
             nr_of_lookback_patches,
             nr_of_forecast_patches,
+            mae_threshold,
+            cl_threshold,
             **kwargs):
         super().__init__(**kwargs)
 
@@ -40,8 +42,7 @@ class PreTraining(tf.keras.Model):
             nr_of_heads,
             dropout_rate,
             encoder_ffn_units,
-            embedding_dims
-        )
+            embedding_dims)
 
         self.lookback_forecast_concatter = tf.keras.layers.Concatenate(axis=1)
 
@@ -61,6 +62,9 @@ class PreTraining(tf.keras.Model):
         self.projection_head = ProjectionHead(projection_head_units,
                                               name='projection_head')
 
+        self.mae_threshold = mae_threshold
+        self.cl_threshold = cl_threshold
+
         # learning rate tracker
         self.lr_tracker = tf.keras.metrics.Mean(name='lr')
         # losses
@@ -76,6 +80,8 @@ class PreTraining(tf.keras.Model):
         self.cos_res = tf.keras.metrics.CosineSimilarity(name='cos_res')
         self.cos_true = tf.keras.metrics.CosineSimilarity(name='cos_true')
         self.cos_false = tf.keras.metrics.CosineSimilarity(name='cos_false')
+
+        self.task_to_train = tf.Variable('mae')
 
     def compile(self, mae_optimizer, cl_optimizer, **kwargs):
         super().compile(**kwargs)
@@ -187,6 +193,8 @@ class PreTraining(tf.keras.Model):
             1. masked patch prediction
             2. contrastive learning
         '''
+        self.task_to_train.assign('mae')
+
         anchor_tre, anchor_sea, anchor_res, dates = data
 
         # masked auto-encoder
@@ -207,16 +215,22 @@ class PreTraining(tf.keras.Model):
 
             loss_mpp = loss_tre + loss_sea + loss_res
 
-        # compute gradients
-        trainable_vars = self.encoder_representation.trainable_variables + \
-            self.decoder_tre.trainable_variables + \
-            self.decoder_sea.trainable_variables + \
-            self.decoder_res.trainable_variables
-        gradients = tape.gradient(loss_mpp, trainable_vars)
+        if tf.reduce_mean(loss_tre) > self.mae_threshold or \
+            tf.reduce_mean(loss_sea) > self.mae_threshold or \
+                tf.reduce_mean(loss_res) > self.mae_threshold:
+            # compute gradients
+            trainable_vars = \
+                self.encoder_representation.trainable_variables + \
+                self.decoder_tre.trainable_variables + \
+                self.decoder_sea.trainable_variables + \
+                self.decoder_res.trainable_variables
+            gradients = tape.gradient(loss_mpp, trainable_vars)
 
-        # update weights
-        self.mae_optimizer.apply_gradients(
-            zip(gradients, trainable_vars))
+            # update weights
+            self.mae_optimizer.apply_gradients(
+                zip(gradients, trainable_vars))
+        else:
+            self.task_to_train.assign('cl')
 
         # compute own metrics
         self.loss_tracker_mpp.update_state(loss_mpp)
@@ -248,17 +262,19 @@ class PreTraining(tf.keras.Model):
                 tf.square(y_logits_anchor - y_logits_true), -1)
             distance_false = tf.reduce_sum(
                 tf.square(y_logits_anchor - y_logits_false), -1)
-            loss_cl = tf.maximum(
-                distance_true - distance_false + self.margin, 0.0)
+            loss_cl = \
+                tf.maximum(distance_true - distance_false + self.margin, 0.0)
 
-        # compute gradients
-        trainable_vars = self.encoder_representation.trainable_variables + \
-            self.projection_head.trainable_variables
-        gradients = tape.gradient(loss_cl, trainable_vars)
+        if self.task_to_train == 'cl':
+            # compute gradients
+            trainable_vars = \
+                self.encoder_representation.trainable_variables + \
+                self.projection_head.trainable_variables
+            gradients = tape.gradient(loss_cl, trainable_vars)
 
-        # update weights
-        self.cl_optimizer.apply_gradients(
-            zip(gradients, trainable_vars))
+            # update weights
+            self.cl_optimizer.apply_gradients(
+                zip(gradients, trainable_vars))
 
         # compute own metrics
         self.loss_tracker_cl.update_state(loss_cl)

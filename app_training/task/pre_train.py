@@ -31,6 +31,8 @@ if __name__ == '__main__':
     warmup_steps = args.warmup_steps
     scale_factor = args.scale_factor
     validation_rate = args.validation_rate
+    mae_threshold = args.mae_threshold
+    cl_threshold = args.cl_threshold
 
     artifacts_dir = os.path.join(
         os.environ['BIN_NAME'],
@@ -105,7 +107,9 @@ if __name__ == '__main__':
         msk_rate=mask_rate,
         msk_scalar=mask_scalar,
         nr_of_lookback_patches=nr_of_lookback_patches,
-        nr_of_forecast_patches=nr_of_forecast_patches)
+        nr_of_forecast_patches=nr_of_forecast_patches,
+        mae_threshold=mae_threshold,
+        cl_threshold=cl_threshold)
     if resume_training == 'Y':
         starting_epoch, starting_step, model, mae_optimizer, cl_optimizer = \
             checkpoint_callback.get_most_recent_ckpt(
