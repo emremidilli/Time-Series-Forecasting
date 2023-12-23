@@ -94,7 +94,7 @@ def get_pre_training_args():
     parser.add_argument(
         '--nr_of_epochs',
         required=False,
-        default=200,
+        default=10,
         type=int,
         help='nr_of_epochs')
     parser.add_argument(

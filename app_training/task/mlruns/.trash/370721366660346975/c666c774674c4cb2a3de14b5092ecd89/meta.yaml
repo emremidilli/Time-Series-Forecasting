@@ -1,0 +1,16 @@
+artifact_uri: file:///workspace/mlruns/370721366660346975/c666c774674c4cb2a3de14b5092ecd89/artifacts
+deleted_time: 1703285113821
+end_time: 1703285061846
+entry_point_name: ''
+experiment_id: '370721366660346975'
+lifecycle_stage: deleted
+run_id: c666c774674c4cb2a3de14b5092ecd89
+run_name: carefree-dog-894
+run_uuid: c666c774674c4cb2a3de14b5092ecd89
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1703285061829
+status: 4
+tags: []
+user_id: root

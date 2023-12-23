@@ -1,0 +1,16 @@
+artifact_uri: file:///workspace/mlruns/370721366660346975/80737c0e77d548a685b4ff083a75c899/artifacts
+deleted_time: 1703327529304
+end_time: 1703285218912
+entry_point_name: ''
+experiment_id: '370721366660346975'
+lifecycle_stage: deleted
+run_id: 80737c0e77d548a685b4ff083a75c899
+run_name: thundering-fish-934
+run_uuid: 80737c0e77d548a685b4ff083a75c899
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1703285218891
+status: 3
+tags: []
+user_id: root

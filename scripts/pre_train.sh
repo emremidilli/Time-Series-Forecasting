@@ -1,30 +1,29 @@
 #!/bin/bash
 
-model_id=$1
-resume_training=$2
-nr_of_epochs=$3
-
-clip_norm=1.0
-warmup_steps=1000
-scale_factor=0.10
-nr_of_encoder_blocks=1
-nr_of_heads=1
-encoder_ffn_units=256
-embedding_dims=256
-projection_head=16
-dropout_rate=0.10
-mini_batch_size=128
+model_id="model_01"
+resume_training="N"
+nr_of_epochs=100
 mask_rate=0.70
 mask_scalar=0.001
 validation_rate=0.15
+mini_batch_size=128
 mae_threshold=0.10
 cl_threshold=0.25
 
 cd ../app_training/
 
 main() {
+    clip_norm=$1 # 1.0
+    warmup_steps=$2 # 1000
+    scale_factor=$3 # 0.10
+    nr_of_encoder_blocks=$4 # 1
+    nr_of_heads=$5 # 1
+    encoder_ffn_units=$6 # 256
+    embedding_dims=$7 # 256
+    projection_head=$8 # 16
+    dropout_rate=$9 # 0.10
 
-    echo "starting to pre-train" $model_id
+    echo "starting to pre-train"
 
     docker-compose run --rm app_training \
         pre_train.py \
@@ -47,8 +46,12 @@ main() {
         --mae_threshold=$mae_threshold \
         --cl_threshold=$cl_threshold
 
-    echo "pre-training is successfull for " $model_id
+    echo "pre-training is completed"
 
 }
 
-main
+main 1.0 4000 1.0 1 1 32 32 32 0.10
+
+main 1.0 4000 1.0 1 1 64 64 32 0.10
+
+main 1.0 4000 1.0 1 1 128 128 32 0.10

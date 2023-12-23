@@ -1,3 +1,5 @@
+import mlflow
+
 import os
 
 import shutil
@@ -7,14 +9,20 @@ import tensorflow as tf
 from tsf_model import PreTraining
 
 from utils import PreTrainingCheckpointCallback, LearningRateCallback, \
-    RamCleaner, get_pre_training_args, get_data_format_config, train_test_split
+    RamCleaner, get_pre_training_args, get_data_format_config, \
+    train_test_split
 
 
 if __name__ == '__main__':
-    '''Pre-trains a foundation model.'''
+    '''
+    Pre-trains a foundation model.
+    Each training job is logged to databricks with mlflow.
+    This job can be interrupted by the user.
+    After interruption, it can be re-run and continue to training
+        from where it left.
+    '''
 
     args = get_pre_training_args()
-    print(args)
 
     model_id = args.model_id
     resume_training = args.resume_training
@@ -33,6 +41,8 @@ if __name__ == '__main__':
     validation_rate = args.validation_rate
     mae_threshold = args.mae_threshold
     cl_threshold = args.cl_threshold
+
+    mlflow.login()
 
     artifacts_dir = os.path.join(
         os.environ['BIN_NAME'],
@@ -144,13 +154,25 @@ if __name__ == '__main__':
             terminate_on_nan_callback,
             ram_cleaner_callback,
             # tensorboard_callback,
+            # csv_logger_callback,
             learning_rate_callback,
-            checkpoint_callback,
-            csv_logger_callback])
+            checkpoint_callback])
 
-    model.save(
-        saved_model_dir,
-        overwrite=True,
-        save_format='tf')
+    mlflow.set_tracking_uri("databricks")
+    mlflow.set_experiment(f'/{model_id}')
+
+    with mlflow.start_run():
+        history_logs = history.history
+        mlflow.log_params(vars(args))
+        mlflow.log_table(
+            data=history_logs,
+            artifact_file="history_logs.json")
+
+        for metric in list(history_logs.keys()):
+            mlflow.log_metric(metric, history_logs[metric][-1])
+
+        mlflow.tensorflow.log_model(
+            model,
+            artifact_path='saved_model')
 
     print('Training completed.')
