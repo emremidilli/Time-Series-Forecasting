@@ -41,6 +41,7 @@ if __name__ == '__main__':
     validation_rate = args.validation_rate
     mae_threshold = args.mae_threshold
     cl_threshold = args.cl_threshold
+    save_model = args.save_model
 
     mlflow.login()
 
@@ -50,7 +51,6 @@ if __name__ == '__main__':
         model_id)
 
     custom_ckpt_dir = os.path.join(artifacts_dir, 'checkpoints', 'ckpt')
-    saved_model_dir = os.path.join(artifacts_dir, 'saved_model')
     tensorboard_log_dir = os.path.join(artifacts_dir, 'tboard_logs')
     csv_logs_dir = os.path.join(artifacts_dir, 'csv_logs', 'training.log')
     dataset_dir = os.path.join(
@@ -171,8 +171,9 @@ if __name__ == '__main__':
         for metric in list(history_logs.keys()):
             mlflow.log_metric(metric, history_logs[metric][-1])
 
-        mlflow.tensorflow.log_model(
-            model,
-            artifact_path='saved_model')
+        if save_model == "Y":
+            mlflow.tensorflow.log_model(
+                model,
+                artifact_path='saved_model')
 
     print('Training completed.')

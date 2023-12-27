@@ -25,6 +25,14 @@ def get_pre_training_args():
         type=str,
         help='resume_training')
 
+    parser.add_argument(
+        '--save_model',
+        required=False,
+        default='N',
+        choices=['Y', 'N'],
+        type=str,
+        help='save_model')
+
     # Optimizer-related hyperparameters.
     parser.add_argument(
         '--clip_norm',

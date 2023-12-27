@@ -9,6 +9,7 @@ validation_rate=0.15
 mini_batch_size=128
 mae_threshold=0.10
 cl_threshold=0.25
+save_model="N"
 
 cd ../app_training/
 
@@ -44,14 +45,25 @@ main() {
         --scale_factor=$scale_factor \
         --validation_rate=$validation_rate \
         --mae_threshold=$mae_threshold \
-        --cl_threshold=$cl_threshold
+        --cl_threshold=$cl_threshold \
+        --save_model=$save_model
 
     echo "pre-training is completed"
 
 }
 
-main 1.0 4000 1.0 1 1 32 32 32 0.10
+# main 1.0 4000 1.0 1 1 32 32 32 0.10
+# main 1.0 4000 1.0 1 1 64 64 32 0.10
+# main 1.0 4000 1.0 1 1 128 128 32 0.10
 
-main 1.0 4000 1.0 1 1 64 64 32 0.10
+# main 1.0 4000 1.0 1 1 16 16 32 0.10
+# main 1.0 4000 1.0 1 1 16 16 64 0.10
+# main 1.0 4000 1.0 1 1 16 16 128 0.10
 
-main 1.0 4000 1.0 1 1 128 128 32 0.10
+# main 1.0 4000 1.0 2 1 32 32 32 0.10
+# main 1.0 4000 1.0 3 1 32 32 32 0.10
+# main 1.0 4000 1.0 4 1 32 32 32 0.10
+
+# main 1.0 4000 1.0 1 2 32 32 32 0.10
+# main 1.0 4000 1.0 1 3 32 32 32 0.10
+# main 1.0 4000 1.0 1 4 32 32 32 0.10
