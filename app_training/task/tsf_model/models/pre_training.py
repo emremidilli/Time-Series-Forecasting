@@ -24,7 +24,36 @@ class PreTraining(tf.keras.Model):
             nr_of_forecast_patches,
             mae_threshold,
             cl_threshold,
+            pre_processor,
             **kwargs):
+        '''
+        args:
+            nr_of_encoder_blocks (int):
+                number of blocks of transformer encoders.
+            nr_of_heads (int):
+                number of attention heads of transformer encoders.
+            dropout_rate (float):
+                dropout rate.
+            encoder_ffn_units (int):
+                units of feed-forward networks of transformer encoders.
+            embedding_dims (int): embedding dimension.
+            projection_head_units (int):
+                units of projection head of contrastive learning.
+            reduced_dims (int):
+                value of features dimension of a single patch.
+            msk_rate (float): masking rate of the input patches.
+            msk_scalar (float): values of the masked tokens.
+            nr_of_lookback_patches (int):
+                number of lookback patches.
+            nr_of_forecast_patches (int):
+                number of forecast patches.
+            mae_threshold (float):
+                stop criteria for masked autoencoder task.
+            cl_threshold (float):
+                stop criteria for contrastive learning task.
+            pre_processor (tf.keras.Model):
+                pre processor model from app_input_pipeline.
+        '''
         super().__init__(**kwargs)
 
         self.margin = 0.10
@@ -62,6 +91,8 @@ class PreTraining(tf.keras.Model):
         self.projection_head = ProjectionHead(projection_head_units,
                                               name='projection_head')
 
+        self.pre_processor = pre_processor
+
         self.mae_threshold = mae_threshold
         self.cl_threshold = cl_threshold
 
@@ -80,6 +111,9 @@ class PreTraining(tf.keras.Model):
         self.cos_res = tf.keras.metrics.CosineSimilarity(name='cos_res')
         self.cos_true = tf.keras.metrics.CosineSimilarity(name='cos_true')
         self.cos_false = tf.keras.metrics.CosineSimilarity(name='cos_false')
+
+        self.mae_composed = \
+            tf.keras.metrics.MeanAbsoluteError(name='mae_composed')
 
         self.task_to_train = tf.Variable('mae')
 
@@ -105,6 +139,21 @@ class PreTraining(tf.keras.Model):
         self.compile(
             mae_optimizer=mae_optimizer,
             cl_optimizer=cl_optimizer)
+
+    def get_config(self):
+        config = super().get_config()
+        config.update(
+            {
+                'pre_processor': self.pre_processor,
+            }
+        )
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        config['pre_processor'] = tf.keras.layers.deserialize(
+            config['pre_processor'])
+        return cls(**config)
 
     def mask_patches(self, data):
         '''
@@ -285,19 +334,34 @@ class PreTraining(tf.keras.Model):
 
         self.lr_tracker.update_state(self.cl_optimizer.lr)
 
+        # compose components
+        anchor_composed = \
+            self.pre_processor.tre_denormalizer(anchor_tre) + \
+            self.pre_processor.sea_denormalizer(anchor_sea) + \
+            self.pre_processor.res_denormalizer(anchor_res)
+
+        pred_composed = \
+            self.pre_processor.tre_denormalizer(y_pred_tre) + \
+            self.pre_processor.sea_denormalizer(y_pred_sea) + \
+            self.pre_processor.res_denormalizer(y_pred_res)
+
+        self.mae_composed.update_state(
+            y_pred=pred_composed,
+            y_true=anchor_composed)
+
         dic = {
             'loss_mpp': self.loss_tracker_mpp.result(),
             'loss_cl': self.loss_tracker_cl.result(),
             'mae_tre': self.mae_tre.result(),
             'mae_sea': self.mae_sea.result(),
             'mae_res': self.mae_res.result(),
+            'mae_composed': self.mae_composed.result(),
             'cos_tre': self.cos_tre.result(),
             'cos_sea': self.cos_sea.result(),
             'cos_res': self.cos_res.result(),
             'cos_true': self.cos_true.result(),
             'cos_false': self.cos_false.result(),
-            'lr': self.lr_tracker.result()
-        }
+            'lr': self.lr_tracker.result()}
 
         return dic
 
@@ -381,18 +445,33 @@ class PreTraining(tf.keras.Model):
         self.cos_false.update_state(
             y_true=y_logits_anchor, y_pred=y_logits_false)
 
+        # compose components
+        anchor_composed = \
+            self.pre_processor.tre_denormalizer(anchor_tre) + \
+            self.pre_processor.sea_denormalizer(anchor_sea) + \
+            self.pre_processor.res_denormalizer(anchor_res)
+
+        pred_composed = \
+            self.pre_processor.tre_denormalizer(y_pred_tre) + \
+            self.pre_processor.sea_denormalizer(y_pred_sea) + \
+            self.pre_processor.res_denormalizer(y_pred_res)
+
+        self.mae_composed.update_state(
+            y_pred=pred_composed,
+            y_true=anchor_composed)
+
         dic = {
             'loss_mpp': self.loss_tracker_mpp.result(),
             'loss_cl': self.loss_tracker_cl.result(),
             'mae_tre': self.mae_tre.result(),
             'mae_sea': self.mae_sea.result(),
             'mae_res': self.mae_res.result(),
+            'mae_composed': self.mae_composed.result(),
             'cos_tre': self.cos_tre.result(),
             'cos_sea': self.cos_sea.result(),
             'cos_res': self.cos_res.result(),
             'cos_true': self.cos_true.result(),
-            'cos_false': self.cos_false.result(),
-        }
+            'cos_false': self.cos_false.result()}
 
         return dic
 

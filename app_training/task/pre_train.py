@@ -59,6 +59,12 @@ if __name__ == '__main__':
         model_id,
         'dataset')
 
+    input_pipeline_dir = os.path.join(
+        os.environ['BIN_NAME'],
+        os.environ['PREPROCESSED_NAME'],
+        model_id,
+        'input_preprocessor')
+
     config = get_data_format_config(
         folder_path=os.path.join(
             os.environ['BIN_NAME'],
@@ -104,6 +110,8 @@ if __name__ == '__main__':
     nr_of_forecast_patches = int(tre.shape[0] / (lookback_coefficient + 1))
     nr_of_lookback_patches = int(nr_of_forecast_patches * lookback_coefficient)
 
+    pre_processor = tf.keras.models.load_model(input_pipeline_dir)
+
     starting_epoch = 0
     starting_step = 0
     model = PreTraining(
@@ -119,7 +127,8 @@ if __name__ == '__main__':
         nr_of_lookback_patches=nr_of_lookback_patches,
         nr_of_forecast_patches=nr_of_forecast_patches,
         mae_threshold=mae_threshold,
-        cl_threshold=cl_threshold)
+        cl_threshold=cl_threshold,
+        pre_processor=pre_processor)
     if resume_training == 'Y':
         starting_epoch, starting_step, model, mae_optimizer, cl_optimizer = \
             checkpoint_callback.get_most_recent_ckpt(

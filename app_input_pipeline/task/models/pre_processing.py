@@ -6,7 +6,7 @@ from layers import PatchTokenizer, TrendSeasonalityTokenizer
 class InputPreProcessorPT(tf.keras.Model):
     '''
     Preprocess for input of pre-training.
-    Trend, seasonility and residual components are prepared.
+    Time series decomposition is applied.
     The components are normalized.
     '''
     def __init__(self,
@@ -30,14 +30,24 @@ class InputPreProcessorPT(tf.keras.Model):
         self.res_normalizer = tf.keras.layers.Normalization(axis=None)
         self.ts_normalizer = tf.keras.layers.Normalization(axis=1)
 
+        self.tre_denormalizer = \
+            tf.keras.layers.Normalization(axis=None, invert=True)
+        self.sea_denormalizer = \
+            tf.keras.layers.Normalization(axis=None, invert=True)
+        self.res_denormalizer = \
+            tf.keras.layers.Normalization(axis=None, invert=True)
+        self.ts_denormalizer = \
+            tf.keras.layers.Normalization(axis=1, invert=True)
+
     def adapt(self, inputs):
         '''
         Adapts the mean and standard deviation of components.
-        inputs: tuple of 3 elements.
-        Each element is a tf.data.Dataset object.
-            1. x_lb: (None, timesteps, covariates)
-            2. x_fc: (None, timesteps, covariates)
-            3. x_ts: (None, features)
+        args:
+            inputs (tuple) - tuple of 3 elements.
+                Each element is a tf.data.Dataset object.
+                1. x_lb: (None, timesteps, covariates)
+                2. x_fc: (None, timesteps, covariates)
+                3. x_ts: (None, features)
         '''
         x_lb, x_fc, x_ts = inputs
 
@@ -58,15 +68,21 @@ class InputPreProcessorPT(tf.keras.Model):
         self.res_normalizer.adapt(x_res)
         self.ts_normalizer.adapt(x_ts)
 
+        self.tre_denormalizer.adapt(x_tre)
+        self.sea_denormalizer.adapt(x_sea)
+        self.res_denormalizer.adapt(x_res)
+        self.ts_denormalizer.adapt(x_ts)
+
     def call(self, inputs, training=False):
         '''
-        inputs: tuple of 3 elements.
-        Each element is a tf.data.Dataset object.
-            1. x_lb: (None, timesteps, covariates)
-            2. x_fc: (None, timesteps, covariates)
-            3. x_ts: (None, features)
+        args:
+            inputs (tuple): tuple of 3 elements.
+                Each element is a tf.data.Dataset object.
+                1. x_lb: (None, timesteps, covariates)
+                2. x_fc: (None, timesteps, covariates)
+                3. x_ts: (None, features)
 
-        returns tuple of 4 elemements.
+        returns:
             1. y_tre: (None, timesteps, features)
             2. y_sea: (None, timesteps, features)
             3. y_res: (None, timesteps, features)

@@ -54,6 +54,7 @@ if __name__ == '__main__':
     ds_train.save(
         os.path.join(sub_dir, 'dataset'))
 
-    tf.saved_model.save(
-        obj=input_pre_processor,
-        export_dir=os.path.join(sub_dir, 'input_preprocessor'))
+    input_pre_processor.save(
+        os.path.join(sub_dir, 'input_preprocessor'),
+        overwrite=True,
+        save_format='tf')
