@@ -30,8 +30,15 @@ class TrendSeasonalityTokenizer(tf.keras.layers.Layer):
     A tokenizer that decomposes a time-series into
     trend, seasonality and residual components.
     '''
-    def __init__(self, pool_size_trend, nr_of_covariates, **kwargs):
+    def __init__(
+            self,
+            pool_size_trend,
+            nr_of_covariates,
+            sigma,
+            **kwargs):
         super().__init__(**kwargs)
+
+        self.sigma = sigma
 
         self.avg_pool_trend = tf.keras.layers.AveragePooling1D(
             pool_size=pool_size_trend,
@@ -77,10 +84,10 @@ class TrendSeasonalityTokenizer(tf.keras.layers.Layer):
             sea_to_add = tf.subtract(to_decompose, tre_to_add)
 
             mu = tf.reduce_mean(sea_to_add)
-            std = tf.reduce_mean(sea_to_add)
+            std = tf.math.reduce_std(sea_to_add)
 
-            ucl = tf.add(mu, tf.multiply(std, 3))
-            lcl = tf.add(mu, tf.multiply(std, -3))
+            ucl = tf.add(mu, tf.multiply(std, self.sigma))
+            lcl = tf.add(mu, tf.multiply(std, -self.sigma))
 
             ucl = tf.zeros_like(sea_to_add) + ucl
             lcl = tf.zeros_like(sea_to_add) + lcl

@@ -13,6 +13,7 @@ class InputPreProcessorPT(tf.keras.Model):
                  patch_size,
                  pool_size_trend,
                  nr_of_covariates,
+                 sigma,
                  **kwargs):
         super().__init__(**kwargs)
 
@@ -22,7 +23,8 @@ class InputPreProcessorPT(tf.keras.Model):
 
         self.trend_seasonality_tokenizer = TrendSeasonalityTokenizer(
             pool_size_trend=pool_size_trend,
-            nr_of_covariates=nr_of_covariates)
+            nr_of_covariates=nr_of_covariates,
+            sigma=sigma)
         self.lb_fc_concatter = tf.keras.layers.Concatenate(axis=1)
 
         self.tre_normalizer = tf.keras.layers.Normalization(axis=None)

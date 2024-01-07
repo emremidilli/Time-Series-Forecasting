@@ -32,6 +32,13 @@ def get_input_args_pre_training():
         type=int,
         help='pool_size_trend')
 
+    parser.add_argument(
+        '--sigma',
+        required=False,
+        default=3,
+        type=float,
+        help='sigma')
+
     try:
         args = parser.parse_args()
     except:

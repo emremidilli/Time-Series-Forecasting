@@ -1,7 +1,8 @@
 #!/bin/bash
 
 patch_size=24
-pool_size_trend=2
+pool_size_trend=24
+sigma=3.0
 
 main() {
     model_id=$1
@@ -12,9 +13,10 @@ main() {
         pre_train.py \
         --model_id=$model_id \
         --patch_size=$patch_size \
-        --pool_size_trend=$pool_size_trend
+        --pool_size_trend=$pool_size_trend \
+        --sigma=$sigma
 
     echo "Bulding input pipelines is successfull for " $model_id
 }
 
-main "model_01"
+main "model_02"

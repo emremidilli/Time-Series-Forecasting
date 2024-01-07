@@ -1,8 +1,8 @@
 #!/bin/bash
 
-model_id="model_01"
+model_id="model_02"
 resume_training="Y"
-nr_of_epochs=4000
+nr_of_epochs=5000
 mask_rate=0.10
 mask_scalar=0.001
 validation_rate=0.15
@@ -52,7 +52,7 @@ main() {
 
 }
 
-main 10.0 4000 10.0 1 1 32 32 32 0.10
+main 1.0 4000 10.0 1 1 32 32 32 0.10
 # main 1.0 4000 1.0 1 1 64 64 32 0.10
 # main 1.0 4000 1.0 1 1 128 128 32 0.10
 
