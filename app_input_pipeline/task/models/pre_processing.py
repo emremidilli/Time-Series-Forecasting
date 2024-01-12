@@ -17,6 +17,10 @@ class InputPreProcessorPT(tf.keras.Model):
                  **kwargs):
         super().__init__(**kwargs)
 
+        self.data_normalizer = tf.keras.layers.Normalization(axis=None)
+        self.data_denormalizer = \
+            tf.keras.layers.Normalization(axis=None, invert=True)
+
         self.patch_tokenizer = PatchTokenizer(
             patch_size=patch_size,
             nr_of_covariates=nr_of_covariates)
@@ -53,16 +57,16 @@ class InputPreProcessorPT(tf.keras.Model):
         '''
         x_lb, x_fc, x_ts = inputs
 
-        x_lb = self.patch_tokenizer(x_lb)
-        x_fc = self.patch_tokenizer(x_fc)
+        x_lb_fc = self.lb_fc_concatter((x_lb, x_fc))
 
-        x_lb_tre, x_lb_sea, x_lb_res = self.trend_seasonality_tokenizer(x_lb)
+        x_lb_fc = self.patch_tokenizer(x_lb_fc)
 
-        x_fc_tre, x_fc_sea, x_fc_res = self.trend_seasonality_tokenizer(x_fc)
+        self.data_normalizer.adapt(x_lb_fc)
+        self.data_denormalizer.adapt(x_lb_fc)
+        x_lb_fc = self.data_normalizer(x_lb_fc)
 
-        x_tre = self.lb_fc_concatter((x_lb_tre, x_fc_tre))
-        x_sea = self.lb_fc_concatter((x_lb_sea, x_fc_sea))
-        x_res = self.lb_fc_concatter((x_lb_res, x_fc_res))
+        x_tre, x_sea, x_res = self.trend_seasonality_tokenizer(x_lb_fc)
+
         x_ts = tf.cast(x_ts, dtype=tf.float32)
 
         self.tre_normalizer.adapt(x_tre)
@@ -93,16 +97,14 @@ class InputPreProcessorPT(tf.keras.Model):
 
         x_lb, x_fc, x_ts = inputs
 
-        x_lb = self.patch_tokenizer(x_lb)
-        x_fc = self.patch_tokenizer(x_fc)
+        x_lb_fc = self.lb_fc_concatter((x_lb, x_fc))
 
-        x_lb_tre, x_lb_sea, x_lb_res = self.trend_seasonality_tokenizer(x_lb)
+        x_lb_fc = self.patch_tokenizer(x_lb_fc)
 
-        x_fc_tre, x_fc_sea, x_fc_res = self.trend_seasonality_tokenizer(x_fc)
+        x_lb_fc = self.data_normalizer(x_lb_fc)
 
-        x_tre = self.lb_fc_concatter((x_lb_tre, x_fc_tre))
-        x_sea = self.lb_fc_concatter((x_lb_sea, x_fc_sea))
-        x_res = self.lb_fc_concatter((x_lb_res, x_fc_res))
+        x_tre, x_sea, x_res = self.trend_seasonality_tokenizer(x_lb_fc)
+
         x_ts = tf.cast(x_ts, dtype=tf.float32)
 
         y_tre = self.tre_normalizer(x_tre)

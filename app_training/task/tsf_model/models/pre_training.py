@@ -115,6 +115,9 @@ class PreTraining(tf.keras.Model):
         self.mae_composed = \
             tf.keras.metrics.MeanAbsoluteError(name='mae_composed')
 
+        self.mae_original = \
+            tf.keras.metrics.MeanAbsoluteError(name='mae_original')
+
         self.task_to_train = tf.Variable('mae')
 
     def compile(self, mae_optimizer, cl_optimizer, **kwargs):
@@ -250,6 +253,9 @@ class PreTraining(tf.keras.Model):
             self.pre_processor.sea_denormalizer(anchor_sea) + \
             self.pre_processor.res_denormalizer(anchor_res)
 
+        anchor_original = \
+            self.pre_processor.data_denormalizer(anchor_composed)
+
         # masked auto-encoder (mae)
         msk_tre, msk_sea, msk_res = self.mask_patches(
             (anchor_tre, anchor_sea, anchor_res))
@@ -262,6 +268,9 @@ class PreTraining(tf.keras.Model):
                 self.pre_processor.tre_denormalizer(y_pred_tre) + \
                 self.pre_processor.sea_denormalizer(y_pred_sea) + \
                 self.pre_processor.res_denormalizer(y_pred_res)
+
+            pred_original = \
+                self.pre_processor.data_denormalizer(pred_composed)
 
             # compute the loss value
             loss_mae = tf.keras.losses.mean_squared_error(
@@ -288,6 +297,9 @@ class PreTraining(tf.keras.Model):
         self.mae_composed.update_state(
             y_pred=pred_composed,
             y_true=anchor_composed)
+        self.mae_original.update_state(
+            y_pred=pred_original,
+            y_true=anchor_original)
         self.mae_tre.update_state(y_pred=y_pred_tre, y_true=anchor_tre)
         self.mae_sea.update_state(y_pred=y_pred_sea, y_true=anchor_sea)
         self.mae_res.update_state(y_pred=y_pred_res, y_true=anchor_res)
@@ -346,6 +358,7 @@ class PreTraining(tf.keras.Model):
             'mae_sea': self.mae_sea.result(),
             'mae_res': self.mae_res.result(),
             'mae_composed': self.mae_composed.result(),
+            'mae_original': self.mae_original.result(),
             'cos_tre': self.cos_tre.result(),
             'cos_sea': self.cos_sea.result(),
             'cos_res': self.cos_res.result(),
@@ -382,6 +395,9 @@ class PreTraining(tf.keras.Model):
             self.pre_processor.sea_denormalizer(anchor_sea) + \
             self.pre_processor.res_denormalizer(anchor_res)
 
+        anchor_original = \
+            self.pre_processor.data_denormalizer(anchor_composed)
+
         # mask the patches
         msk_tre, msk_sea, msk_res = self.mask_patches(
             (anchor_tre, anchor_sea, anchor_res))
@@ -394,6 +410,9 @@ class PreTraining(tf.keras.Model):
             self.pre_processor.sea_denormalizer(y_pred_sea) + \
             self.pre_processor.res_denormalizer(y_pred_res)
 
+        pred_original = \
+            self.pre_processor.data_denormalizer(pred_composed)
+
         # compute the loss value
         loss_mae = tf.keras.losses.mean_squared_error(
             y_pred=pred_composed, y_true=anchor_composed)
@@ -403,6 +422,9 @@ class PreTraining(tf.keras.Model):
         self.mae_composed.update_state(
             y_pred=pred_composed,
             y_true=anchor_composed)
+        self.mae_original.update_state(
+            y_pred=pred_original,
+            y_true=anchor_original)
         self.mae_tre.update_state(y_pred=y_pred_tre, y_true=anchor_tre)
         self.mae_sea.update_state(y_pred=y_pred_sea, y_true=anchor_sea)
         self.mae_res.update_state(y_pred=y_pred_res, y_true=anchor_res)
@@ -448,6 +470,7 @@ class PreTraining(tf.keras.Model):
             'mae_sea': self.mae_sea.result(),
             'mae_res': self.mae_res.result(),
             'mae_composed': self.mae_composed.result(),
+            'mae_original': self.mae_original.result(),
             'cos_tre': self.cos_tre.result(),
             'cos_sea': self.cos_sea.result(),
             'cos_res': self.cos_res.result(),

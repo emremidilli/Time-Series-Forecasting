@@ -19,4 +19,4 @@ main() {
     echo "Bulding input pipelines is successfull for " $model_id
 }
 
-main "model_02"
+main "model_03"

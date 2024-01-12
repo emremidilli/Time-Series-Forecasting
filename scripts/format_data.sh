@@ -30,6 +30,4 @@ main() {
     echo "successfull for "$model_id
 }
 
-# main "model_01" "ETTh1" "['OT']" 96 2 12 "h" "['month','day','dayofweek','hour']"
-
-main "model_02" "ETTh1" "['OT']" 96 2 24 "h" "['month','day','dayofweek']"
+main "model_03" "ETTh1" "['OT']" 96 2 24 "h" "['month','day','dayofweek']"
