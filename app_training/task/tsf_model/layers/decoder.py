@@ -4,31 +4,32 @@ import tensorflow as tf
 
 
 class MppDecoder(tf.keras.layers.Layer):
-    '''Decoder for masked patch prediction task.'''
-    def __init__(self, iFfnUnits, nr_of_time_steps, **kwargs):
+    '''Decoder for masked auto-encoder.'''
+    def __init__(self, nr_of_time_steps, nr_of_covariates, **kwargs):
         super().__init__(**kwargs)
 
         self.flatten = tf.keras.layers.Flatten()
 
         self.dense = tf.keras.layers.Dense(
-            units=iFfnUnits * nr_of_time_steps,
+            units=nr_of_time_steps * nr_of_covariates,
             use_bias=False)
 
-        self.layer_norm = tf.keras.layers.LayerNormalization()
-
-        self.reshape = tf.keras.layers.Reshape(
-            target_shape=(nr_of_time_steps, iFfnUnits))
+        self.reshaper = tf.keras.layers.Reshape(
+            target_shape=(nr_of_time_steps, nr_of_covariates))
 
     def call(self, x):
         '''
-        x: (None, timesteps, feature)
-        y: (None, timesteps, feature)
+        args:
+            x: (None, timesteps, covariates)
+
+        returns:
+            y: (None, timesteps, covariates)
         '''
         x = self.flatten(x)
 
         y = self.dense(x)
-        y = self.layer_norm(y)
-        y = self.reshape(y)
+
+        y = self.reshaper(y)
 
         return y
 

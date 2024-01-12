@@ -2,7 +2,7 @@
 
 model_id="model_03"
 resume_training="Y"
-nr_of_epochs=20000
+nr_of_epochs=3000
 mask_rate=0.10
 mask_scalar=0.001
 validation_rate=0.15
@@ -10,6 +10,7 @@ mini_batch_size=128
 mae_threshold=0.10
 cl_threshold=0.25
 save_model="N"
+patch_size=24
 
 cd ../app_training/
 
@@ -46,10 +47,11 @@ main() {
         --validation_rate=$validation_rate \
         --mae_threshold=$mae_threshold \
         --cl_threshold=$cl_threshold \
-        --save_model=$save_model
+        --save_model=$save_model \
+        --patch_size=$patch_size
 
     echo "pre-training is completed"
 
 }
 
-main 1.0 4000 0.10 6 1 128 128 32 0.10
+main 1.0 4000 1.0 6 1 128 128 32 0.10

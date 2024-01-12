@@ -14,21 +14,14 @@ def get_input_args_pre_training():
     parser.add_argument(
         '--model_id',
         required=False,
-        default='model_01',
+        default='model_03',
         type=str,
         help='model_id')
 
     parser.add_argument(
-        '--patch_size',
-        required=False,
-        default=24,
-        type=int,
-        help='patch_size')
-
-    parser.add_argument(
         '--pool_size_trend',
         required=False,
-        default=2,
+        default=24,
         type=int,
         help='pool_size_trend')
 

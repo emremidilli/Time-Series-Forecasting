@@ -1,7 +1,8 @@
 import tensorflow as tf
 
 from tsf_model.layers import Representation, \
-    MppDecoder, ProjectionHead, PatchMasker, PatchShifter
+    MppDecoder, ProjectionHead, PatchMasker, PatchShifter, \
+    ReversibleInstanceNormalization, PatchTokenizer
 
 
 class PreTraining(tf.keras.Model):
@@ -11,6 +12,8 @@ class PreTraining(tf.keras.Model):
     '''
     def __init__(
             self,
+            nr_of_covariates,
+            patch_size,
             nr_of_encoder_blocks,
             nr_of_heads,
             dropout_rate,
@@ -28,6 +31,10 @@ class PreTraining(tf.keras.Model):
             **kwargs):
         '''
         args:
+            nr_of_covariates (int):
+                number of covariates.
+            patch_size (int):
+                number of timesteps in a patch.
             nr_of_encoder_blocks (int):
                 number of blocks of transformer encoders.
             nr_of_heads (int):
@@ -58,6 +65,25 @@ class PreTraining(tf.keras.Model):
 
         self.margin = 0.10
 
+        self.nr_of_covariates = nr_of_covariates
+        self.patch_size = patch_size
+
+        self.revIn_tre = ReversibleInstanceNormalization(
+            nr_of_covariates=nr_of_covariates,
+            epsilon=1e-6)
+
+        self.revIn_sea = ReversibleInstanceNormalization(
+            nr_of_covariates=nr_of_covariates,
+            epsilon=1e-6)
+
+        self.revIn_res = ReversibleInstanceNormalization(
+            nr_of_covariates=nr_of_covariates,
+            epsilon=1e-6)
+
+        self.patch_tokenizer = PatchTokenizer(
+            patch_size=patch_size,
+            nr_of_covariates=nr_of_covariates)
+
         self.nr_of_lookback_patches = nr_of_lookback_patches
         self.nr_of_forecast_patches = nr_of_forecast_patches
 
@@ -75,21 +101,24 @@ class PreTraining(tf.keras.Model):
 
         self.lookback_forecast_concatter = tf.keras.layers.Concatenate(axis=1)
 
+        nr_of_timesteps = (nr_of_lookback_patches + nr_of_forecast_patches)
+        nr_of_timesteps = nr_of_timesteps * patch_size
         self.decoder_tre = MppDecoder(
-            reduced_dims,
-            nr_of_lookback_patches + nr_of_forecast_patches,
+            nr_of_time_steps=nr_of_timesteps,
+            nr_of_covariates=nr_of_covariates,
             name='decoder_tre')
         self.decoder_sea = MppDecoder(
-            reduced_dims,
-            nr_of_lookback_patches + nr_of_forecast_patches,
+            nr_of_time_steps=nr_of_timesteps,
+            nr_of_covariates=nr_of_covariates,
             name='decoder_sea')
         self.decoder_res = MppDecoder(
-            reduced_dims,
-            nr_of_lookback_patches + nr_of_forecast_patches,
+            nr_of_time_steps=nr_of_timesteps,
+            nr_of_covariates=nr_of_covariates,
             name='decoder_res')
 
-        self.projection_head = ProjectionHead(projection_head_units,
-                                              name='projection_head')
+        self.projection_head = ProjectionHead(
+            projection_head_units,
+            name='projection_head')
 
         self.pre_processor = pre_processor
 
@@ -241,6 +270,12 @@ class PreTraining(tf.keras.Model):
     @tf.function()
     def train_step(self, data):
         '''
+        args:
+            anchor_tre: (None, timesteps, covariates)
+            anchor_sea: (None, timesteps, covariates)
+            anchor_res: (None, timesteps, covariates)
+            dates: (None, features)
+
         trains a step in two phases:
             1. masked patch prediction
             2. contrastive learning
@@ -248,42 +283,33 @@ class PreTraining(tf.keras.Model):
         self.task_to_train.assign('mae')
 
         anchor_tre, anchor_sea, anchor_res, dates = data
-        anchor_composed = \
-            self.pre_processor.tre_denormalizer(anchor_tre) + \
-            self.pre_processor.sea_denormalizer(anchor_sea) + \
-            self.pre_processor.res_denormalizer(anchor_res)
-
+        anchor_composed = anchor_tre + anchor_sea + anchor_res
         anchor_original = \
             self.pre_processor.data_denormalizer(anchor_composed)
 
         # masked auto-encoder (mae)
-        msk_tre, msk_sea, msk_res = self.mask_patches(
-            (anchor_tre, anchor_sea, anchor_res))
-
         with tf.GradientTape() as tape:
-            y_pred_tre, y_pred_sea, y_pred_res = self(
-                (msk_tre, msk_sea, msk_res, dates))
-
-            pred_composed = \
-                self.pre_processor.tre_denormalizer(y_pred_tre) + \
-                self.pre_processor.sea_denormalizer(y_pred_sea) + \
-                self.pre_processor.res_denormalizer(y_pred_res)
+            y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed = \
+                self(data, mask=True)
 
             pred_original = \
-                self.pre_processor.data_denormalizer(pred_composed)
+                self.pre_processor.data_denormalizer(y_pred_composed)
 
             # compute the loss value
             loss_mae = tf.keras.losses.mean_squared_error(
-                y_pred=pred_composed, y_true=anchor_composed)
+                y_pred=y_pred_composed, y_true=anchor_composed)
 
             trainable_vars = \
+                self.revIn_tre.trainable_variables + \
+                self.revIn_sea.trainable_variables + \
+                self.revIn_res.trainable_variables + \
                 self.encoder_representation.trainable_variables + \
                 self.decoder_tre.trainable_variables + \
                 self.decoder_sea.trainable_variables + \
                 self.decoder_res.trainable_variables
 
         if tf.reduce_mean(loss_mae) > self.mae_threshold:
-
+            # compute gradients
             gradients = tape.gradient(loss_mae, trainable_vars)
 
             # update weights
@@ -295,7 +321,7 @@ class PreTraining(tf.keras.Model):
         # compute own metrics
         self.loss_tracker_mae.update_state(loss_mae)
         self.mae_composed.update_state(
-            y_pred=pred_composed,
+            y_pred=y_pred_composed,
             y_true=anchor_composed)
         self.mae_original.update_state(
             y_pred=pred_original,
@@ -308,20 +334,9 @@ class PreTraining(tf.keras.Model):
         self.cos_res.update_state(y_pred=y_pred_res, y_true=anchor_res)
 
         # contrastive learning
-        tre_true, sea_true, res_true, tre_false, sea_false, res_false = \
-            self.augment_pairs((anchor_tre, anchor_sea, anchor_res))
-
         with tf.GradientTape() as tape:
-            x_cont_temp_true = self.encoder_representation(
-                (tre_true, sea_true, res_true, dates))
-            x_cont_temp_false = self.encoder_representation(
-                (tre_false, sea_false, res_false, dates))
-            x_cont_temp_anchor = self.encoder_representation(
-                (anchor_tre, anchor_sea, anchor_res, dates))
-
-            y_logits_false = self.projection_head(x_cont_temp_false)
-            y_logits_true = self.projection_head(x_cont_temp_true)
-            y_logits_anchor = self.projection_head(x_cont_temp_anchor)
+            y_logits_false, y_logits_true, y_logits_anchor = \
+                self.call_contrastive_learning(data)
 
             # compute the loss value
             distance_true = tf.reduce_sum(
@@ -334,6 +349,9 @@ class PreTraining(tf.keras.Model):
         if self.task_to_train == 'cl':
             # compute gradients
             trainable_vars = \
+                self.revIn_tre.trainable_variables + \
+                self.revIn_sea.trainable_variables + \
+                self.revIn_res.trainable_variables + \
                 self.encoder_representation.trainable_variables + \
                 self.projection_head.trainable_variables
             gradients = tape.gradient(loss_cl, trainable_vars)
@@ -390,37 +408,25 @@ class PreTraining(tf.keras.Model):
 
     def test_step(self, data):
         anchor_tre, anchor_sea, anchor_res, dates = data
-        anchor_composed = \
-            self.pre_processor.tre_denormalizer(anchor_tre) + \
-            self.pre_processor.sea_denormalizer(anchor_sea) + \
-            self.pre_processor.res_denormalizer(anchor_res)
+        anchor_composed = anchor_tre + anchor_sea + anchor_res
 
         anchor_original = \
             self.pre_processor.data_denormalizer(anchor_composed)
 
-        # mask the patches
-        msk_tre, msk_sea, msk_res = self.mask_patches(
-            (anchor_tre, anchor_sea, anchor_res))
-
-        y_pred_tre, y_pred_sea, y_pred_res = \
-            self((msk_tre, msk_sea, msk_res, dates))
-
-        pred_composed = \
-            self.pre_processor.tre_denormalizer(y_pred_tre) + \
-            self.pre_processor.sea_denormalizer(y_pred_sea) + \
-            self.pre_processor.res_denormalizer(y_pred_res)
+        y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed = \
+            self(data, mask=True)
 
         pred_original = \
-            self.pre_processor.data_denormalizer(pred_composed)
+            self.pre_processor.data_denormalizer(y_pred_composed)
 
         # compute the loss value
         loss_mae = tf.keras.losses.mean_squared_error(
-            y_pred=pred_composed, y_true=anchor_composed)
+            y_pred=pred_original, y_true=anchor_composed)
 
         # compute own metrics
         self.loss_tracker_mae.update_state(loss_mae)
         self.mae_composed.update_state(
-            y_pred=pred_composed,
+            y_pred=pred_original,
             y_true=anchor_composed)
         self.mae_original.update_state(
             y_pred=pred_original,
@@ -433,21 +439,8 @@ class PreTraining(tf.keras.Model):
         self.cos_res.update_state(y_pred=y_pred_res, y_true=anchor_res)
 
         # augment pairs
-        tre_true, sea_true, res_true, tre_false, sea_false, res_false = \
-            self.augment_pairs((anchor_tre, anchor_sea, anchor_res))
-
-        x_cont_temp_true = \
-            self.encoder_representation(
-                (tre_true, sea_true, res_true, dates))
-        x_cont_temp_false = \
-            self.encoder_representation(
-                (tre_false, sea_false, res_false, dates))
-        x_cont_temp_anchor = self.encoder_representation(
-            (anchor_tre, anchor_sea, anchor_res, dates))
-
-        y_logits_false = self.projection_head(x_cont_temp_false)
-        y_logits_true = self.projection_head(x_cont_temp_true)
-        y_logits_anchor = self.projection_head(x_cont_temp_anchor)
+        y_logits_false, y_logits_true, y_logits_anchor = \
+            self.call_contrastive_learning(data)
 
         # compute the loss value
         distance_true = tf.reduce_sum(
@@ -479,18 +472,87 @@ class PreTraining(tf.keras.Model):
 
         return dic
 
-    def call(self, inputs):
+    def call_contrastive_learning(self, inputs):
         '''
-        input: tuple of 4 arrays.
-            1. dist: (none, timesteps, features)
-            2. tre: (none, timesteps, features)
-            3. sea: (none, timesteps, features)
-            4. date: (none, features)
+        args:
+            inputs:
+                1. tre: (none, timesteps, covariates)
+                2. sea: (none, timesteps, covariates)
+                3. res: (none, timesteps, covariates)
+                4. dates: (none, features)
         '''
-        y_cont_temp = self.encoder_representation(inputs)
+
+        tre, sea, res, dates = inputs
+
+        # instance normalize
+        tre = self.revIn_tre(tre)
+        sea = self.revIn_sea(sea)
+        res = self.revIn_res(res)
+
+        # tokenize timesteps into patches
+        tre = self.patch_tokenizer(tre)
+        sea = self.patch_tokenizer(sea)
+        res = self.patch_tokenizer(res)
+
+        tre_true, sea_true, res_true, tre_false, sea_false, res_false = \
+            self.augment_pairs((tre, sea, res))
+        x_cont_temp_true = self.encoder_representation(
+            (tre_true, sea_true, res_true, dates))
+        x_cont_temp_false = self.encoder_representation(
+            (tre_false, sea_false, res_false, dates))
+        x_cont_temp_anchor = self.encoder_representation(
+            (tre, sea, res, dates))
+
+        y_logits_false = self.projection_head(x_cont_temp_false)
+        y_logits_true = self.projection_head(x_cont_temp_true)
+        y_logits_anchor = self.projection_head(x_cont_temp_anchor)
+
+        return y_logits_false, y_logits_true, y_logits_anchor
+
+    def call(self, inputs, mask=False):
+        '''
+        args:
+            tre: (None, timesteps, covariates)
+            sea: (None, timesteps, covariates)
+            res: (None, timesteps, covariates)
+            dates: (None, features)
+        returns:
+            y_pred_tre: (None, timesteps, covariates)
+            y_pred_sea: (None, timesteps, covariates),
+            y_pred_res: (None, timesteps, covariates)
+            y_pred_composed: (None, timesteps, covariates)
+        '''
+
+        tre, sea, res, dates = inputs
+
+        # instance normalize
+        tre_norm = self.revIn_tre(tre)
+        sea_norm = self.revIn_sea(sea)
+        res_norm = self.revIn_res(res)
+
+        # tokenize timesteps into patches
+        tre_patch = self.patch_tokenizer(tre_norm)
+        sea_patch = self.patch_tokenizer(sea_norm)
+        res_patch = self.patch_tokenizer(res_norm)
+
+        if mask is True:
+            # masked some patches
+            tre_patch, sea_patch, res_patch = self.mask_patches(
+                (tre_patch, sea_patch, res_patch))
+
+        y_cont_temp = self.encoder_representation(
+            (tre_patch, sea_patch, res_patch, dates))
 
         y_pred_tre = self.decoder_tre(y_cont_temp)
         y_pred_sea = self.decoder_sea(y_cont_temp)
         y_pred_res = self.decoder_res(y_cont_temp)
 
-        return (y_pred_tre, y_pred_sea, y_pred_res)
+        # instance denormalize
+        y_pred_tre = self.revIn_tre.denormalize((tre, y_pred_tre))
+        y_pred_sea = self.revIn_sea.denormalize((sea, y_pred_sea))
+        y_pred_res = self.revIn_res.denormalize((res, y_pred_res))
+
+        # compose
+        y_pred_composed = y_pred_tre + y_pred_sea + y_pred_res
+
+        return (y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed)

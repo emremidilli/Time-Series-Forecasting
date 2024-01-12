@@ -17,7 +17,6 @@ if __name__ == '__main__':
     print(args)
 
     model_id = args.model_id
-    patch_size = args.patch_size
     pool_size_trend = args.pool_size_trend
     sigma = args.sigma
 
@@ -37,7 +36,6 @@ if __name__ == '__main__':
 
     nr_of_covariates = lb_train.shape[-1]
     input_pre_processor = InputPreProcessorPT(
-        patch_size=patch_size,
         pool_size_trend=pool_size_trend,
         nr_of_covariates=nr_of_covariates,
         sigma=sigma)

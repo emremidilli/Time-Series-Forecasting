@@ -14,7 +14,7 @@ def get_pre_training_args():
     parser.add_argument(
         '--model_id',
         required=False,
-        default='model_01',
+        default='model_03',
         type=str,
         help='model_id')
     parser.add_argument(
@@ -138,6 +138,13 @@ def get_pre_training_args():
         default=0.1,
         type=float,
         help='cl_threshold')
+
+    parser.add_argument(
+        '--patch_size',
+        required=False,
+        default=24,
+        type=int,
+        help='patch_size')
 
     try:
         args = parser.parse_args()

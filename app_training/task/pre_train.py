@@ -42,6 +42,7 @@ if __name__ == '__main__':
     mae_threshold = args.mae_threshold
     cl_threshold = args.cl_threshold
     save_model = args.save_model
+    patch_size = args.patch_size
 
     mlflow.login()
 
@@ -108,6 +109,7 @@ if __name__ == '__main__':
 
     lookback_coefficient = config['lookback_coefficient']
     nr_of_forecast_patches = int(tre.shape[0] / (lookback_coefficient + 1))
+    nr_of_forecast_patches = int(nr_of_forecast_patches / patch_size)
     nr_of_lookback_patches = int(nr_of_forecast_patches * lookback_coefficient)
 
     pre_processor = tf.keras.models.load_model(input_pipeline_dir)
@@ -115,6 +117,8 @@ if __name__ == '__main__':
     starting_epoch = 0
     starting_step = 0
     model = PreTraining(
+        nr_of_covariates=tre.shape[-1],
+        patch_size=patch_size,
         nr_of_encoder_blocks=nr_of_encoder_blocks,
         nr_of_heads=nr_of_heads,
         dropout_rate=dropout_rate,

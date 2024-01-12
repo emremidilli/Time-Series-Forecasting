@@ -10,38 +10,24 @@ class InputPreProcessorPT(tf.keras.Model):
     The components are normalized.
     '''
     def __init__(self,
-                 patch_size,
                  pool_size_trend,
                  nr_of_covariates,
                  sigma,
                  **kwargs):
         super().__init__(**kwargs)
 
-        self.data_normalizer = tf.keras.layers.Normalization(axis=None)
-        self.data_denormalizer = \
-            tf.keras.layers.Normalization(axis=None, invert=True)
-
-        self.patch_tokenizer = PatchTokenizer(
-            patch_size=patch_size,
-            nr_of_covariates=nr_of_covariates)
-
         self.trend_seasonality_tokenizer = TrendSeasonalityTokenizer(
             pool_size_trend=pool_size_trend,
             nr_of_covariates=nr_of_covariates,
             sigma=sigma)
+
         self.lb_fc_concatter = tf.keras.layers.Concatenate(axis=1)
 
-        self.tre_normalizer = tf.keras.layers.Normalization(axis=None)
-        self.sea_normalizer = tf.keras.layers.Normalization(axis=None)
-        self.res_normalizer = tf.keras.layers.Normalization(axis=None)
-        self.ts_normalizer = tf.keras.layers.Normalization(axis=1)
+        self.data_normalizer = tf.keras.layers.Normalization(axis=None)
+        self.data_denormalizer = \
+            tf.keras.layers.Normalization(axis=None, invert=True)
 
-        self.tre_denormalizer = \
-            tf.keras.layers.Normalization(axis=None, invert=True)
-        self.sea_denormalizer = \
-            tf.keras.layers.Normalization(axis=None, invert=True)
-        self.res_denormalizer = \
-            tf.keras.layers.Normalization(axis=None, invert=True)
+        self.ts_normalizer = tf.keras.layers.Normalization(axis=1)
         self.ts_denormalizer = \
             tf.keras.layers.Normalization(axis=1, invert=True)
 
@@ -59,24 +45,11 @@ class InputPreProcessorPT(tf.keras.Model):
 
         x_lb_fc = self.lb_fc_concatter((x_lb, x_fc))
 
-        x_lb_fc = self.patch_tokenizer(x_lb_fc)
-
         self.data_normalizer.adapt(x_lb_fc)
         self.data_denormalizer.adapt(x_lb_fc)
-        x_lb_fc = self.data_normalizer(x_lb_fc)
-
-        x_tre, x_sea, x_res = self.trend_seasonality_tokenizer(x_lb_fc)
 
         x_ts = tf.cast(x_ts, dtype=tf.float32)
-
-        self.tre_normalizer.adapt(x_tre)
-        self.sea_normalizer.adapt(x_sea)
-        self.res_normalizer.adapt(x_res)
         self.ts_normalizer.adapt(x_ts)
-
-        self.tre_denormalizer.adapt(x_tre)
-        self.sea_denormalizer.adapt(x_sea)
-        self.res_denormalizer.adapt(x_res)
         self.ts_denormalizer.adapt(x_ts)
 
     def call(self, inputs, training=False):
@@ -99,28 +72,12 @@ class InputPreProcessorPT(tf.keras.Model):
 
         x_lb_fc = self.lb_fc_concatter((x_lb, x_fc))
 
-        x_lb_fc = self.patch_tokenizer(x_lb_fc)
-
         x_lb_fc = self.data_normalizer(x_lb_fc)
 
-        x_tre, x_sea, x_res = self.trend_seasonality_tokenizer(x_lb_fc)
+        y_tre, y_sea, y_res = self.trend_seasonality_tokenizer(x_lb_fc)
 
         x_ts = tf.cast(x_ts, dtype=tf.float32)
-
-        y_tre = self.tre_normalizer(x_tre)
-        y_sea = self.sea_normalizer(x_sea)
-        y_res = self.res_normalizer(x_res)
         y_ts = self.ts_normalizer(x_ts)
-
-        y_tre = tf.reshape(
-            tensor=y_tre,
-            shape=(tf.shape(y_tre)[0], tf.shape(y_tre)[1], -1))
-        y_sea = tf.reshape(
-            tensor=y_sea,
-            shape=(tf.shape(y_sea)[0], tf.shape(y_sea)[1], -1))
-        y_res = tf.reshape(
-            tensor=y_res,
-            shape=(tf.shape(y_res)[0], tf.shape(y_res)[1], -1))
 
         return (y_tre, y_sea, y_res, y_ts)
 
