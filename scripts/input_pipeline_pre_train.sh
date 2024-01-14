@@ -2,6 +2,7 @@
 
 pool_size_trend=24
 sigma=3.0
+scale_data="N"
 
 main() {
     model_id=$1
@@ -12,7 +13,8 @@ main() {
         pre_train.py \
         --model_id=$model_id \
         --pool_size_trend=$pool_size_trend \
-        --sigma=$sigma
+        --sigma=$sigma \
+        --scale_data=$scale_data
 
     echo "Bulding input pipelines is successfull for " $model_id
 }

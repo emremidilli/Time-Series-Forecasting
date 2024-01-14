@@ -19,6 +19,11 @@ if __name__ == '__main__':
     model_id = args.model_id
     pool_size_trend = args.pool_size_trend
     sigma = args.sigma
+    scale_data = args.scale_data
+    if scale_data.upper().strip() == 'Y':
+        scale_data = True
+    else:
+        scale_data = False
 
     training_data_folder = os.path.join(
         os.environ['BIN_NAME'],
@@ -38,7 +43,8 @@ if __name__ == '__main__':
     input_pre_processor = InputPreProcessorPT(
         pool_size_trend=pool_size_trend,
         nr_of_covariates=nr_of_covariates,
-        sigma=sigma)
+        sigma=sigma,
+        scale_data=scale_data)
 
     input_pre_processor.adapt((lb_train, fc_train, ts_train))
     tre, sea, res, ts = input_pre_processor((lb_train, fc_train, ts_train))

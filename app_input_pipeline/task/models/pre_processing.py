@@ -13,8 +13,18 @@ class InputPreProcessorPT(tf.keras.Model):
                  pool_size_trend,
                  nr_of_covariates,
                  sigma,
+                 scale_data,
                  **kwargs):
         super().__init__(**kwargs)
+        '''
+        args:
+            pool_size_trend (int): average pool size for trend component.
+            nr_of_covariates (int):  number of covariates.
+            sigma (float): standard deviation to calculate residuals.
+            scale_data (bool): to scale dataset or not.
+        '''
+
+        self.scale_data = scale_data
 
         self.trend_seasonality_tokenizer = TrendSeasonalityTokenizer(
             pool_size_trend=pool_size_trend,
@@ -23,9 +33,13 @@ class InputPreProcessorPT(tf.keras.Model):
 
         self.lb_fc_concatter = tf.keras.layers.Concatenate(axis=1)
 
-        self.data_normalizer = tf.keras.layers.Normalization(axis=None)
-        self.data_denormalizer = \
-            tf.keras.layers.Normalization(axis=None, invert=True)
+        if scale_data is True:
+            self.data_normalizer = tf.keras.layers.Normalization(axis=None)
+            self.data_denormalizer = \
+                tf.keras.layers.Normalization(axis=None, invert=True)
+        else:
+            self.data_normalizer = tf.keras.layers.Identity(trainable=False)
+            self.data_denormalizer = tf.keras.layers.Identity(trainable=False)
 
         self.ts_normalizer = tf.keras.layers.Normalization(axis=1)
         self.ts_denormalizer = \
@@ -45,8 +59,9 @@ class InputPreProcessorPT(tf.keras.Model):
 
         x_lb_fc = self.lb_fc_concatter((x_lb, x_fc))
 
-        self.data_normalizer.adapt(x_lb_fc)
-        self.data_denormalizer.adapt(x_lb_fc)
+        if self.scale_data is True:
+            self.data_normalizer.adapt(x_lb_fc)
+            self.data_denormalizer.adapt(x_lb_fc)
 
         x_ts = tf.cast(x_ts, dtype=tf.float32)
         self.ts_normalizer.adapt(x_ts)

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 model_id="model_03"
-resume_training="Y"
+resume_training="N"
 nr_of_epochs=3000
 mask_rate=0.10
 mask_scalar=0.001

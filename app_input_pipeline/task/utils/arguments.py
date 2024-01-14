@@ -32,6 +32,14 @@ def get_input_args_pre_training():
         type=float,
         help='sigma')
 
+    parser.add_argument(
+        '--scale_data',
+        required=False,
+        choices=['Y', 'N'],
+        default='Y',
+        type=str,
+        help='scale_data')
+
     try:
         args = parser.parse_args()
     except:
