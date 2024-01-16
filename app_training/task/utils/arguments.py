@@ -20,7 +20,7 @@ def get_pre_training_args():
     parser.add_argument(
         '--resume_training',
         required=False,
-        default='N',
+        default='Y',
         choices=['Y', 'N'],
         type=str,
         help='resume_training')
@@ -57,31 +57,31 @@ def get_pre_training_args():
     parser.add_argument(
         '--nr_of_encoder_blocks',
         required=False,
-        default=1,
+        default=6,
         type=int,
         help='nr_of_encoder_blocks')
     parser.add_argument(
         '--nr_of_heads',
         required=False,
-        default=4,
+        default=1,
         type=int,
         help='nr_of_heads')
     parser.add_argument(
         '--encoder_ffn_units',
         required=False,
-        default=16,
+        default=128,
         type=int,
         help='encoder_ffn_units')
     parser.add_argument(
         '--embedding_dims',
         required=False,
-        default=16,
+        default=128,
         type=int,
         help='embedding_dims')
     parser.add_argument(
         '--projection_head',
         required=False,
-        default=8,
+        default=32,
         type=int,
         help='projection_head')
     parser.add_argument(
@@ -95,20 +95,20 @@ def get_pre_training_args():
     parser.add_argument(
         '--mini_batch_size',
         required=False,
-        default=64,
+        default=128,
         type=int,
         help='mini_batch_size')
 
     parser.add_argument(
         '--nr_of_epochs',
         required=False,
-        default=10,
+        default=35000,
         type=int,
         help='nr_of_epochs')
     parser.add_argument(
         '--mask_scalar',
         required=False,
-        default=0.53,
+        default=0.001,
         type=float,
         help='mask_scalar')
     parser.add_argument(
@@ -135,7 +135,7 @@ def get_pre_training_args():
     parser.add_argument(
         '--cl_threshold',
         required=False,
-        default=0.1,
+        default=0.25,
         type=float,
         help='cl_threshold')
 

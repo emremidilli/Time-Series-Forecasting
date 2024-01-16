@@ -20,7 +20,6 @@ class PreTraining(tf.keras.Model):
             encoder_ffn_units,
             embedding_dims,
             projection_head_units,
-            reduced_dims,
             msk_rate,
             msk_scalar,
             nr_of_lookback_patches,
@@ -46,8 +45,6 @@ class PreTraining(tf.keras.Model):
             embedding_dims (int): embedding dimension.
             projection_head_units (int):
                 units of projection head of contrastive learning.
-            reduced_dims (int):
-                value of features dimension of a single patch.
             msk_rate (float): masking rate of the input patches.
             msk_scalar (float): values of the masked tokens.
             nr_of_lookback_patches (int):

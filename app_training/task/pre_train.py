@@ -125,7 +125,6 @@ if __name__ == '__main__':
         encoder_ffn_units=encoder_ffn_units,
         embedding_dims=embedding_dims,
         projection_head_units=projection_head,
-        reduced_dims=tre.shape[1],
         msk_rate=mask_rate,
         msk_scalar=mask_scalar,
         nr_of_lookback_patches=nr_of_lookback_patches,

@@ -1,9 +1,9 @@
 #!/bin/bash
 
 model_id="model_03"
-resume_training="N"
-nr_of_epochs=3000
-mask_rate=0.10
+resume_training="Y"
+nr_of_epochs=35000
+mask_rate=0.40
 mask_scalar=0.001
 validation_rate=0.15
 mini_batch_size=128
