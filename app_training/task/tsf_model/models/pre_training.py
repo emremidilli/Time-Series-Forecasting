@@ -24,8 +24,11 @@ class PreTraining(tf.keras.Model):
             msk_scalar,
             nr_of_lookback_patches,
             nr_of_forecast_patches,
-            mae_threshold,
+            mae_threshold_comp,
+            mae_threshold_tre,
+            mae_threshold_sea,
             cl_threshold,
+            cl_margin,
             pre_processor,
             **kwargs):
         '''
@@ -51,16 +54,23 @@ class PreTraining(tf.keras.Model):
                 number of lookback patches.
             nr_of_forecast_patches (int):
                 number of forecast patches.
-            mae_threshold (float):
-                stop criteria for masked autoencoder task.
+            mae_threshold_comp (float):
+                stop criteria of composed value for masked autoencoder task.
+            mae_threshold_tre (float):
+                stop criteria of trend component for masked autoencoder task.
+            mae_threshold_sea (float):
+                stop criteria of seasonality component for
+                masked autoencoder task.
             cl_threshold (float):
                 stop criteria for contrastive learning task.
+            cl_margin (float):
+                margin for triple contrastive learning loss
             pre_processor (tf.keras.Model):
                 pre processor model from app_input_pipeline.
         '''
         super().__init__(**kwargs)
 
-        self.margin = 0.10
+        self.cl_margin = cl_margin
 
         self.nr_of_covariates = nr_of_covariates
         self.patch_size = patch_size
@@ -119,13 +129,20 @@ class PreTraining(tf.keras.Model):
 
         self.pre_processor = pre_processor
 
-        self.mae_threshold = mae_threshold
+        self.mae_threshold_comp = mae_threshold_comp
+        self.mae_threshold_tre = mae_threshold_tre
+        self.mae_threshold_sea = mae_threshold_sea
         self.cl_threshold = cl_threshold
 
         # learning rate tracker
         self.lr_tracker = tf.keras.metrics.Mean(name='lr')
         # losses
-        self.loss_tracker_mae = tf.keras.metrics.Mean(name='loss_mae')
+        self.loss_tracker_mae_comp = \
+            tf.keras.metrics.Mean(name='loss_mae_comp')
+        self.loss_tracker_mae_tre = \
+            tf.keras.metrics.Mean(name='loss_mae_tre')
+        self.loss_tracker_mae_sea = \
+            tf.keras.metrics.Mean(name='loss_mae_sea')
         self.loss_tracker_cl = tf.keras.metrics.Mean(name='loss_cl')
 
         # metrics
@@ -146,27 +163,41 @@ class PreTraining(tf.keras.Model):
 
         self.task_to_train = tf.Variable('mae')
 
-    def compile(self, mae_optimizer, cl_optimizer, **kwargs):
+    def compile(
+            self,
+            mae_comp_optimizer,
+            mae_tre_optimizer,
+            mae_sea_optimizer,
+            cl_optimizer,
+            **kwargs):
         super().compile(**kwargs)
 
-        self.mae_optimizer = mae_optimizer
+        self.mae_comp_optimizer = mae_comp_optimizer
+        self.mae_tre_optimizer = mae_tre_optimizer
+        self.mae_sea_optimizer = mae_sea_optimizer
         self.cl_optimizer = cl_optimizer
 
     def get_compile_config(self):
         cfg = super().get_compile_config()
         cfg.update({
-            'mae_optimizer': self.mae_optimizer,
+            'mae_comp_optimizer': self.mae_comp_optimizer,
+            'mae_tre_optimizer': self.mae_tre_optimizer,
+            'mae_sea_optimizer': self.mae_sea_optimizer,
             'cl_optimizer': self.cl_optimizer
         })
 
         return cfg
 
     def compile_from_config(self, config):
-        mae_optimizer = config['mae_optimizer']
+        mae_comp_optimizer = config['mae_comp_optimizer']
+        mae_tre_optimizer = config['mae_tre_optimizer']
+        mae_sea_optimizer = config['mae_sea_optimizer']
         cl_optimizer = config['cl_optimizer']
 
         self.compile(
-            mae_optimizer=mae_optimizer,
+            mae_comp_optimizer=mae_comp_optimizer,
+            mae_tre_optimizer=mae_tre_optimizer,
+            mae_sea_optimizer=mae_sea_optimizer,
             cl_optimizer=cl_optimizer)
 
     def get_config(self):
@@ -279,50 +310,147 @@ class PreTraining(tf.keras.Model):
         '''
         self.task_to_train.assign('mae')
 
-        anchor_tre, anchor_sea, anchor_res, dates = data
+        anchor_tre, anchor_sea, anchor_res, _ = data
         anchor_composed = anchor_tre + anchor_sea + anchor_res
         anchor_original = \
             self.pre_processor.data_denormalizer(anchor_composed)
 
         # masked auto-encoder (mae)
-        with tf.GradientTape() as tape:
-            y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed = \
-                self(data, mask=True)
+        y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed = \
+            self(data, mask=True)
 
-            pred_original = \
-                self.pre_processor.data_denormalizer(y_pred_composed)
+        pred_original = \
+            self.pre_processor.data_denormalizer(y_pred_composed)
 
-            # compute the loss value
-            loss_mae = tf.keras.losses.mean_squared_error(
-                y_pred=y_pred_composed, y_true=anchor_composed)
+        mae_tre = tf.keras.losses.mean_absolute_error(
+            y_pred=y_pred_tre, y_true=anchor_tre)
 
-            trainable_vars = \
-                self.revIn_tre.trainable_variables + \
-                self.revIn_sea.trainable_variables + \
-                self.revIn_res.trainable_variables + \
-                self.encoder_representation.trainable_variables + \
-                self.decoder_tre.trainable_variables + \
-                self.decoder_sea.trainable_variables + \
-                self.decoder_res.trainable_variables
+        mae_sea = tf.keras.losses.mean_absolute_error(
+            y_pred=y_pred_sea, y_true=anchor_sea)
 
-        if tf.reduce_mean(loss_mae) > self.mae_threshold:
+        mae_comp = tf.keras.losses.mean_absolute_error(
+            y_pred=y_pred_composed, y_true=anchor_composed)
+
+        if tf.reduce_mean(mae_tre) > self.mae_threshold_tre:
+            with tf.GradientTape() as tape:
+                y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed = \
+                    self(data, mask=True)
+
+                pred_original = \
+                    self.pre_processor.data_denormalizer(y_pred_composed)
+
+                # compute the loss values
+                loss_mae_comp = tf.keras.losses.mean_squared_error(
+                    y_pred=y_pred_composed, y_true=anchor_composed)
+
+                loss_mae_tre = tf.keras.losses.mean_squared_error(
+                    y_pred=y_pred_tre, y_true=anchor_tre)
+
+                loss_mae_sea = tf.keras.losses.mean_squared_error(
+                    y_pred=y_pred_sea, y_true=anchor_sea)
+
+                mae_trainable_vars = self.revIn_tre.trainable_variables + \
+                    self.encoder_representation.trainable_variables + \
+                    self.decoder_tre.trainable_variables
+
             # compute gradients
-            gradients = tape.gradient(loss_mae, trainable_vars)
+            mae_graidents = tape.gradient(
+                loss_mae_tre,
+                mae_trainable_vars)
 
             # update weights
-            self.mae_optimizer.apply_gradients(
-                zip(gradients, trainable_vars))
+            self.mae_tre_optimizer.apply_gradients(
+                zip(mae_graidents, mae_trainable_vars))
+
+            # log losses
+            self.loss_tracker_mae_comp.update_state(loss_mae_comp)
+            self.loss_tracker_mae_tre.update_state(loss_mae_tre)
+            self.loss_tracker_mae_sea.update_state(loss_mae_sea)
+
+        elif tf.reduce_mean(mae_sea) > self.mae_threshold_sea:
+            with tf.GradientTape() as tape:
+                y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed = \
+                    self(data, mask=True)
+
+                pred_original = \
+                    self.pre_processor.data_denormalizer(y_pred_composed)
+
+                # compute the loss values
+                loss_mae_comp = tf.keras.losses.mean_squared_error(
+                    y_pred=y_pred_composed, y_true=anchor_composed)
+
+                loss_mae_tre = tf.keras.losses.mean_squared_error(
+                    y_pred=y_pred_tre, y_true=anchor_tre)
+
+                loss_mae_sea = tf.keras.losses.mean_squared_error(
+                    y_pred=y_pred_sea, y_true=anchor_sea)
+
+                mae_trainable_vars = self.revIn_sea.trainable_variables + \
+                    self.encoder_representation.trainable_variables + \
+                    self.decoder_sea.trainable_variables
+
+            # compute gradients
+            mae_graidents = tape.gradient(
+                loss_mae_sea,
+                mae_trainable_vars)
+
+            # update weights
+            self.mae_sea_optimizer.apply_gradients(
+                zip(mae_graidents, mae_trainable_vars))
+
+            # log losses
+            self.loss_tracker_mae_comp.update_state(loss_mae_comp)
+            self.loss_tracker_mae_tre.update_state(loss_mae_tre)
+            self.loss_tracker_mae_sea.update_state(loss_mae_sea)
+
+        elif tf.reduce_mean(mae_comp) > self.mae_threshold_comp:
+            with tf.GradientTape() as tape:
+                y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed = \
+                    self(data, mask=True)
+
+                pred_original = \
+                    self.pre_processor.data_denormalizer(y_pred_composed)
+
+                # compute the loss values
+                loss_mae_comp = tf.keras.losses.mean_squared_error(
+                    y_pred=y_pred_composed, y_true=anchor_composed)
+
+                loss_mae_tre = tf.keras.losses.mean_squared_error(
+                    y_pred=y_pred_tre, y_true=anchor_tre)
+
+                loss_mae_sea = tf.keras.losses.mean_squared_error(
+                    y_pred=y_pred_sea, y_true=anchor_sea)
+
+                mae_trainable_vars = self.revIn_tre.trainable_variables + \
+                    self.revIn_sea.trainable_variables + \
+                    self.revIn_res.trainable_variables + \
+                    self.encoder_representation.trainable_variables + \
+                    self.decoder_tre.trainable_variables + \
+                    self.decoder_sea.trainable_variables + \
+                    self.decoder_res.trainable_variables
+
+            # compute gradients
+            mae_graidents = tape.gradient(
+                loss_mae_comp,
+                mae_trainable_vars)
+
+            # update weights
+            self.mae_comp_optimizer.apply_gradients(
+                zip(mae_graidents, mae_trainable_vars))
+
+            # log losses
+            self.loss_tracker_mae_comp.update_state(loss_mae_comp)
+            self.loss_tracker_mae_tre.update_state(loss_mae_tre)
+            self.loss_tracker_mae_sea.update_state(loss_mae_sea)
+
         else:
             self.task_to_train.assign('cl')
 
         # compute own metrics
-        self.loss_tracker_mae.update_state(loss_mae)
-        self.mae_composed.update_state(
-            y_pred=y_pred_composed,
-            y_true=anchor_composed)
-        self.mae_original.update_state(
-            y_pred=pred_original,
-            y_true=anchor_original)
+        self.mae_composed\
+            .update_state(y_pred=y_pred_composed, y_true=anchor_composed)
+        self.mae_original\
+            .update_state(y_pred=pred_original, y_true=anchor_original)
         self.mae_tre.update_state(y_pred=y_pred_tre, y_true=anchor_tre)
         self.mae_sea.update_state(y_pred=y_pred_sea, y_true=anchor_sea)
         self.mae_res.update_state(y_pred=y_pred_res, y_true=anchor_res)
@@ -341,7 +469,8 @@ class PreTraining(tf.keras.Model):
             distance_false = tf.reduce_sum(
                 tf.square(y_logits_anchor - y_logits_false), -1)
             loss_cl = \
-                tf.maximum(distance_true - distance_false + self.margin, 0.0)
+                tf\
+                .maximum(distance_true - distance_false + self.cl_margin, 0.0)
 
         if self.task_to_train == 'cl':
             # compute gradients
@@ -363,11 +492,12 @@ class PreTraining(tf.keras.Model):
             y_true=y_logits_anchor, y_pred=y_logits_true)
         self.cos_false.update_state(
             y_true=y_logits_anchor, y_pred=y_logits_false)
-
         self.lr_tracker.update_state(self.cl_optimizer.lr)
 
         dic = {
-            'loss_mae': self.loss_tracker_mae.result(),
+            'loss_mae_comp': self.loss_tracker_mae_comp.result(),
+            'loss_mae_tre': self.loss_tracker_mae_tre.result(),
+            'loss_mae_sea': self.loss_tracker_mae_sea.result(),
             'loss_cl': self.loss_tracker_cl.result(),
             'mae_tre': self.mae_tre.result(),
             'mae_sea': self.mae_sea.result(),
@@ -391,7 +521,9 @@ class PreTraining(tf.keras.Model):
         # If you don't implement this property, you have to call
         # `reset_states()` yourself at the time of your choosing.
         return [
-            self.loss_tracker_mae,
+            self.loss_tracker_mae_comp,
+            self.loss_tracker_mae_tre,
+            self.loss_tracker_mae_sea,
             self.loss_tracker_cl,
             self.lr_tracker,
             self.mae_tre,
@@ -417,11 +549,19 @@ class PreTraining(tf.keras.Model):
             self.pre_processor.data_denormalizer(y_pred_composed)
 
         # compute the loss value
-        loss_mae = tf.keras.losses.mean_squared_error(
+        loss_mae_comp = tf.keras.losses.mean_squared_error(
             y_pred=pred_original, y_true=anchor_composed)
 
+        loss_mae_tre = tf.keras.losses.mean_squared_error(
+            y_pred=y_pred_tre, y_true=anchor_tre)
+
+        loss_mae_sea = tf.keras.losses.mean_squared_error(
+            y_pred=y_pred_sea, y_true=anchor_sea)
+
         # compute own metrics
-        self.loss_tracker_mae.update_state(loss_mae)
+        self.loss_tracker_mae_comp.update_state(loss_mae_comp)
+        self.loss_tracker_mae_tre.update_state(loss_mae_tre)
+        self.loss_tracker_mae_sea.update_state(loss_mae_sea)
         self.mae_composed.update_state(
             y_pred=pred_original,
             y_true=anchor_composed)
@@ -445,7 +585,7 @@ class PreTraining(tf.keras.Model):
         distance_false = tf.reduce_sum(
             tf.square(y_logits_anchor - y_logits_false), -1)
         loss_cl = tf.maximum(
-            distance_true - distance_false + self.margin, 0.0)
+            distance_true - distance_false + self.cl_margin, 0.0)
 
         self.loss_tracker_cl.update_state(loss_cl)
         self.cos_true.update_state(
@@ -454,7 +594,9 @@ class PreTraining(tf.keras.Model):
             y_true=y_logits_anchor, y_pred=y_logits_false)
 
         dic = {
-            'loss_mae': self.loss_tracker_mae.result(),
+            'loss_mae_tre': self.loss_tracker_mae_tre.result(),
+            'loss_mae_sea': self.loss_tracker_mae_sea.result(),
+            'loss_mae_comp': self.loss_tracker_mae_comp.result(),
             'loss_cl': self.loss_tracker_cl.result(),
             'mae_tre': self.mae_tre.result(),
             'mae_sea': self.mae_sea.result(),

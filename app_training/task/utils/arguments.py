@@ -20,7 +20,7 @@ def get_pre_training_args():
     parser.add_argument(
         '--resume_training',
         required=False,
-        default='Y',
+        default='N',
         choices=['Y', 'N'],
         type=str,
         help='resume_training')
@@ -126,11 +126,25 @@ def get_pre_training_args():
         help='validation_rate')
 
     parser.add_argument(
-        '--mae_threshold',
+        '--mae_threshold_comp',
         required=False,
         default=0.1,
         type=float,
-        help='mae_threshold')
+        help='mae_threshold_comp')
+
+    parser.add_argument(
+        '--mae_threshold_tre',
+        required=False,
+        default=0.1,
+        type=float,
+        help='mae_threshold_tre')
+
+    parser.add_argument(
+        '--mae_threshold_sea',
+        required=False,
+        default=0.1,
+        type=float,
+        help='mae_threshold_sea')
 
     parser.add_argument(
         '--cl_threshold',
@@ -138,6 +152,13 @@ def get_pre_training_args():
         default=0.25,
         type=float,
         help='cl_threshold')
+
+    parser.add_argument(
+        '--cl_margin',
+        required=False,
+        default=0.25,
+        type=float,
+        help='cl_margin')
 
     parser.add_argument(
         '--patch_size',

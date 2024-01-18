@@ -30,13 +30,21 @@ class PreTrainingCheckpointCallback(BaseCheckpointCallback):
                 epoch_nr=tf.Variable(self.epoch_nr, dtype=tf.int64),
                 step_nr=tf.Variable(self.step_nr, dtype=tf.int64),
                 model=self.model,
-                mae_optimizer=self.model.mae_optimizer,
+                mae_comp_optimizer=self.model.mae_comp_optimizer,
+                mae_tre_optimizer=self.model.mae_tre_optimizer,
+                mae_sea_optimizer=self.model.mae_sea_optimizer,
                 cl_optimizer=self.model.cl_optimizer)
 
             checkpoint_epoch.save(
                 file_prefix=self.ckpt_dir)
 
-    def get_most_recent_ckpt(self, model, mae_optimizer, cl_optimizer):
+    def get_most_recent_ckpt(
+            self,
+            model,
+            mae_comp_optimizer,
+            mae_tre_optimizer,
+            mae_sea_optimizer,
+            cl_optimizer):
         '''
         finds the latest checkpoint.
         returns epoch_nr, step_nr, model, mae_optimizer and cl_optimizer.
@@ -51,19 +59,30 @@ class PreTrainingCheckpointCallback(BaseCheckpointCallback):
                 epoch_nr=tf.Variable(0, dtype=tf.int64),
                 step_nr=tf.Variable(0, dtype=tf.int64),
                 model=model,
-                mae_optimizer=mae_optimizer,
+                mae_comp_optimizer=mae_comp_optimizer,
+                mae_tre_optimizer=mae_tre_optimizer,
+                mae_sea_optimizer=mae_sea_optimizer,
                 cl_optimizer=cl_optimizer)
 
             ckpt.restore(latest_ckpt)
             epoch_nr = ckpt.epoch_nr.numpy()
             step_nr = ckpt.step_nr.numpy()
             model = ckpt.model
-            mae_optimizer = ckpt.mae_optimizer
+            mae_comp_optimizer = ckpt.mae_comp_optimizer
+            mae_tre_optimizer = ckpt.mae_tre_optimizer
+            mae_sea_optimizer = ckpt.mae_sea_optimizer
             cl_optimizer = ckpt.cl_optimizer
 
             self.step_nr = step_nr
 
-        return epoch_nr, step_nr, model, mae_optimizer, cl_optimizer
+        return (
+            epoch_nr,
+            step_nr,
+            model,
+            mae_comp_optimizer,
+            mae_tre_optimizer,
+            mae_sea_optimizer,
+            cl_optimizer)
 
 
 class FineTuningCheckpointCallback(BaseCheckpointCallback):
@@ -143,7 +162,9 @@ class LearningRateCallback(tf.keras.callbacks.Callback):
         '''sets the calculated learning rate to the optimzer'''
         self.step_nr = self.step_nr + 1
         lr = self.schedule(step=self.step_nr)
-        tf.keras.backend.set_value(self.model.mae_optimizer.lr, lr)
+        tf.keras.backend.set_value(self.model.mae_comp_optimizer.lr, lr)
+        tf.keras.backend.set_value(self.model.mae_tre_optimizer.lr, lr)
+        tf.keras.backend.set_value(self.model.mae_sea_optimizer.lr, lr)
         tf.keras.backend.set_value(self.model.cl_optimizer.lr, lr)
 
 

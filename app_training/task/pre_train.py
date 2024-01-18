@@ -39,12 +39,13 @@ if __name__ == '__main__':
     warmup_steps = args.warmup_steps
     scale_factor = args.scale_factor
     validation_rate = args.validation_rate
-    mae_threshold = args.mae_threshold
+    mae_threshold_comp = args.mae_threshold_comp
+    mae_threshold_tre = args.mae_threshold_tre
+    mae_threshold_sea = args.mae_threshold_sea
     cl_threshold = args.cl_threshold
+    cl_margin = args.cl_margin
     save_model = args.save_model
     patch_size = args.patch_size
-
-    mlflow.login()
 
     artifacts_dir = os.path.join(
         os.environ['BIN_NAME'],
@@ -103,7 +104,9 @@ if __name__ == '__main__':
 
     terminate_on_nan_callback = tf.keras.callbacks.TerminateOnNaN()
 
-    mae_optimizer = tf.keras.optimizers.Adam(clipnorm=clip_norm)
+    mae_comp_optimizer = tf.keras.optimizers.Adam(clipnorm=clip_norm)
+    mae_tre_optimizer = tf.keras.optimizers.Adam(clipnorm=clip_norm)
+    mae_sea_optimizer = tf.keras.optimizers.Adam(clipnorm=clip_norm)
 
     cl_optimizer = tf.keras.optimizers.Adam(clipnorm=clip_norm)
 
@@ -129,14 +132,25 @@ if __name__ == '__main__':
         msk_scalar=mask_scalar,
         nr_of_lookback_patches=nr_of_lookback_patches,
         nr_of_forecast_patches=nr_of_forecast_patches,
-        mae_threshold=mae_threshold,
+        mae_threshold_comp=mae_threshold_comp,
+        mae_threshold_tre=mae_threshold_tre,
+        mae_threshold_sea=mae_threshold_sea,
         cl_threshold=cl_threshold,
+        cl_margin=cl_margin,
         pre_processor=pre_processor)
     if resume_training == 'Y':
-        starting_epoch, starting_step, model, mae_optimizer, cl_optimizer = \
+        starting_epoch,
+        starting_step,
+        model,
+        mae_comp_optimizer,
+        mae_tre_optimizer,
+        mae_sea_optimizer,
+        cl_optimizer = \
             checkpoint_callback.get_most_recent_ckpt(
                 model,
-                mae_optimizer,
+                mae_comp_optimizer,
+                mae_tre_optimizer,
+                mae_sea_optimizer,
                 cl_optimizer)
     else:
         shutil.rmtree(artifacts_dir, ignore_errors=True)
@@ -145,7 +159,9 @@ if __name__ == '__main__':
         os.makedirs(os.path.dirname(csv_logs_dir))
 
     model.compile(
-        mae_optimizer=mae_optimizer,
+        mae_comp_optimizer=mae_comp_optimizer,
+        mae_tre_optimizer=mae_tre_optimizer,
+        mae_sea_optimizer=mae_sea_optimizer,
         cl_optimizer=cl_optimizer)
 
     learning_rate_callback = LearningRateCallback(
@@ -170,6 +186,7 @@ if __name__ == '__main__':
             learning_rate_callback,
             checkpoint_callback])
 
+    mlflow.login()
     mlflow.set_tracking_uri("databricks")
     mlflow.set_experiment(f'/{model_id}')
 

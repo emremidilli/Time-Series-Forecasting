@@ -1,16 +1,19 @@
 #!/bin/bash
 
 model_id="model_03"
-resume_training="Y"
-nr_of_epochs=35000
+resume_training="N"
+nr_of_epochs=3000
 mask_rate=0.40
 mask_scalar=0.001
 validation_rate=0.15
 mini_batch_size=128
-mae_threshold=0.10
+mae_threshold_tre=0.10
+mae_threshold_sea=0.10
+mae_threshold_comp=0.10
 cl_threshold=0.25
 save_model="N"
 patch_size=24
+cl_margin=0.25
 
 cd ../app_training/
 
@@ -45,8 +48,11 @@ main() {
         --warmup_steps=$warmup_steps \
         --scale_factor=$scale_factor \
         --validation_rate=$validation_rate \
-        --mae_threshold=$mae_threshold \
+        --mae_threshold_tre=$mae_threshold_tre \
+        --mae_threshold_sea=$mae_threshold_sea \
+        --mae_threshold_comp=$mae_threshold_comp \
         --cl_threshold=$cl_threshold \
+        --cl_margin=$cl_margin \
         --save_model=$save_model \
         --patch_size=$patch_size
 
