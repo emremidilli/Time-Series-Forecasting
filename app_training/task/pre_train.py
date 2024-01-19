@@ -139,13 +139,13 @@ if __name__ == '__main__':
         cl_margin=cl_margin,
         pre_processor=pre_processor)
     if resume_training == 'Y':
-        starting_epoch,
-        starting_step,
-        model,
-        mae_comp_optimizer,
-        mae_tre_optimizer,
-        mae_sea_optimizer,
-        cl_optimizer = \
+        starting_epoch, \
+            starting_step, \
+            model, \
+            mae_comp_optimizer, \
+            mae_tre_optimizer, \
+            mae_sea_optimizer, \
+            cl_optimizer = \
             checkpoint_callback.get_most_recent_ckpt(
                 model,
                 mae_comp_optimizer,

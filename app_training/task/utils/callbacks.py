@@ -75,14 +75,9 @@ class PreTrainingCheckpointCallback(BaseCheckpointCallback):
 
             self.step_nr = step_nr
 
-        return (
-            epoch_nr,
-            step_nr,
-            model,
-            mae_comp_optimizer,
-            mae_tre_optimizer,
-            mae_sea_optimizer,
-            cl_optimizer)
+        return epoch_nr, step_nr, model, \
+            mae_comp_optimizer, mae_tre_optimizer, \
+            mae_sea_optimizer, cl_optimizer
 
 
 class FineTuningCheckpointCallback(BaseCheckpointCallback):

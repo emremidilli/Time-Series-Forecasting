@@ -20,7 +20,7 @@ def get_pre_training_args():
     parser.add_argument(
         '--resume_training',
         required=False,
-        default='N',
+        default='Y',
         choices=['Y', 'N'],
         type=str,
         help='resume_training')
