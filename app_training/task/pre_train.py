@@ -9,14 +9,15 @@ import tensorflow as tf
 from tsf_model import PreTraining
 
 from utils import PreTrainingCheckpointCallback, LearningRateCallback, \
-    RamCleaner, get_pre_training_args, get_data_format_config, \
-    train_test_split
+    RamCleaner, get_pre_training_args, \
+    train_test_split, upload_model
 
 
 if __name__ == '__main__':
     '''
     Pre-trains a foundation model.
     Each training job is logged to databricks with mlflow.
+    Trained model is saved to AWS S3 bucket.
     This job can be interrupted by the user.
     After interruption, it can be re-run and continue to training
         from where it left.
@@ -46,6 +47,7 @@ if __name__ == '__main__':
     cl_margin = args.cl_margin
     save_model = args.save_model
     patch_size = args.patch_size
+    lookback_coefficient = args.lookback_coefficient
 
     artifacts_dir = os.path.join(
         os.environ['BIN_NAME'],
@@ -53,8 +55,6 @@ if __name__ == '__main__':
         model_id)
 
     custom_ckpt_dir = os.path.join(artifacts_dir, 'checkpoints', 'ckpt')
-    tensorboard_log_dir = os.path.join(artifacts_dir, 'tboard_logs')
-    csv_logs_dir = os.path.join(artifacts_dir, 'csv_logs', 'training.log')
     dataset_dir = os.path.join(
         os.environ['BIN_NAME'],
         os.environ['PREPROCESSED_NAME'],
@@ -66,12 +66,6 @@ if __name__ == '__main__':
         os.environ['PREPROCESSED_NAME'],
         model_id,
         'input_preprocessor')
-
-    config = get_data_format_config(
-        folder_path=os.path.join(
-            os.environ['BIN_NAME'],
-            os.environ['FORMATTED_NAME'],
-            model_id))
 
     ds = tf.data.Dataset.load(path=dataset_dir)
     tre, _, _, _ = next(iter(ds))
@@ -90,18 +84,6 @@ if __name__ == '__main__':
 
     ram_cleaner_callback = RamCleaner()
 
-    tensorboard_callback = tf.keras.callbacks.TensorBoard(
-        log_dir=tensorboard_log_dir,
-        write_graph=True,
-        write_images=False,
-        histogram_freq=1,
-        profile_batch='50,70')
-
-    csv_logger_callback = tf.keras.callbacks.CSVLogger(
-        filename=csv_logs_dir,
-        separator=";",
-        append=True)
-
     terminate_on_nan_callback = tf.keras.callbacks.TerminateOnNaN()
 
     mae_comp_optimizer = tf.keras.optimizers.Adam(clipnorm=clip_norm)
@@ -110,7 +92,6 @@ if __name__ == '__main__':
 
     cl_optimizer = tf.keras.optimizers.Adam(clipnorm=clip_norm)
 
-    lookback_coefficient = config['lookback_coefficient']
     nr_of_forecast_patches = int(tre.shape[0] / (lookback_coefficient + 1))
     nr_of_forecast_patches = int(nr_of_forecast_patches / patch_size)
     nr_of_lookback_patches = int(nr_of_forecast_patches * lookback_coefficient)
@@ -156,8 +137,6 @@ if __name__ == '__main__':
         shutil.rmtree(artifacts_dir, ignore_errors=True)
         os.makedirs(artifacts_dir)
 
-        os.makedirs(os.path.dirname(csv_logs_dir))
-
     model.compile(
         mae_comp_optimizer=mae_comp_optimizer,
         mae_tre_optimizer=mae_tre_optimizer,
@@ -170,7 +149,6 @@ if __name__ == '__main__':
         scale_factor=scale_factor,
         remained_step_nr=starting_step)
 
-    print(f'tensorboard --logdir=".{tensorboard_log_dir}" --bind_all')
     history = model.fit(
         ds_train,
         validation_data=ds_val,
@@ -181,8 +159,6 @@ if __name__ == '__main__':
         callbacks=[
             terminate_on_nan_callback,
             ram_cleaner_callback,
-            # tensorboard_callback,
-            # csv_logger_callback,
             learning_rate_callback,
             checkpoint_callback])
 
@@ -200,9 +176,7 @@ if __name__ == '__main__':
         for metric in list(history_logs.keys()):
             mlflow.log_metric(metric, history_logs[metric][-1])
 
-        if save_model == "Y":
-            mlflow.tensorflow.log_model(
-                model,
-                artifact_path='saved_model')
+    if save_model == "Y":
+        upload_model(model=model, model_id=model_id)
 
     print('Training completed.')

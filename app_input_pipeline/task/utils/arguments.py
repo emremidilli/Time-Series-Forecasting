@@ -12,11 +12,11 @@ def get_input_args_pre_training():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        '--model_id',
+        '--dataset_id',
         required=False,
-        default='model_03',
+        default='dataset_03',
         type=str,
-        help='model_id')
+        help='dataset_id')
 
     parser.add_argument(
         '--pool_size_trend',
@@ -54,46 +54,33 @@ def get_input_args_fine_tuning():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        '--model_id',
+        '--dataset_id',
         required=False,
-        default='ETTh1',
+        default='dataset_03',
         type=str,
-        help='model_id')
-
-    parser.add_argument(
-        '--patch_size',
-        required=False,
-        default=24,
-        type=int,
-        help='patch_size')
-
-    parser.add_argument(
-        '--pool_size_reduction',
-        required=False,
-        default=2,
-        type=int,
-        help='pool_size_reduction')
+        help='dataset_id')
 
     parser.add_argument(
         '--pool_size_trend',
         required=False,
-        default=2,
+        default=24,
         type=int,
         help='pool_size_trend')
 
     parser.add_argument(
-        '--nr_of_bins',
+        '--sigma',
         required=False,
-        default=10,
-        type=int,
-        help='nr_of_bins')
+        default=3,
+        type=float,
+        help='sigma')
 
     parser.add_argument(
-        '--mask_scalar',
+        '--scale_data',
         required=False,
-        default=0.53,
-        type=float,
-        help='mask_scalar')
+        choices=['Y', 'N'],
+        default='Y',
+        type=str,
+        help='scale_data')
 
     parser.add_argument(
         '--begin_scalar',

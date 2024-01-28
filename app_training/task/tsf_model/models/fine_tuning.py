@@ -13,13 +13,13 @@ class FineTuning(tf.keras.Model):
             nr_of_heads,
             dff,
             dropout_rate,
-            con_temp_pret,
+            pre_trained_model,
             **kwargs):
         super().__init__(**kwargs)
 
         self.pe = PositionEmbedding(embedding_dims=hidden_dims)
 
-        self.con_temp_pret = con_temp_pret
+        self.pre_trained_model = pre_trained_model
 
         self.decoder = SingleStepDecoder(
             num_layers=num_layers,
@@ -34,31 +34,32 @@ class FineTuning(tf.keras.Model):
         config = super().get_config()
         config.update(
             {
-                'con_temp_pret': self.con_temp_pret,
+                'pre_trained_model': self.pre_trained_model,
             }
         )
         return config
 
     @classmethod
     def from_config(cls, config):
-        config['con_temp_pret'] = tf.keras.layers.deserialize(
-            config['con_temp_pret'])
+        config['pre_trained_model'] = tf.keras.layers.deserialize(
+            config['pre_trained_model'])
         return cls(**config)
 
     def call(self, inputs):
         '''
-        input: tuple of 4 arrays.
-            1. dist: (none, timesteps, features)
-            2. tre: (none, timesteps, features)
-            3. sea: (none, timesteps, features)
-            4. date: (none, features)
-            5. shifted: (none, timesteps, 1)
-            Timesteps of forecast horizon are masked.
-        y: (none, timesteps, 1)
+        Timesteps of forecast horizon are masked.
+        args:
+            tre: (None, timesteps, covariates)
+            sea: (None, timesteps, covariates)
+            res: (None, timesteps, covariates)
+            dates: (None, features)
+            shifted: (none, timesteps, covariates)
+        returns:
+            pred: (None, timesteps, covariates)
         '''
-        dist, tre, sea, date, shifted = inputs
-        t = self.con_temp_pret((dist, tre, sea, date))
+        tre, sea, res, date, shifted = inputs
+        t = self.pre_trained_model((tre, sea, res, date))
         z = self.pe(shifted)
         y = self.decoder((z, t))
-        y = self.dense(y)
-        return y
+        pred = self.dense(y)
+        return pred

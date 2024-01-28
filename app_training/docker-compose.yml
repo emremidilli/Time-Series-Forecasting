@@ -15,5 +15,4 @@ services:
       - ../../tsf-bin:/app/tsf-bin
     env_file:
       - ../dir_names.env
-
-
+      - ../../my_secrets/s3.env

@@ -15,57 +15,56 @@ if __name__ == '__main__':
     '''
     args = get_input_args_fine_tuning()
     print(args)
-
-    model_id = args.model_id
-    patch_size = args.patch_size
-    pool_size_reduction = args.pool_size_reduction
+    dataset_id = args.dataset_id
     pool_size_trend = args.pool_size_trend
-    nr_of_bins = args.nr_of_bins
-    mask_scalar = args.mask_scalar
+    sigma = args.sigma
+    scale_data = args.scale_data
+    if scale_data.upper().strip() == 'Y':
+        scale_data = True
+    else:
+        scale_data = False
+
     begin_scalar = args.begin_scalar
     end_scalar = args.end_scalar
 
     training_data_folder = os.path.join(
         os.environ['BIN_NAME'],
-        os.environ['FORMATTED_NAME'])
+        os.environ['FORMATTED_NAME'],
+        dataset_id)
 
     lb_train = read_npy_file(
-        os.path.join(training_data_folder, model_id, 'lb_train.npy'),
+        os.path.join(training_data_folder, 'lb_train.npy'),
         dtype='float32')
     fc_train = read_npy_file(
-        os.path.join(training_data_folder, model_id, 'fc_train.npy'),
+        os.path.join(training_data_folder, 'fc_train.npy'),
         dtype='float32')
     ts_train = read_npy_file(
-        os.path.join(training_data_folder, model_id, 'ts_train.npy'),
+        os.path.join(training_data_folder, 'ts_train.npy'),
         dtype='int32')
 
-    nr_of_forecast_patches = int(fc_train.shape[1] / patch_size)
-
+    nr_of_covariates = lb_train.shape[-1]
     input_pre_processor = InputPreProcessorFT(
-        patch_size=patch_size,
-        pool_size_reduction=pool_size_reduction,
         pool_size_trend=pool_size_trend,
-        nr_of_bins=nr_of_bins,
-        forecast_patches_to_mask=nr_of_forecast_patches,
-        mask_scalar=mask_scalar)
+        nr_of_covariates=nr_of_covariates,
+        sigma=sigma,
+        scale_data=scale_data)
 
     target_pre_processor = TargetPreProcessor(
-        patch_size=patch_size,
         begin_scalar=begin_scalar,
         end_scalar=end_scalar)
 
     input_pre_processor.adapt(inputs=(lb_train, ts_train))
-    dist, tre, sea, ts = input_pre_processor(inputs=(lb_train, ts_train))
-    lbl, lbl_shifted = target_pre_processor((lb_train, fc_train))
+    lb_tre, lb_sea, lb_res, ts = input_pre_processor(
+        inputs=(lb_train, ts_train))
+    lbl, lbl_shifted = target_pre_processor((fc_train))
 
     ds = tf.data.Dataset.from_tensor_slices(
-        ((dist, tre, sea, ts, lbl_shifted), lbl))
+        ((lb_tre, lb_sea, lb_res, ts, lbl_shifted), lbl))
 
     sub_dir = os.path.join(
         os.environ['BIN_NAME'],
         os.environ['PREPROCESSED_NAME'],
-        model_id,
-        'fine_tune')
+        dataset_id)
 
     ds.save(
         os.path.join(sub_dir, 'dataset'))

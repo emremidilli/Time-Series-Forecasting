@@ -1,7 +1,0 @@
-artifact_location: file:///workspace/mlruns/370721366660346975
-creation_time: 1703285061735
-experiment_id: '370721366660346975'
-last_update_time: 1703327529304
-lifecycle_stage: deleted
-name: 04_artifacts/model_01
-tags: {}

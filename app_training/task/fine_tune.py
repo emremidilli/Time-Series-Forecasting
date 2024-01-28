@@ -7,12 +7,11 @@ import tensorflow as tf
 from tsf_model import FineTuning
 
 from utils import get_fine_tuning_args, FineTuningCheckpointCallback, \
-    get_pre_trained_representation, train_test_split, RamCleaner, \
-    get_data_format_config
+    upload_model, load_model, train_test_split, RamCleaner
 
 
 if __name__ == '__main__':
-    '''Fine tunes a given model.'''
+    '''Fine tunes a pre-trained model.'''
     args = get_fine_tuning_args()
     print(args)
 
@@ -21,7 +20,6 @@ if __name__ == '__main__':
     resume_training = args.resume_training
     validation_rate = args.validation_rate
     mini_batch_size = args.mini_batch_size
-    trainable_encoder = args.trainable_encoder
     learning_rate = args.learning_rate
     clip_norm = args.clip_norm
     nr_of_epochs = args.nr_of_epochs
@@ -38,8 +36,6 @@ if __name__ == '__main__':
         model_id,
         'fine_tune')
     custom_ckpt_dir = os.path.join(artifacts_dir, 'checkpoints', 'ckpt')
-    saved_model_dir = os.path.join(artifacts_dir, 'saved_model')
-    tensorboard_log_dir = os.path.join(artifacts_dir, 'tboard_logs')
 
     dataset_dir = os.path.join(
         os.environ['BIN_NAME'],
@@ -48,11 +44,7 @@ if __name__ == '__main__':
         'fine_tune',
         'dataset')
 
-    config = get_data_format_config(
-        folder_path=os.path.join(
-            os.environ['BIN_NAME'],
-            os.environ['FORMATTED_NAME'],
-            model_id))
+    pre_trained_model = load_model(model_id=pre_trained_model_id)
 
     ds = tf.data.Dataset.load(path=dataset_dir)
 
@@ -64,21 +56,13 @@ if __name__ == '__main__':
 
     ds_train = ds_train.batch(mini_batch_size).prefetch(tf.data.AUTOTUNE)
 
-    con_temp_pret = get_pre_trained_representation(
-        pre_trained_model_dir=os.path.join(
-            os.environ['BIN_NAME'],
-            os.environ['ARTIFACTS_NAME'],
-            pre_trained_model_id,
-            'pre_train',
-            'saved_model'))
-
     model = FineTuning(
         num_layers=nr_of_layers,
         hidden_dims=hidden_dims,
         nr_of_heads=nr_of_heads,
         dff=hidden_dims,
         dropout_rate=dropout_rate,
-        con_temp_pret=con_temp_pret)
+        pre_trained_model=pre_trained_model)
 
     optimizer = tf.keras.optimizers.Adam(
         learning_rate=learning_rate,
@@ -87,12 +71,6 @@ if __name__ == '__main__':
     checkpoint_callback = FineTuningCheckpointCallback(
         ckpt_dir=custom_ckpt_dir,
         epoch_freq=10)
-
-    tensorboard_callback = tf.keras.callbacks.TensorBoard(
-        log_dir=tensorboard_log_dir,
-        write_graph=True,
-        write_images=False,
-        histogram_freq=1)
 
     terminate_on_nan_callback = tf.keras.callbacks.TerminateOnNaN()
 
@@ -106,10 +84,7 @@ if __name__ == '__main__':
         shutil.rmtree(artifacts_dir, ignore_errors=True)
         os.makedirs(artifacts_dir)
 
-    if trainable_encoder == 'Y':
-        model.con_temp_pret.trainable = True
-    elif trainable_encoder == 'N':
-        model.con_temp_pret.trainable = False
+    model.pre_trained_model.trainable = False
 
     model.compile(
         run_eagerly=False,
@@ -122,11 +97,9 @@ if __name__ == '__main__':
 
     callbacks = [
         terminate_on_nan_callback,
-        # tensorboard_callback,
         checkpoint_callback,
         ram_cleaner_callback]
 
-    print(f'tensorboard --logdir=".{tensorboard_log_dir}" --bind_all')
     model.fit(
         ds_train,
         epochs=nr_of_epochs,
@@ -136,9 +109,6 @@ if __name__ == '__main__':
         shuffle=False,
         callbacks=callbacks)
 
-    model.save(
-        saved_model_dir,
-        overwrite=True,
-        save_format='tf')
+    upload_model(model=model, model_id=model_id)
 
     print('Training completed.')

@@ -167,7 +167,5 @@ class RamCleaner(tf.keras.callbacks.Callback):
     '''Callback to clean RAM with garbage collector.'''
 
     def on_epoch_end(self, epoch, logs={}):
-        '''
-        Cleans the RAM after every epoch.
-        '''
+        '''Cleans the RAM after every epoch.'''
         gc.collect()

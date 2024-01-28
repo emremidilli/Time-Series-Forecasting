@@ -1,9 +1,5 @@
 import argparse
 
-import json
-
-import os
-
 import sys
 
 
@@ -28,7 +24,7 @@ def get_pre_training_args():
     parser.add_argument(
         '--save_model',
         required=False,
-        default='N',
+        default='Y',
         choices=['Y', 'N'],
         type=str,
         help='save_model')
@@ -167,6 +163,13 @@ def get_pre_training_args():
         type=int,
         help='patch_size')
 
+    parser.add_argument(
+        '--lookback_coefficient',
+        required=False,
+        default=2,
+        type=int,
+        help='lookback_coefficient')
+
     try:
         args = parser.parse_args()
     except:
@@ -183,14 +186,14 @@ def get_fine_tuning_args():
     parser.add_argument(
         '--model_id',
         required=False,
-        default='ETTh1',
+        default='model_04',
         type=str,
         help='model_id')
 
     parser.add_argument(
         '--pre_trained_model_id',
         required=False,
-        default='ETTh1',
+        default='model_03',
         type=str,
         help='pre_trained_model_id')
 
@@ -252,14 +255,6 @@ def get_fine_tuning_args():
         default=0.15,
         type=float,
         help='validation_rate')
-
-    parser.add_argument(
-        '--trainable_encoder',
-        required=False,
-        default='Y',
-        type=str,
-        choices=['Y', 'N'],
-        help='trainable_encoder')
 
     parser.add_argument(
         '--nr_of_layers',
@@ -344,12 +339,3 @@ def get_inference_args():
         sys.exit(0)
 
     return args
-
-
-def get_data_format_config(folder_path):
-    '''returns dictionary of dataformat config from datasets folder.'''
-    file_path = os.path.join(folder_path, 'config.json')
-    with open(file_path, 'r') as j:
-        contents = json.loads(j.read())
-
-    return contents

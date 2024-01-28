@@ -15,3 +15,4 @@ services:
     command: /bin/sh -c "sleep infinity"
     env_file:
       - ../../dir_names.env
+      - ../../../my_secrets/s3.env

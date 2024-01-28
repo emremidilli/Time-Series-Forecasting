@@ -2,18 +2,19 @@
 
 model_id="model_03"
 resume_training="Y"
-nr_of_epochs=5000
-mask_rate=0.10
+nr_of_epochs=35000
+mask_rate=0.40
 mask_scalar=0.001
 validation_rate=0.15
 mini_batch_size=128
 mae_threshold_tre=0.10
-mae_threshold_sea=0.10
-mae_threshold_comp=0.10
+mae_threshold_sea=0.001
+mae_threshold_comp=0.50
 cl_threshold=0.25
-save_model="N"
+save_model="Y"
 patch_size=24
 cl_margin=0.25
+lookback_coefficient=2
 
 cd ../app_training/
 
@@ -54,10 +55,11 @@ main() {
         --cl_threshold=$cl_threshold \
         --cl_margin=$cl_margin \
         --save_model=$save_model \
-        --patch_size=$patch_size
+        --patch_size=$patch_size \
+        --lookback_coefficient=$lookback_coefficient
 
     echo "pre-training is completed"
 
 }
 
-main 1.0 4000 1.0 6 1 128 128 32 0.10
+main 1.0 4000 1.0 6 6 128 128 32 0.10

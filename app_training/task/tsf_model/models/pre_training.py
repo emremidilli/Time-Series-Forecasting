@@ -217,8 +217,8 @@ class PreTraining(tf.keras.Model):
 
     def mask_patches(self, data):
         '''
-            Masks both lookback and forecast patches.
-            Patch steps to mask are determined randomly.
+        Masks both lookback and forecast patches.
+        Patch steps to mask are determined randomly.
         '''
         x_tre, x_sea, x_res = data
         x_lb_tre = x_tre[:, :self.nr_of_lookback_patches]
