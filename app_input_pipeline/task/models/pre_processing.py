@@ -150,8 +150,10 @@ class InputPreProcessorFT(tf.keras.Model):
 
         x_ts = tf.cast(x_ts, dtype=tf.float32)
 
-        self.data_normalizer.adapt(x_lb)
-        self.data_denormalizer.adapt(x_lb)
+        if self.scale_data is True:
+            self.data_normalizer.adapt(x_lb)
+            self.data_denormalizer.adapt(x_lb)
+
         self.ts_normalizer.adapt(x_ts)
         self.ts_denormalizer.adapt(x_ts)
 

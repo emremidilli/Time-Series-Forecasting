@@ -17,6 +17,7 @@ if __name__ == '__main__':
 
     model_id = args.model_id
     pre_trained_model_id = args.pre_trained_model_id
+    dataset_id = args.dataset_id
     resume_training = args.resume_training
     validation_rate = args.validation_rate
     mini_batch_size = args.mini_batch_size
@@ -33,15 +34,13 @@ if __name__ == '__main__':
     artifacts_dir = os.path.join(
         os.environ['BIN_NAME'],
         os.environ['ARTIFACTS_NAME'],
-        model_id,
-        'fine_tune')
+        model_id)
     custom_ckpt_dir = os.path.join(artifacts_dir, 'checkpoints', 'ckpt')
 
     dataset_dir = os.path.join(
         os.environ['BIN_NAME'],
         os.environ['PREPROCESSED_NAME'],
-        model_id,
-        'fine_tune',
+        dataset_id,
         'dataset')
 
     pre_trained_model = load_model(model_id=pre_trained_model_id)
@@ -62,7 +61,15 @@ if __name__ == '__main__':
         nr_of_heads=nr_of_heads,
         dff=hidden_dims,
         dropout_rate=dropout_rate,
-        pre_trained_model=pre_trained_model)
+        msk_scalar=pre_trained_model.msk_scalar,
+        revIn_tre=pre_trained_model.revIn_tre,
+        revIn_sea=pre_trained_model.revIn_sea,
+        revIn_res=pre_trained_model.revIn_res,
+        patch_tokenizer=pre_trained_model.patch_tokenizer,
+        encoder_representation=pre_trained_model.encoder_representation,
+        decoder_tre=pre_trained_model.decoder_tre,
+        decoder_sea=pre_trained_model.decoder_sea,
+        decoder_res=pre_trained_model.decoder_res)
 
     optimizer = tf.keras.optimizers.Adam(
         learning_rate=learning_rate,

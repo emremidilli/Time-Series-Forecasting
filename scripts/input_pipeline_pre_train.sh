@@ -5,18 +5,20 @@ sigma=3.0
 scale_data="N"
 
 main() {
-    dataset_id=$1
+    input_dataset_id=$1
+    output_dataset_id=$2
     cd ../app_input_pipeline/
-    echo "starting to build input pipeline for " $dataset_id
+    echo "starting to build input pipeline for " $input_dataset_id
 
     docker-compose run --rm app_input_pipeline \
         pre_train.py \
-        --dataset_id=$dataset_id \
+        --input_dataset_id=$input_dataset_id \
+        --output_dataset_id=$output_dataset_id \
         --pool_size_trend=$pool_size_trend \
         --sigma=$sigma \
         --scale_data=$scale_data
 
-    echo "Bulding input pipelines is successfull for " $dataset_id
+    echo "Pipeline is built with the name of " $output_dataset_id
 }
 
-main "dataset_03"
+main "dataset_03" "dataset_03"

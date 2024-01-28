@@ -15,7 +15,8 @@ if __name__ == '__main__':
     '''
     args = get_input_args_pre_training()
     print(args)
-    dataset_id = args.dataset_id
+    input_dataset_id = args.input_dataset_id
+    output_dataset_id = args.output_dataset_id
     pool_size_trend = args.pool_size_trend
     sigma = args.sigma
     scale_data = args.scale_data
@@ -27,7 +28,7 @@ if __name__ == '__main__':
     training_data_folder = os.path.join(
         os.environ['BIN_NAME'],
         os.environ['FORMATTED_NAME'],
-        dataset_id)
+        input_dataset_id)
 
     lb_train = read_npy_file(
         os.path.join(training_data_folder, 'lb_train.npy'),
@@ -55,7 +56,7 @@ if __name__ == '__main__':
     sub_dir = os.path.join(
         os.environ['BIN_NAME'],
         os.environ['PREPROCESSED_NAME'],
-        dataset_id)
+        output_dataset_id)
 
     ds_train.save(
         os.path.join(sub_dir, 'dataset'))

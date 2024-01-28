@@ -204,6 +204,23 @@ class PreTraining(tf.keras.Model):
         config = super().get_config()
         config.update(
             {
+                'nr_of_covariates': self.nr_of_covariates,
+                'patch_size': self.patch_size,
+                'nr_of_encoder_blocks': self.nr_of_encoder_blocks,
+                'nr_of_heads': self.nr_of_heads,
+                'dropout_rate': self.dropout_rate,
+                'encoder_ffn_units': self.encoder_ffn_units,
+                'embedding_dims': self.embedding_dims,
+                'projection_head_units': self.projection_head_units,
+                'msk_rate': self.msk_rate,
+                'msk_scalar': self.msk_scalar,
+                'nr_of_lookback_patches': self.nr_of_lookback_patches,
+                'nr_of_forecast_patches': self.nr_of_forecast_patches,
+                'mae_threshold_comp': self.mae_threshold_comp,
+                'mae_threshold_tre': self.mae_threshold_tre,
+                'mae_threshold_sea': self.mae_threshold_sea,
+                'cl_threshold': self.cl_threshold,
+                'cl_margin': self.cl_margin,
                 'pre_processor': self.pre_processor,
             }
         )

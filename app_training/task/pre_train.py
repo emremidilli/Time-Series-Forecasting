@@ -26,6 +26,7 @@ if __name__ == '__main__':
     args = get_pre_training_args()
 
     model_id = args.model_id
+    dataset_id = args.dataset_id
     resume_training = args.resume_training
     mask_rate = args.mask_rate
     mask_scalar = args.mask_scalar
@@ -58,13 +59,13 @@ if __name__ == '__main__':
     dataset_dir = os.path.join(
         os.environ['BIN_NAME'],
         os.environ['PREPROCESSED_NAME'],
-        model_id,
+        dataset_id,
         'dataset')
 
     input_pipeline_dir = os.path.join(
         os.environ['BIN_NAME'],
         os.environ['PREPROCESSED_NAME'],
-        model_id,
+        dataset_id,
         'input_preprocessor')
 
     ds = tf.data.Dataset.load(path=dataset_dir)

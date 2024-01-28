@@ -12,11 +12,18 @@ def get_input_args_pre_training():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        '--dataset_id',
+        '--input_dataset_id',
         required=False,
         default='dataset_03',
         type=str,
-        help='dataset_id')
+        help='input_dataset_id')
+
+    parser.add_argument(
+        '--output_dataset_id',
+        required=False,
+        default='dataset_04',
+        type=str,
+        help='output_dataset_id')
 
     parser.add_argument(
         '--pool_size_trend',
@@ -36,7 +43,7 @@ def get_input_args_pre_training():
         '--scale_data',
         required=False,
         choices=['Y', 'N'],
-        default='Y',
+        default='N',
         type=str,
         help='scale_data')
 
@@ -54,11 +61,18 @@ def get_input_args_fine_tuning():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        '--dataset_id',
+        '--input_dataset_id',
         required=False,
         default='dataset_03',
         type=str,
-        help='dataset_id')
+        help='input_dataset_id')
+
+    parser.add_argument(
+        '--output_dataset_id',
+        required=False,
+        default='dataset_04',
+        type=str,
+        help='output_dataset_id')
 
     parser.add_argument(
         '--pool_size_trend',
@@ -78,7 +92,7 @@ def get_input_args_fine_tuning():
         '--scale_data',
         required=False,
         choices=['Y', 'N'],
-        default='Y',
+        default='N',
         type=str,
         help='scale_data')
 

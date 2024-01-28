@@ -1,6 +1,7 @@
 #!/bin/bash
 
 model_id="model_03"
+dataset_id="dataset_03"
 resume_training="Y"
 nr_of_epochs=35000
 mask_rate=0.40
@@ -34,6 +35,7 @@ main() {
     docker-compose run --rm app_training \
         pre_train.py \
         --model_id=$model_id \
+        --dataset_id=$dataset_id \
         --resume_training=$resume_training \
         --nr_of_epochs=$nr_of_epochs \
         --mask_rate=$mask_rate \

@@ -13,6 +13,14 @@ def get_pre_training_args():
         default='model_03',
         type=str,
         help='model_id')
+
+    parser.add_argument(
+        '--dataset_id',
+        required=False,
+        default='dataset_03',
+        type=str,
+        help='dataset_id')
+
     parser.add_argument(
         '--resume_training',
         required=False,
@@ -198,6 +206,13 @@ def get_fine_tuning_args():
         help='pre_trained_model_id')
 
     parser.add_argument(
+        '--dataset_id',
+        required=False,
+        default='dataset_03',
+        type=str,
+        help='dataset_id')
+
+    parser.add_argument(
         '--resume_training',
         required=False,
         default='N',
@@ -266,14 +281,14 @@ def get_fine_tuning_args():
     parser.add_argument(
         '--hidden_dims',
         required=False,
-        default=64,
+        default=128,
         type=int,
         help='hidden_dims')
 
     parser.add_argument(
         '--nr_of_heads',
         required=False,
-        default=1,
+        default=6,
         type=int,
         help='nr_of_heads')
 
