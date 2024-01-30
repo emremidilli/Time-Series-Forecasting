@@ -1,6 +1,7 @@
 import tensorflow as tf
 
 
+@tf.keras.saving.register_keras_serializable()
 class ReversibleInstanceNormalization(tf.keras.layers.Layer):
     '''
     Reversible Instance Normalizer (RevIN) from the original paper of

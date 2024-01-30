@@ -30,6 +30,7 @@ if __name__ == '__main__':
     hidden_dims = args.hidden_dims
     nr_of_heads = args.nr_of_heads
     dropout_rate = args.dropout_rate
+    pre_trained_lookback_coefficient = args.pre_trained_lookback_coefficient
 
     artifacts_dir = os.path.join(
         os.environ['BIN_NAME'],
@@ -61,7 +62,8 @@ if __name__ == '__main__':
         nr_of_heads=nr_of_heads,
         dff=hidden_dims,
         dropout_rate=dropout_rate,
-        msk_scalar=pre_trained_model.msk_scalar,
+        pre_trained_lookback_coefficient=pre_trained_lookback_coefficient,
+        msk_scalar=pre_trained_model.patch_masker.get_config()['msk_scalar'],
         revIn_tre=pre_trained_model.revIn_tre,
         revIn_sea=pre_trained_model.revIn_sea,
         revIn_res=pre_trained_model.revIn_res,
@@ -91,10 +93,8 @@ if __name__ == '__main__':
         shutil.rmtree(artifacts_dir, ignore_errors=True)
         os.makedirs(artifacts_dir)
 
-    model.pre_trained_model.trainable = False
-
     model.compile(
-        run_eagerly=False,
+        run_eagerly=True,
         optimizer=optimizer,
         loss=tf.keras.losses.MeanSquaredError(name='mse'),
         metrics=[

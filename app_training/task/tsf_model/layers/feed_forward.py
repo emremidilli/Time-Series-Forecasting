@@ -1,6 +1,7 @@
 import tensorflow as tf
 
 
+@tf.keras.saving.register_keras_serializable()
 class FeedForward(tf.keras.layers.Layer):
     '''Feed-forward layer of transformer archicture.'''
     def __init__(self, d_model, dff, dropout_rate=0.1):

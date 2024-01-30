@@ -4,6 +4,8 @@ import boto3
 
 import os
 
+from pathlib import Path
+
 import shutil
 
 import tarfile
@@ -63,7 +65,9 @@ def load_model(model_id):
     returns:
         model (tf.keras.Model)
     '''
-    os.makedirs(os.path.join('tmp'))
+
+    Path(os.path.join('tmp'))\
+        .mkdir(parents=True, exist_ok=True)
 
     s3 = boto3.client(
         's3',

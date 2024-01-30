@@ -13,6 +13,7 @@ class FineTuning(tf.keras.Model):
             nr_of_heads,
             dff,
             dropout_rate,
+            pre_trained_lookback_coefficient,
             msk_scalar,
             revIn_tre,
             revIn_sea,
@@ -23,9 +24,29 @@ class FineTuning(tf.keras.Model):
             decoder_sea,
             decoder_res,
             **kwargs):
+        '''
+        args:
+            num_layers,
+            hidden_dims,
+            nr_of_heads,
+            dff,
+            dropout_rate,
+            pre_trained_lookback_coefficient,
+            msk_scalar,
+            revIn_tre,
+            revIn_sea,
+            revIn_res,
+            patch_tokenizer,
+            encoder_representation,
+            decoder_tre,
+            decoder_sea,
+            decoder_res,
+        '''
         super().__init__(**kwargs)
 
         self.msk_scalar = msk_scalar
+        self.pre_trained_lookback_coefficient = \
+            pre_trained_lookback_coefficient
 
         self.pe = PositionEmbedding(embedding_dims=hidden_dims)
 
@@ -35,6 +56,7 @@ class FineTuning(tf.keras.Model):
 
         self.patch_tokenizer = patch_tokenizer
         self.encoder_representation = encoder_representation
+        self.encoder_representation.trainable = False
 
         self.decoder_tre = decoder_tre
         self.decoder_sea = decoder_sea
@@ -67,7 +89,6 @@ class FineTuning(tf.keras.Model):
         )
         return config
 
-    @classmethod
     def from_config(cls, config):
         config['revIn_tre'] = tf.keras.layers.deserialize(
             config['revIn_tre'])
@@ -101,7 +122,13 @@ class FineTuning(tf.keras.Model):
             pred: (None, timesteps, covariates)
         '''
         lb_tre, lb_sea, lb_res, dates, shifted = inputs
-        dimensions = tf.shape(lb_tre)
+
+        dimensions = tf.TensorShape(
+            (
+                lb_tre.shape[0],
+                int(lb_tre.shape[1] / self.pre_trained_lookback_coefficient),
+                lb_tre.shape[-1]
+            ))
         fc_tre = tf.zeros(dimensions) + self.msk_scalar
         fc_sea = tf.zeros(dimensions) + self.msk_scalar
         fc_res = tf.zeros(dimensions) + self.msk_scalar

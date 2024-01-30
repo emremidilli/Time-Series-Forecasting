@@ -10,7 +10,7 @@ def get_pre_training_args():
     parser.add_argument(
         '--model_id',
         required=False,
-        default='model_03',
+        default='model_05',
         type=str,
         help='model_id')
 
@@ -24,7 +24,7 @@ def get_pre_training_args():
     parser.add_argument(
         '--resume_training',
         required=False,
-        default='Y',
+        default='N',
         choices=['Y', 'N'],
         type=str,
         help='resume_training')
@@ -61,7 +61,7 @@ def get_pre_training_args():
     parser.add_argument(
         '--nr_of_encoder_blocks',
         required=False,
-        default=6,
+        default=1,
         type=int,
         help='nr_of_encoder_blocks')
     parser.add_argument(
@@ -73,13 +73,13 @@ def get_pre_training_args():
     parser.add_argument(
         '--encoder_ffn_units',
         required=False,
-        default=128,
+        default=32,
         type=int,
         help='encoder_ffn_units')
     parser.add_argument(
         '--embedding_dims',
         required=False,
-        default=128,
+        default=32,
         type=int,
         help='embedding_dims')
     parser.add_argument(
@@ -106,7 +106,7 @@ def get_pre_training_args():
     parser.add_argument(
         '--nr_of_epochs',
         required=False,
-        default=35000,
+        default=20,
         type=int,
         help='nr_of_epochs')
     parser.add_argument(
@@ -194,21 +194,21 @@ def get_fine_tuning_args():
     parser.add_argument(
         '--model_id',
         required=False,
-        default='model_04',
+        default='model_06',
         type=str,
         help='model_id')
 
     parser.add_argument(
         '--pre_trained_model_id',
         required=False,
-        default='model_03',
+        default='model_05',
         type=str,
         help='pre_trained_model_id')
 
     parser.add_argument(
         '--dataset_id',
         required=False,
-        default='dataset_03',
+        default='dataset_04',
         type=str,
         help='dataset_id')
 
@@ -298,6 +298,13 @@ def get_fine_tuning_args():
         default=0.10,
         type=float,
         help='dropout_rate')
+
+    parser.add_argument(
+        '--pre_trained_lookback_coefficient',
+        required=False,
+        default=2,
+        type=int,
+        help='pre_trained_lookback_coefficient')
 
     try:
         args = parser.parse_args()

@@ -3,6 +3,7 @@ from . import PositionEmbedding, TransformerEncoder, Time2Vec
 import tensorflow as tf
 
 
+@tf.keras.saving.register_keras_serializable()
 class Representation(tf.keras.layers.Layer):
     '''Encoder representation layer.'''
     def __init__(

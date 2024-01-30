@@ -1,6 +1,7 @@
 import tensorflow as tf
 
 
+@tf.keras.saving.register_keras_serializable()
 class PatchMasker(tf.keras.layers.Layer):
 
     def __init__(self, masking_rate, msk_scalar, **kwargs):

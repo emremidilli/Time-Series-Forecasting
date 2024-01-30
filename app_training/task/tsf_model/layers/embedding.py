@@ -1,6 +1,7 @@
 import tensorflow as tf
 
 
+@tf.keras.saving.register_keras_serializable()
 class PositionEmbedding(tf.keras.layers.Layer):
     '''Positional embedding from "Attention is all you need" paper.'''
     def __init__(self, embedding_dims, **kwargs):
@@ -47,6 +48,7 @@ class PositionEmbedding(tf.keras.layers.Layer):
         return y + pos_encodings
 
 
+@tf.keras.saving.register_keras_serializable()
 class Time2Vec(tf.keras.layers.Layer):
     '''Embedds a datetime vector via perioid activation based on
         "Time2Vec: Learning a Vector Representation of Time" paper.

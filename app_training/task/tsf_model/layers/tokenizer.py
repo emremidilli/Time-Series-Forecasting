@@ -1,6 +1,7 @@
 import tensorflow as tf
 
 
+@tf.keras.saving.register_keras_serializable()
 class PatchTokenizer(tf.keras.layers.Layer):
     '''
     A patch tokenizer that reshapes sub-series in patches.

@@ -1,6 +1,7 @@
 import tensorflow as tf
 
 
+@tf.keras.saving.register_keras_serializable()
 class TransformerEncoder(tf.keras.layers.Layer):
     '''
     Single encoder block from "Attention is all you need paper."

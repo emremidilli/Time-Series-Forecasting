@@ -2,6 +2,7 @@
 import tensorflow as tf
 
 
+@tf.keras.saving.register_keras_serializable()
 class BaseAttention(tf.keras.layers.Layer):
     '''Base attention layer that can be inhereted.'''
     def __init__(self, **kwargs):
@@ -11,6 +12,7 @@ class BaseAttention(tf.keras.layers.Layer):
         self.add = tf.keras.layers.Add()
 
 
+@tf.keras.saving.register_keras_serializable()
 class CausalSelfAttention(BaseAttention):
     '''Causal self attention where causal mask is applied.'''
     def call(self, x):
@@ -24,6 +26,7 @@ class CausalSelfAttention(BaseAttention):
         return x
 
 
+@tf.keras.saving.register_keras_serializable()
 class CrossAttention(BaseAttention):
     '''Cross attention layer where key and values are from context.'''
     def call(self, x, context):
@@ -47,6 +50,7 @@ class CrossAttention(BaseAttention):
         return y
 
 
+@tf.keras.saving.register_keras_serializable()
 class GlobalSelfAttention(BaseAttention):
     '''A self-attention mechanism that can be part of transformer encoder \
         and/or decoder.'''

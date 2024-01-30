@@ -3,6 +3,7 @@ from . import CausalSelfAttention, CrossAttention, FeedForward
 import tensorflow as tf
 
 
+@tf.keras.saving.register_keras_serializable()
 class MppDecoder(tf.keras.layers.Layer):
     '''Decoder for masked auto-encoder.'''
     def __init__(self, nr_of_time_steps, nr_of_covariates, **kwargs):
@@ -34,6 +35,7 @@ class MppDecoder(tf.keras.layers.Layer):
         return y
 
 
+@tf.keras.saving.register_keras_serializable()
 class ProjectionHead(tf.keras.layers.Layer):
     '''Projection head for contrastive learning task.'''
     def __init__(self, iFfnUnits, **kwargs):
@@ -63,6 +65,7 @@ class ProjectionHead(tf.keras.layers.Layer):
         return y
 
 
+@tf.keras.saving.register_keras_serializable()
 class DecoderBlock(tf.keras.layers.Layer):
     '''Transformer decoder block.'''
     def __init__(
@@ -109,6 +112,7 @@ class DecoderBlock(tf.keras.layers.Layer):
         return y
 
 
+@tf.keras.saving.register_keras_serializable()
 class SingleStepDecoder(tf.keras.layers.Layer):
     '''Decoder for singe-step predictor.'''
     def __init__(
