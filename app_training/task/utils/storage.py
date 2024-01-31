@@ -2,6 +2,8 @@
 
 import boto3
 
+import mlflow
+
 import os
 
 from pathlib import Path
@@ -11,6 +13,30 @@ import shutil
 import tarfile
 
 import tensorflow as tf
+
+
+def log_experiments(model_id, history, parameters):
+    '''
+    Experiments are logged into Databricks with MlFlow.
+    args:
+        model_id (str)
+        history (pandas.DataFrame)
+        parameters (dictionary)
+    '''
+
+    mlflow.login()
+    mlflow.set_tracking_uri("databricks")
+    mlflow.set_experiment(f'/{model_id}')
+
+    with mlflow.start_run():
+        history_logs = history.history
+        mlflow.log_params(parameters)
+        mlflow.log_table(
+            data=history_logs,
+            artifact_file="history_logs.json")
+
+        for metric in list(history_logs.keys()):
+            mlflow.log_metric(metric, history_logs[metric][-1])
 
 
 def upload_model(model, model_id):

@@ -3,4 +3,4 @@ from .arguments import get_pre_training_args, \
 from .callbacks import RamCleaner, PreTrainingCheckpointCallback, \
     FineTuningCheckpointCallback, LearningRateCallback  # noqa: F401
 from .sampling import train_test_split  # noqa: F401
-from .storage import load_model, upload_model  # noqa: F401
+from .storage import load_model, upload_model, log_experiments  # noqa: F401

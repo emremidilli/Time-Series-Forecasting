@@ -7,7 +7,7 @@ import tensorflow as tf
 from tsf_model import FineTuning
 
 from utils import get_fine_tuning_args, FineTuningCheckpointCallback, \
-    upload_model, load_model, train_test_split, RamCleaner
+    upload_model, load_model, train_test_split, RamCleaner, log_experiments
 
 
 if __name__ == '__main__':
@@ -94,7 +94,7 @@ if __name__ == '__main__':
         os.makedirs(artifacts_dir)
 
     model.compile(
-        run_eagerly=True,
+        run_eagerly=False,
         optimizer=optimizer,
         loss=tf.keras.losses.MeanSquaredError(name='mse'),
         metrics=[
@@ -107,7 +107,7 @@ if __name__ == '__main__':
         checkpoint_callback,
         ram_cleaner_callback]
 
-    model.fit(
+    history = model.fit(
         ds_train,
         epochs=nr_of_epochs,
         verbose=2,
@@ -115,6 +115,11 @@ if __name__ == '__main__':
         initial_epoch=starting_epoch,
         shuffle=False,
         callbacks=callbacks)
+
+    log_experiments(
+        model_id=model_id,
+        history=history,
+        parameters=vars(args))
 
     upload_model(model=model, model_id=model_id)
 

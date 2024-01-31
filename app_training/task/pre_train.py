@@ -1,5 +1,3 @@
-import mlflow
-
 import os
 
 import shutil
@@ -10,7 +8,7 @@ from tsf_model import PreTraining
 
 from utils import PreTrainingCheckpointCallback, LearningRateCallback, \
     RamCleaner, get_pre_training_args, \
-    train_test_split, upload_model
+    train_test_split, upload_model, log_experiments
 
 
 if __name__ == '__main__':
@@ -163,19 +161,10 @@ if __name__ == '__main__':
             learning_rate_callback,
             checkpoint_callback])
 
-    mlflow.login()
-    mlflow.set_tracking_uri("databricks")
-    mlflow.set_experiment(f'/{model_id}')
-
-    with mlflow.start_run():
-        history_logs = history.history
-        mlflow.log_params(vars(args))
-        mlflow.log_table(
-            data=history_logs,
-            artifact_file="history_logs.json")
-
-        for metric in list(history_logs.keys()):
-            mlflow.log_metric(metric, history_logs[metric][-1])
+    log_experiments(
+        model_id=model_id,
+        history=history,
+        parameters=vars(args))
 
     if save_model == "Y":
         upload_model(model=model, model_id=model_id)

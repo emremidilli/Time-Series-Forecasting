@@ -123,15 +123,11 @@ class FineTuning(tf.keras.Model):
         '''
         lb_tre, lb_sea, lb_res, dates, shifted = inputs
 
-        dimensions = tf.TensorShape(
-            (
-                lb_tre.shape[0],
-                int(lb_tre.shape[1] / self.pre_trained_lookback_coefficient),
-                lb_tre.shape[-1]
-            ))
-        fc_tre = tf.zeros(dimensions) + self.msk_scalar
-        fc_sea = tf.zeros(dimensions) + self.msk_scalar
-        fc_res = tf.zeros(dimensions) + self.msk_scalar
+        nr_of_fc_steps = \
+            int(lb_tre.shape[1] / self.pre_trained_lookback_coefficient)
+        fc_tre = tf.zeros_like(lb_tre)[:, :nr_of_fc_steps, :] + self.msk_scalar
+        fc_sea = tf.zeros_like(lb_tre)[:, :nr_of_fc_steps, :] + self.msk_scalar
+        fc_res = tf.zeros_like(lb_tre)[:, :nr_of_fc_steps, :] + self.msk_scalar
 
         tre = self.lb_fc_concatter([lb_tre, fc_tre])
         sea = self.lb_fc_concatter([lb_sea, fc_sea])
