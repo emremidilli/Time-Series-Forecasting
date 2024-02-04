@@ -144,20 +144,20 @@ class PreTraining(tf.keras.Model):
         self.loss_tracker_cl = tf.keras.metrics.Mean(name='loss_cl')
 
         # metrics
-        self.mae_tre = tf.keras.metrics.MeanAbsoluteError(name='mae_tre')
-        self.mae_sea = tf.keras.metrics.MeanAbsoluteError(name='mae_sea')
-        self.mae_res = tf.keras.metrics.MeanAbsoluteError(name='mae_res')
-        self.cos_tre = tf.keras.metrics.CosineSimilarity(name='cos_tre')
-        self.cos_sea = tf.keras.metrics.CosineSimilarity(name='cos_sea')
-        self.cos_res = tf.keras.metrics.CosineSimilarity(name='cos_res')
+        self.mae_tre = tf.keras.metrics.Mean(name='mae_tre')
+        self.mae_sea = tf.keras.metrics.Mean(name='mae_sea')
+        self.mae_res = tf.keras.metrics.Mean(name='mae_res')
+        self.cos_tre = tf.keras.metrics.Mean(name='cos_tre')
+        self.cos_sea = tf.keras.metrics.Mean(name='cos_sea')
+        self.cos_res = tf.keras.metrics.Mean(name='cos_res')
         self.cos_true = tf.keras.metrics.CosineSimilarity(name='cos_true')
         self.cos_false = tf.keras.metrics.CosineSimilarity(name='cos_false')
 
         self.mae_composed = \
-            tf.keras.metrics.MeanAbsoluteError(name='mae_composed')
+            tf.keras.metrics.Mean(name='mae_composed')
 
         self.mae_original = \
-            tf.keras.metrics.MeanAbsoluteError(name='mae_original')
+            tf.keras.metrics.Mean(name='mae_original')
 
         self.task_to_train = tf.Variable('mae')
 
@@ -500,17 +500,63 @@ class PreTraining(tf.keras.Model):
         else:
             self.task_to_train.assign('cl')
 
+        mae_composed = self.calculate_masked_loss(
+            y_pred=y_pred_composed,
+            y_true=anchor_composed,
+            masks=masks,
+            loss_fn=tf.keras.losses.mean_absolute_error)
+
+        mae_original = self.calculate_masked_loss(
+            y_pred=pred_original,
+            y_true=anchor_original,
+            masks=masks,
+            loss_fn=tf.keras.losses.mean_absolute_error)
+
+        mae_tre = self.calculate_masked_loss(
+            y_pred=y_pred_tre,
+            y_true=anchor_tre,
+            masks=masks,
+            loss_fn=tf.keras.losses.mean_absolute_error)
+
+        mae_sea = self.calculate_masked_loss(
+            y_pred=y_pred_sea,
+            y_true=anchor_sea,
+            masks=masks,
+            loss_fn=tf.keras.losses.mean_absolute_error)
+
+        mae_res = self.calculate_masked_loss(
+            y_pred=y_pred_res,
+            y_true=anchor_res,
+            masks=masks,
+            loss_fn=tf.keras.losses.mean_absolute_error)
+
+        cos_tre = self.calculate_masked_loss(
+            y_pred=y_pred_tre,
+            y_true=anchor_tre,
+            masks=masks,
+            loss_fn=tf.keras.losses.cosine_similarity)
+
+        cos_sea = self.calculate_masked_loss(
+            y_pred=y_pred_sea,
+            y_true=anchor_sea,
+            masks=masks,
+            loss_fn=tf.keras.losses.cosine_similarity)
+
+        cos_res = self.calculate_masked_loss(
+            y_pred=y_pred_res,
+            y_true=anchor_res,
+            masks=masks,
+            loss_fn=tf.keras.losses.cosine_similarity)
+
         # compute own metrics
-        self.mae_composed\
-            .update_state(y_pred=y_pred_composed, y_true=anchor_composed)
-        self.mae_original\
-            .update_state(y_pred=pred_original, y_true=anchor_original)
-        self.mae_tre.update_state(y_pred=y_pred_tre, y_true=anchor_tre)
-        self.mae_sea.update_state(y_pred=y_pred_sea, y_true=anchor_sea)
-        self.mae_res.update_state(y_pred=y_pred_res, y_true=anchor_res)
-        self.cos_tre.update_state(y_pred=y_pred_tre, y_true=anchor_tre)
-        self.cos_sea.update_state(y_pred=y_pred_sea, y_true=anchor_sea)
-        self.cos_res.update_state(y_pred=y_pred_res, y_true=anchor_res)
+        self.mae_composed.update_state(mae_composed)
+        self.mae_original.update_state(mae_original)
+        self.mae_tre.update_state(mae_tre)
+        self.mae_sea.update_state(mae_sea)
+        self.mae_res.update_state(mae_res)
+        self.cos_tre.update_state(cos_tre)
+        self.cos_sea.update_state(cos_sea)
+        self.cos_res.update_state(cos_res)
 
         # contrastive learning
         with tf.GradientTape() as tape:
@@ -603,31 +649,85 @@ class PreTraining(tf.keras.Model):
             self.pre_processor.data_denormalizer(y_pred_composed)
 
         # compute the loss value
-        loss_mae_comp = tf.keras.losses.mean_squared_error(
-            y_pred=pred_original, y_true=anchor_composed)
+        loss_mae_comp = self.calculate_masked_loss(
+            y_pred=y_pred_composed,
+            y_true=anchor_composed,
+            masks=masks,
+            loss_fn=tf.keras.losses.mean_squared_error)
 
-        loss_mae_tre = tf.keras.losses.mean_squared_error(
-            y_pred=y_pred_tre, y_true=anchor_tre)
+        loss_mae_tre = self.calculate_masked_loss(
+            y_pred=y_pred_tre,
+            y_true=anchor_tre,
+            masks=masks,
+            loss_fn=tf.keras.losses.mean_squared_error)
 
-        loss_mae_sea = tf.keras.losses.mean_squared_error(
-            y_pred=y_pred_sea, y_true=anchor_sea)
+        loss_mae_sea = self.calculate_masked_loss(
+            y_pred=y_pred_sea,
+            y_true=anchor_sea,
+            masks=masks,
+            loss_fn=tf.keras.losses.mean_squared_error)
 
         # compute own metrics
         self.loss_tracker_mae_comp.update_state(loss_mae_comp)
         self.loss_tracker_mae_tre.update_state(loss_mae_tre)
         self.loss_tracker_mae_sea.update_state(loss_mae_sea)
-        self.mae_composed.update_state(
+
+        mae_composed = self.calculate_masked_loss(
+            y_pred=y_pred_composed,
+            y_true=anchor_composed,
+            masks=masks,
+            loss_fn=tf.keras.losses.mean_absolute_error)
+
+        mae_original = self.calculate_masked_loss(
             y_pred=pred_original,
-            y_true=anchor_composed)
-        self.mae_original.update_state(
-            y_pred=pred_original,
-            y_true=anchor_original)
-        self.mae_tre.update_state(y_pred=y_pred_tre, y_true=anchor_tre)
-        self.mae_sea.update_state(y_pred=y_pred_sea, y_true=anchor_sea)
-        self.mae_res.update_state(y_pred=y_pred_res, y_true=anchor_res)
-        self.cos_tre.update_state(y_pred=y_pred_tre, y_true=anchor_tre)
-        self.cos_sea.update_state(y_pred=y_pred_sea, y_true=anchor_sea)
-        self.cos_res.update_state(y_pred=y_pred_res, y_true=anchor_res)
+            y_true=anchor_original,
+            masks=masks,
+            loss_fn=tf.keras.losses.mean_absolute_error)
+
+        mae_tre = self.calculate_masked_loss(
+            y_pred=y_pred_tre,
+            y_true=anchor_tre,
+            masks=masks,
+            loss_fn=tf.keras.losses.mean_absolute_error)
+
+        mae_sea = self.calculate_masked_loss(
+            y_pred=y_pred_sea,
+            y_true=anchor_sea,
+            masks=masks,
+            loss_fn=tf.keras.losses.mean_absolute_error)
+
+        mae_res = self.calculate_masked_loss(
+            y_pred=y_pred_res,
+            y_true=anchor_res,
+            masks=masks,
+            loss_fn=tf.keras.losses.mean_absolute_error)
+
+        cos_tre = self.calculate_masked_loss(
+            y_pred=y_pred_tre,
+            y_true=anchor_tre,
+            masks=masks,
+            loss_fn=tf.keras.losses.cosine_similarity)
+
+        cos_sea = self.calculate_masked_loss(
+            y_pred=y_pred_sea,
+            y_true=anchor_sea,
+            masks=masks,
+            loss_fn=tf.keras.losses.cosine_similarity)
+
+        cos_res = self.calculate_masked_loss(
+            y_pred=y_pred_res,
+            y_true=anchor_res,
+            masks=masks,
+            loss_fn=tf.keras.losses.cosine_similarity)
+
+        self.mae_composed.update_state(mae_composed)
+        self.mae_original.update_state(mae_original)
+        self.mae_tre.update_state(mae_tre)
+        self.mae_sea.update_state(mae_sea)
+        self.mae_res.update_state(mae_res)
+        self.cos_tre.update_state(cos_tre)
+        self.cos_sea.update_state(cos_sea)
+        self.cos_res.update_state(cos_res)
 
         # augment pairs
         y_logits_false, y_logits_true, y_logits_anchor = \
@@ -669,10 +769,10 @@ class PreTraining(tf.keras.Model):
         '''
         args:
             inputs:
-                1. tre: (none, timesteps, covariates)
-                2. sea: (none, timesteps, covariates)
-                3. res: (none, timesteps, covariates)
-                4. dates: (none, features)
+                tre: (none, timesteps, covariates)
+                sea: (none, timesteps, covariates)
+                res: (none, timesteps, covariates)
+                dates: (none, features)
         '''
 
         tre, sea, res, dates = inputs

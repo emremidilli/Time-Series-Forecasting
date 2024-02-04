@@ -1,14 +1,14 @@
 #!/bin/bash
 
 model_id="model_20240203_04_pt"
-dataset_id="ds_20240203_03_pt"
-resume_training="N"
-nr_of_epochs=1000
+dataset_id="ds_20240203_04_pt"
+resume_training="Y"
+nr_of_epochs=200
 mask_rate=0.40
 mask_scalar=0.00
-validation_rate=0.15
+validation_rate=0
 mini_batch_size=128
-mae_threshold_tre=0.10
+mae_threshold_tre=0.50
 mae_threshold_sea=0.01
 mae_threshold_comp=0.50
 cl_threshold=0.25
