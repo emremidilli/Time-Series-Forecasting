@@ -13,8 +13,6 @@ class PositionEmbedding(tf.keras.layers.Layer):
             kernel_initializer='glorot_uniform',
             bias_initializer='glorot_uniform')
 
-        self.layer_norm = tf.keras.layers.LayerNormalization(epsilon=1e-6)
-
     def positional_encoding(self, length, depth):
         import numpy as np
 
@@ -42,8 +40,6 @@ class PositionEmbedding(tf.keras.layers.Layer):
             depth=self.embedding_dims)
 
         y = self.embedding(inputs)
-
-        y = self.layer_norm(y)
 
         return y + pos_encodings
 

@@ -1,16 +1,16 @@
 #!/bin/bash
 
-model_id="ft_07"
+model_id="finetuning_02"
 pre_trained_model_id="model_03"
 dataset_id="dataset_04"
-resume_training="N"
+resume_training="Y"
 validation_rate=0.15
 mini_batch_size=128
-learning_rate=0.00001
+learning_rate=0.0001
 clip_norm=1.0
-nr_of_epochs=12000
-alpha_regulizer=0.1
-l1_ratio=0.1
+nr_of_epochs=10000
+alpha_regulizer=0.01
+l1_ratio=0.01
 nr_of_layers=1
 hidden_dims=128
 nr_of_heads=6

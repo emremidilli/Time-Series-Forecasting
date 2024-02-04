@@ -21,4 +21,4 @@ main() {
     echo "Pipeline is built with the name of " $output_dataset_id
 }
 
-main "dataset_03" "dataset_03"
+main "ds_20240203_04" "ds_20240203_04_pt"

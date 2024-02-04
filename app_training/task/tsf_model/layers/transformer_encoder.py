@@ -21,7 +21,8 @@ class TransformerEncoder(tf.keras.layers.Layer):
         self.dropout1 = tf.keras.layers.Dropout(dropout_rate)
 
         self.feedforward = tf.keras.Sequential([
-            tf.keras.layers.Dense(feedforward_dim, activation='ReLU'),
+            tf.keras.layers.Dense(feedforward_dim, activation='gelu'),
+            tf.keras.layers.Dropout(dropout_rate),
             tf.keras.layers.Dense(embed_dim)
         ])
         self.norm2 = tf.keras.layers.LayerNormalization(epsilon=1e-6)

@@ -113,7 +113,7 @@ class DecoderBlock(tf.keras.layers.Layer):
 
 
 @tf.keras.saving.register_keras_serializable()
-class SingleStepDecoder(tf.keras.layers.Layer):
+class TransformerDecoder(tf.keras.layers.Layer):
     '''Decoder for singe-step predictor.'''
     def __init__(
             self,

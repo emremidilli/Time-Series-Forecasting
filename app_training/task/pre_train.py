@@ -91,9 +91,12 @@ if __name__ == '__main__':
 
     cl_optimizer = tf.keras.optimizers.Adam(clipnorm=clip_norm)
 
-    nr_of_forecast_patches = int(tre.shape[0] / (lookback_coefficient + 1))
-    nr_of_forecast_patches = int(nr_of_forecast_patches / patch_size)
-    nr_of_lookback_patches = int(nr_of_forecast_patches * lookback_coefficient)
+    contrastive_learning_patches = \
+        int(tre.shape[0] / (lookback_coefficient + 1))
+    contrastive_learning_patches = \
+        int(contrastive_learning_patches / patch_size)
+
+    nr_of_timesteps = tre.shape[0]
 
     pre_processor = tf.keras.models.load_model(input_pipeline_dir)
 
@@ -110,8 +113,8 @@ if __name__ == '__main__':
         projection_head_units=projection_head,
         msk_rate=mask_rate,
         msk_scalar=mask_scalar,
-        nr_of_lookback_patches=nr_of_lookback_patches,
-        nr_of_forecast_patches=nr_of_forecast_patches,
+        nr_of_timesteps=nr_of_timesteps,
+        contrastive_learning_patches=contrastive_learning_patches,
         mae_threshold_comp=mae_threshold_comp,
         mae_threshold_tre=mae_threshold_tre,
         mae_threshold_sea=mae_threshold_sea,

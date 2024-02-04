@@ -1,4 +1,4 @@
-from models import InputPreProcessorPT
+from models import InputPreProcessor
 
 import os
 
@@ -33,22 +33,20 @@ if __name__ == '__main__':
     lb_train = read_npy_file(
         os.path.join(training_data_folder, 'lb_train.npy'),
         dtype='float32')
-    fc_train = read_npy_file(
-        os.path.join(training_data_folder, 'fc_train.npy'),
-        dtype='float32')
+
     ts_train = read_npy_file(
         os.path.join(training_data_folder, 'ts_train.npy'),
         dtype='int32')
 
     nr_of_covariates = lb_train.shape[-1]
-    input_pre_processor = InputPreProcessorPT(
+    input_pre_processor = InputPreProcessor(
         pool_size_trend=pool_size_trend,
         nr_of_covariates=nr_of_covariates,
         sigma=sigma,
         scale_data=scale_data)
 
-    input_pre_processor.adapt((lb_train, fc_train, ts_train))
-    tre, sea, res, ts = input_pre_processor((lb_train, fc_train, ts_train))
+    input_pre_processor.adapt((lb_train, ts_train))
+    tre, sea, res, ts = input_pre_processor((lb_train, ts_train))
 
     ds_train = tf.data.Dataset.from_tensor_slices(
         (tre, sea, res, ts))

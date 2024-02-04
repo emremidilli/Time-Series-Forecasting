@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from tsf_model.layers import PositionEmbedding, SingleStepDecoder
+from tsf_model.layers import PositionEmbedding, TransformerDecoder
 
 
 @tf.keras.saving.register_keras_serializable()
@@ -56,13 +56,12 @@ class FineTuning(tf.keras.Model):
 
         self.patch_tokenizer = patch_tokenizer
         self.encoder_representation = encoder_representation
-        self.encoder_representation.trainable = False
 
         self.decoder_tre = decoder_tre
         self.decoder_sea = decoder_sea
         self.decoder_res = decoder_res
 
-        self.decoder = SingleStepDecoder(
+        self.decoder = TransformerDecoder(
             num_layers=num_layers,
             hidden_dims=hidden_dims,
             nr_of_heads=nr_of_heads,
@@ -72,6 +71,14 @@ class FineTuning(tf.keras.Model):
         self.dense = tf.keras.layers.Dense(1)
 
         self.lb_fc_concatter = tf.keras.layers.Concatenate(axis=1)
+
+        self.revIn_tre.trainable = False
+        self.revIn_sea.trainable = False
+        self.revIn_res.trainable = False
+        self.encoder_representation.trainable = False
+        self.decoder_tre.trainable = False
+        self.decoder_sea.trainable = False
+        self.decoder_res.trainable = False
 
     def get_config(self):
         config = super().get_config()

@@ -23,8 +23,8 @@ class PreTraining(tf.keras.Model):
             projection_head_units,
             msk_rate,
             msk_scalar,
-            nr_of_lookback_patches,
-            nr_of_forecast_patches,
+            nr_of_timesteps,
+            contrastive_learning_patches,
             mae_threshold_comp,
             mae_threshold_tre,
             mae_threshold_sea,
@@ -51,10 +51,9 @@ class PreTraining(tf.keras.Model):
                 units of projection head of contrastive learning.
             msk_rate (float): masking rate of the input patches.
             msk_scalar (float): values of the masked tokens.
-            nr_of_lookback_patches (int):
-                number of lookback patches.
-            nr_of_forecast_patches (int):
-                number of forecast patches.
+            nr_of_timesteps (int): number of output timesteps.
+            contrastive_learning_patches (int):
+                number of patches for contrastive learning.
             mae_threshold_comp (float):
                 stop criteria of composed value for masked autoencoder task.
             mae_threshold_tre (float):
@@ -92,8 +91,7 @@ class PreTraining(tf.keras.Model):
             patch_size=patch_size,
             nr_of_covariates=nr_of_covariates)
 
-        self.nr_of_lookback_patches = nr_of_lookback_patches
-        self.nr_of_forecast_patches = nr_of_forecast_patches
+        self.contrastive_learning_patches = contrastive_learning_patches
 
         self.patch_masker = PatchMasker(
             masking_rate=msk_rate, msk_scalar=msk_scalar)
@@ -109,8 +107,7 @@ class PreTraining(tf.keras.Model):
 
         self.lookback_forecast_concatter = tf.keras.layers.Concatenate(axis=1)
 
-        nr_of_timesteps = (nr_of_lookback_patches + nr_of_forecast_patches)
-        nr_of_timesteps = nr_of_timesteps * patch_size
+        self.nr_of_timesteps = nr_of_timesteps
         self.decoder_tre = MppDecoder(
             nr_of_time_steps=nr_of_timesteps,
             nr_of_covariates=nr_of_covariates,
@@ -222,26 +219,11 @@ class PreTraining(tf.keras.Model):
         Patch steps to mask are determined randomly.
         '''
         x_tre, x_sea, x_res = data
-        x_lb_tre = x_tre[:, :self.nr_of_lookback_patches]
-        x_lb_sea = x_sea[:, :self.nr_of_lookback_patches]
-        x_lb_res = x_res[:, :self.nr_of_lookback_patches]
-        x_fc_tre = x_tre[:, self.nr_of_lookback_patches:]
-        x_fc_sea = x_sea[:, self.nr_of_lookback_patches:]
-        x_fc_res = x_res[:, self.nr_of_lookback_patches:]
 
-        x_lb_sea_msk, x_lb_res_msk, x_lb_res_msk = self.patch_masker(
-            (x_lb_tre, x_lb_sea, x_lb_res))
-        x_fc_sea_msk, x_fc_res_msk, x_fc_res_msk = self.patch_masker(
-            (x_fc_tre, x_fc_sea, x_fc_res))
+        x_tre_msk, x_sea_msk, x_res_msk = self.patch_masker(
+            (x_tre, x_sea, x_res))
 
-        x_sea_msk = self.lookback_forecast_concatter(
-            [x_lb_sea_msk, x_fc_sea_msk])
-        x_res_msk = self.lookback_forecast_concatter(
-            [x_lb_res_msk, x_fc_res_msk])
-        x_res_msk = self.lookback_forecast_concatter(
-            [x_lb_res_msk, x_fc_res_msk])
-
-        return (x_sea_msk, x_res_msk, x_res_msk)
+        return (x_tre_msk, x_sea_msk, x_res_msk)
 
     def augment_pairs(self, data):
         '''
@@ -255,22 +237,22 @@ class PreTraining(tf.keras.Model):
             lookback and forecast patches.
         '''
         x_tre, x_sea, x_res = data
-        x_lb_tre = x_tre[:, :self.nr_of_lookback_patches]
-        x_lb_sea = x_sea[:, :self.nr_of_lookback_patches]
-        x_lb_res = x_res[:, :self.nr_of_lookback_patches]
-        x_fc_tre = x_tre[:, self.nr_of_lookback_patches:]
-        x_fc_sea = x_sea[:, self.nr_of_lookback_patches:]
-        x_fc_res = x_res[:, self.nr_of_lookback_patches:]
+        x_lb_tre = x_tre[:, :self.contrastive_learning_patches]
+        x_lb_sea = x_sea[:, :self.contrastive_learning_patches]
+        x_lb_res = x_res[:, :self.contrastive_learning_patches]
+        x_fc_tre = x_tre[:, self.contrastive_learning_patches:]
+        x_fc_sea = x_sea[:, self.contrastive_learning_patches:]
+        x_fc_res = x_res[:, self.contrastive_learning_patches:]
 
         nr_of_forecast_patches = tf.shape(x_fc_tre)[1]
 
         # mask
-        x_lb_sea_msk, x_lb_res_msk, x_lb_res_msk = self.patch_masker(
+        x_lb_tre_msk, x_lb_sea_msk, x_lb_res_msk = self.patch_masker(
             (x_lb_tre, x_lb_sea, x_lb_res))
+        x_tre_true = self.lookback_forecast_concatter(
+            [x_lb_tre_msk, x_fc_tre])
         x_sea_true = self.lookback_forecast_concatter(
-            [x_lb_sea_msk, x_fc_tre])
-        x_res_true = self.lookback_forecast_concatter(
-            [x_lb_res_msk, x_fc_sea])
+            [x_lb_sea_msk, x_fc_sea])
         x_res_true = self.lookback_forecast_concatter(
             [x_lb_res_msk, x_fc_res])
 
@@ -280,20 +262,20 @@ class PreTraining(tf.keras.Model):
             minval=1,
             maxval=nr_of_forecast_patches,
             dtype=tf.int32)
-        x_fc_sea_sft, x_fc_res_sft, x_fc_res_sft = self.patch_shifter(
+        x_fc_tre_sft, x_fc_sea_sft, x_fc_res_sft = self.patch_shifter(
             (x_fc_tre, x_fc_sea, x_fc_res, i))
+        x_tre_false = self.lookback_forecast_concatter(
+            [x_lb_tre_msk, x_fc_tre_sft])
         x_sea_false = self.lookback_forecast_concatter(
             [x_lb_sea_msk, x_fc_sea_sft])
         x_res_false = self.lookback_forecast_concatter(
             [x_lb_res_msk, x_fc_res_sft])
-        x_res_false = self.lookback_forecast_concatter(
-            [x_lb_res_msk, x_fc_res_sft])
 
-        return (x_sea_true,
+        return (x_tre_true,
+                x_sea_true,
                 x_res_true,
-                x_res_true,
+                x_tre_false,
                 x_sea_false,
-                x_res_false,
                 x_res_false)
 
     @tf.function()

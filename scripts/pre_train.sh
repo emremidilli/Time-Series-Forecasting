@@ -1,34 +1,35 @@
 #!/bin/bash
 
-model_id="model_03"
-dataset_id="dataset_03"
+model_id="model_20240203_03_pt"
+dataset_id="ds_20240203_04_pt"
 resume_training="Y"
-nr_of_epochs=35000
+nr_of_epochs=1000
 mask_rate=0.40
-mask_scalar=0.001
+mask_scalar=0.00
 validation_rate=0.15
 mini_batch_size=128
 mae_threshold_tre=0.10
-mae_threshold_sea=0.001
+mae_threshold_sea=0.01
 mae_threshold_comp=0.50
 cl_threshold=0.25
 save_model="Y"
-patch_size=24
+patch_size=16
 cl_margin=0.25
-lookback_coefficient=2
+lookback_coefficient=4
+
+nr_of_encoder_blocks=3
+nr_of_heads=4
+clip_norm=1.0
+warmup_steps=4000
+scale_factor=0.10
+encoder_ffn_units=128
+embedding_dims=16
+projection_head=16
+dropout_rate=0.30
 
 cd ../app_training/
 
 main() {
-    clip_norm=$1 # 1.0
-    warmup_steps=$2 # 1000
-    scale_factor=$3 # 0.10
-    nr_of_encoder_blocks=$4 # 1
-    nr_of_heads=$5 # 1
-    encoder_ffn_units=$6 # 256
-    embedding_dims=$7 # 256
-    projection_head=$8 # 16
-    dropout_rate=$9 # 0.10
 
     echo "starting to pre-train"
 
@@ -64,4 +65,4 @@ main() {
 
 }
 
-main 1.0 4000 1.0 6 6 128 128 32 0.10
+main

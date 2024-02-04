@@ -1,4 +1,4 @@
-from models import InputPreProcessorFT, TargetPreProcessor
+from models import InputPreProcessor, TargetPreProcessor
 
 import os
 

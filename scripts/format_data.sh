@@ -30,4 +30,4 @@ main() {
     echo "successfull for "$model_id
 }
 
-main "model_03" "ETTh1" "['OT']" 96 2 24 "h" "['month','day','dayofweek']"
+main "ds_20240203_04" "ETTh1" "['OT']" 96 4 1 "h" "['month','day','dayofweek']"
