@@ -13,7 +13,7 @@ class MppDecoder(tf.keras.layers.Layer):
 
         self.dense = tf.keras.layers.Dense(
             units=nr_of_time_steps * nr_of_covariates,
-            use_bias=False)
+            use_bias=True)
 
         self.reshaper = tf.keras.layers.Reshape(
             target_shape=(nr_of_time_steps, nr_of_covariates))

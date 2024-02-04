@@ -1,8 +1,8 @@
 #!/bin/bash
 
-model_id="model_20240203_03_pt"
+model_id="model_20240203_04_pt"
 dataset_id="ds_20240203_04_pt"
-resume_training="Y"
+resume_training="N"
 nr_of_epochs=1000
 mask_rate=0.40
 mask_scalar=0.00
