@@ -1,7 +1,7 @@
 #!/bin/bash
 
 model_id="model_20240203_04_pt"
-dataset_id="ds_20240203_04_pt"
+dataset_id="ds_20240203_03_pt"
 resume_training="N"
 nr_of_epochs=1000
 mask_rate=0.40
@@ -21,7 +21,7 @@ nr_of_encoder_blocks=3
 nr_of_heads=4
 clip_norm=1.0
 warmup_steps=4000
-scale_factor=0.10
+scale_factor=1
 encoder_ffn_units=128
 embedding_dims=16
 projection_head=16
