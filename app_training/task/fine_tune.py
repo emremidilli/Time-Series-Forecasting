@@ -24,13 +24,6 @@ if __name__ == '__main__':
     learning_rate = args.learning_rate
     clip_norm = args.clip_norm
     nr_of_epochs = args.nr_of_epochs
-    alpha_regulizer = args.alpha_regulizer
-    l1_ratio = args.l1_ratio
-    nr_of_layers = args.nr_of_layers
-    hidden_dims = args.hidden_dims
-    nr_of_heads = args.nr_of_heads
-    dropout_rate = args.dropout_rate
-    pre_trained_lookback_coefficient = args.pre_trained_lookback_coefficient
 
     artifacts_dir = os.path.join(
         os.environ['BIN_NAME'],
@@ -48,6 +41,8 @@ if __name__ == '__main__':
 
     ds = tf.data.Dataset.load(path=dataset_dir)
 
+    (_, _, _, _), lbl = next(iter(ds))
+
     ds_train = ds
     ds_val = None
     if validation_rate > 0:
@@ -57,21 +52,13 @@ if __name__ == '__main__':
     ds_train = ds_train.batch(mini_batch_size).prefetch(tf.data.AUTOTUNE)
 
     model = FineTuning(
-        num_layers=nr_of_layers,
-        hidden_dims=hidden_dims,
-        nr_of_heads=nr_of_heads,
-        dff=hidden_dims,
-        dropout_rate=dropout_rate,
-        pre_trained_lookback_coefficient=pre_trained_lookback_coefficient,
-        msk_scalar=pre_trained_model.patch_masker.get_config()['msk_scalar'],
         revIn_tre=pre_trained_model.revIn_tre,
         revIn_sea=pre_trained_model.revIn_sea,
         revIn_res=pre_trained_model.revIn_res,
         patch_tokenizer=pre_trained_model.patch_tokenizer,
         encoder_representation=pre_trained_model.encoder_representation,
-        decoder_tre=pre_trained_model.decoder_tre,
-        decoder_sea=pre_trained_model.decoder_sea,
-        decoder_res=pre_trained_model.decoder_res)
+        nr_of_timesteps=lbl.shape[0],
+        nr_of_covariates=lbl.shape[-1])
 
     optimizer = tf.keras.optimizers.Adam(
         learning_rate=learning_rate,

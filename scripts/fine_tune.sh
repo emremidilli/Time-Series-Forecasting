@@ -1,22 +1,14 @@
 #!/bin/bash
 
-model_id="finetuning_02"
-pre_trained_model_id="model_03"
-dataset_id="dataset_04"
+model_id="model_20240203_05_ft"
+pre_trained_model_id="model_20240203_05_pt"
+dataset_id="ds_20240203_large_ft"
 resume_training="Y"
-validation_rate=0.15
+validation_rate=0.00
 mini_batch_size=128
 learning_rate=0.0001
 clip_norm=1.0
-nr_of_epochs=10000
-alpha_regulizer=0.01
-l1_ratio=0.01
-nr_of_layers=1
-hidden_dims=128
-nr_of_heads=6
-dropout_rate=0.10
-pre_trained_lookback_coefficient=2
-
+nr_of_epochs=1000
 
 cd ../app_training/
 
@@ -33,17 +25,9 @@ main() {
         --mini_batch_size=$mini_batch_size \
         --learning_rate=$learning_rate \
         --clip_norm=$clip_norm \
-        --nr_of_epochs=$nr_of_epochs \
-        --alpha_regulizer=$alpha_regulizer \
-        --l1_ratio=$l1_ratio \
-        --nr_of_layers=$nr_of_layers \
-        --hidden_dims=$hidden_dims \
-        --nr_of_heads=$nr_of_heads \
-        --dropout_rate=$dropout_rate \
-        --pre_trained_lookback_coefficient=$pre_trained_lookback_coefficient
+        --nr_of_epochs=$nr_of_epochs
 
     echo "fine-tuning is successfull for " $model_id
 }
 
 main
-

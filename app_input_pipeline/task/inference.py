@@ -8,8 +8,7 @@ if __name__ == '__main__':
     Receives directories for numpy inputs of
     1. lookback
     2. date_features
-    Pre-processes them by a pre-processor based on
-        given model_id
+    Pre-processes them by a pre-processor based on given model_id.
     Pre-processed data is saved in tf.data.Dataset format.
     '''
 
@@ -24,14 +23,10 @@ if __name__ == '__main__':
     lb = read_npy_file(lb_dir, dtype='float32')
     ts = read_npy_file(ts_dir, dtype='int32')
 
-    pre_processor = tf.saved_model.load(pre_processor_dir)
+    input_pre_processor = tf.saved_model.load(pre_processor_dir)
 
-    (dist, tre, sea, ts) = pre_processor((lb, ts))
+    tre, sea, res, ts = input_pre_processor((lb, ts))
 
-    aMin = tf.math.reduce_min(lb, axis=1)
-    aMax = tf.math.reduce_max(lb, axis=1)
-
-    ds = tf.data.Dataset.from_tensor_slices(
-        ((dist, tre, sea, ts), (aMin, aMax)))
+    ds = tf.data.Dataset.from_tensor_slices((tre, sea, res, ts))
 
     ds.save(save_dir)

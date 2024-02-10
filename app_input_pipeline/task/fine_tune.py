@@ -25,9 +25,6 @@ if __name__ == '__main__':
     else:
         scale_data = False
 
-    begin_scalar = args.begin_scalar
-    end_scalar = args.end_scalar
-
     training_data_folder = os.path.join(
         os.environ['BIN_NAME'],
         os.environ['FORMATTED_NAME'],
@@ -44,23 +41,20 @@ if __name__ == '__main__':
         dtype='int32')
 
     nr_of_covariates = lb_train.shape[-1]
-    input_pre_processor = InputPreProcessorFT(
+    input_pre_processor = InputPreProcessor(
         pool_size_trend=pool_size_trend,
         nr_of_covariates=nr_of_covariates,
         sigma=sigma,
         scale_data=scale_data)
 
-    target_pre_processor = TargetPreProcessor(
-        begin_scalar=begin_scalar,
-        end_scalar=end_scalar)
+    input_pre_processor.adapt((lb_train, ts_train))
+    lb_tre, lb_sea, lb_res, ts = input_pre_processor((lb_train, ts_train))
 
-    input_pre_processor.adapt(inputs=(lb_train, ts_train))
-    lb_tre, lb_sea, lb_res, ts = input_pre_processor(
-        inputs=(lb_train, ts_train))
-    lbl, lbl_shifted = target_pre_processor((fc_train))
+    target_pre_processor = TargetPreProcessor(scale_data=scale_data)
+    lbl = target_pre_processor((fc_train))
 
     ds = tf.data.Dataset.from_tensor_slices(
-        ((lb_tre, lb_sea, lb_res, ts, lbl_shifted), lbl))
+        ((lb_tre, lb_sea, lb_res, ts), lbl))
 
     sub_dir = os.path.join(
         os.environ['BIN_NAME'],

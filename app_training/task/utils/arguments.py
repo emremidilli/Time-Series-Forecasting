@@ -235,20 +235,6 @@ def get_fine_tuning_args():
         type=float,
         help='clip_norm')
 
-    parser.add_argument(
-        '--alpha_regulizer',
-        required=False,
-        default=0.10,
-        type=float,
-        help='alpha_regulizer')
-
-    parser.add_argument(
-        '--l1_ratio',
-        required=False,
-        default=0.10,
-        type=float,
-        help='l1_ratio')
-
     # Training-related hyperparameters.
     parser.add_argument(
         '--mini_batch_size',
@@ -271,41 +257,6 @@ def get_fine_tuning_args():
         type=float,
         help='validation_rate')
 
-    parser.add_argument(
-        '--nr_of_layers',
-        required=False,
-        default=1,
-        type=int,
-        help='nr_of_layers')
-
-    parser.add_argument(
-        '--hidden_dims',
-        required=False,
-        default=128,
-        type=int,
-        help='hidden_dims')
-
-    parser.add_argument(
-        '--nr_of_heads',
-        required=False,
-        default=6,
-        type=int,
-        help='nr_of_heads')
-
-    parser.add_argument(
-        '--dropout_rate',
-        required=False,
-        default=0.10,
-        type=float,
-        help='dropout_rate')
-
-    parser.add_argument(
-        '--pre_trained_lookback_coefficient',
-        required=False,
-        default=2,
-        type=int,
-        help='pre_trained_lookback_coefficient')
-
     try:
         args = parser.parse_args()
     except:
@@ -320,39 +271,18 @@ def get_inference_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        '--input_dataset_dir',
+        '--dataset_id',
         required=False,
-        default="./tsf-bin/05_inference/ETTh1/input/",
+        default='ds_debug',
         type=str,
-        help='input_dataset_dir')
+        help='dataset_id')
 
     parser.add_argument(
-        '--model_dir',
+        '--model_id',
         required=False,
-        default="./tsf-bin/04_artifacts/ETTh1/fine_tune/saved_model/",
+        default='model_debug',
         type=str,
-        help='model_dir')
-
-    parser.add_argument(
-        '--output_save_dir',
-        required=False,
-        default="./tsf-bin/05_inference/ETTh1/output/",
-        type=str,
-        help='output_save_dir')
-
-    parser.add_argument(
-        '--nr_of_forecasting_steps',
-        required=False,
-        default=168,
-        type=int,
-        help='nr_of_forecasting_steps')
-
-    parser.add_argument(
-        '--begin_scalar',
-        required=False,
-        default=0.50,
-        type=float,
-        help='begin_scalar')
+        help='model_id')
 
     try:
         args = parser.parse_args()

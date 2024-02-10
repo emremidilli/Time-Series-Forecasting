@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 from tsf_model.layers import Representation, \
-    MppDecoder, ProjectionHead, PatchMasker, PatchShifter, \
+    LinearHead, ProjectionHead, PatchMasker, PatchShifter, \
     ReversibleInstanceNormalization, PatchTokenizer
 
 
@@ -108,16 +108,16 @@ class PreTraining(tf.keras.Model):
         self.lookback_forecast_concatter = tf.keras.layers.Concatenate(axis=1)
 
         self.nr_of_timesteps = nr_of_timesteps
-        self.decoder_tre = MppDecoder(
-            nr_of_time_steps=nr_of_timesteps,
+        self.decoder_tre = LinearHead(
+            nr_of_timesteps=nr_of_timesteps,
             nr_of_covariates=nr_of_covariates,
             name='decoder_tre')
-        self.decoder_sea = MppDecoder(
-            nr_of_time_steps=nr_of_timesteps,
+        self.decoder_sea = LinearHead(
+            nr_of_timesteps=nr_of_timesteps,
             nr_of_covariates=nr_of_covariates,
             name='decoder_sea')
-        self.decoder_res = MppDecoder(
-            nr_of_time_steps=nr_of_timesteps,
+        self.decoder_res = LinearHead(
+            nr_of_timesteps=nr_of_timesteps,
             nr_of_covariates=nr_of_covariates,
             name='decoder_res')
 

@@ -1,9 +1,9 @@
 #!/bin/bash
 
-model_id="model_20240203_04_pt"
-dataset_id="ds_20240203_04_pt"
-resume_training="Y"
-nr_of_epochs=200
+model_id="model_20240203_05_pt"
+dataset_id="ds_20240203_few_shot_pt_scaled"
+resume_training="N"
+nr_of_epochs=100
 mask_rate=0.40
 mask_scalar=0.00
 validation_rate=0
@@ -17,13 +17,13 @@ patch_size=16
 cl_margin=0.25
 lookback_coefficient=4
 
-nr_of_encoder_blocks=3
-nr_of_heads=4
+nr_of_encoder_blocks=6
+nr_of_heads=6
 clip_norm=1.0
 warmup_steps=4000
-scale_factor=1
-encoder_ffn_units=128
-embedding_dims=16
+scale_factor=0.1
+encoder_ffn_units=256
+embedding_dims=128
 projection_head=16
 dropout_rate=0.30
 

@@ -91,10 +91,32 @@ class InputPreProcessor(tf.keras.Model):
 
 class TargetPreProcessor(tf.keras.Model):
     '''Preprocess to produce target features.'''
-    def __init__(self, begin_scalar, end_scalar, **kwargs):
+    def __init__(self, scale_data, **kwargs):
         super().__init__(**kwargs)
-        self.begin_scalar = begin_scalar
-        self.end_scalar = end_scalar
+
+        self.scale_data = scale_data
+        if scale_data is True:
+            self.data_normalizer = tf.keras.layers.Normalization(axis=None)
+            self.data_denormalizer = \
+                tf.keras.layers.Normalization(axis=None, invert=True)
+        else:
+            self.data_normalizer = tf.keras.layers.Identity(trainable=False)
+            self.data_denormalizer = tf.keras.layers.Identity(trainable=False)
+
+    def adapt(self, inputs):
+        '''
+        Adapts the mean and standard deviaiton of
+        time series and timestamp features.
+        args:
+            tuple of 2 elements. Each element is a tf.data.Dataset object.
+            x_lb: (None, timesteps, covariates)
+            x_ts: (None, features)
+        '''
+        x_fc = inputs
+
+        if self.scale_data is True:
+            self.data_normalizer.adapt(x_fc)
+            self.data_denormalizer.adapt(x_fc)
 
     def call(self, inputs):
         '''
@@ -106,15 +128,6 @@ class TargetPreProcessor(tf.keras.Model):
         '''
         x_fc = inputs
 
-        z = tf.roll(x_fc, shift=1, axis=1)
-        beg_token = tf.zeros_like(z) + self.begin_scalar
-        end_token = tf.zeros_like(z) + self.end_scalar
-        z = tf.keras.layers.Concatenate(axis=1)(
-            [
-                tf.expand_dims(beg_token[:, 0], axis=1),
-                x_fc,
-                tf.expand_dims(end_token[:, 0], axis=1),
-            ])
-        y = z[:, 1:]
-        y_shifted = z[:, :-1]
-        return (y, y_shifted)
+        y = self.data_normalizer(x_fc)
+
+        return y

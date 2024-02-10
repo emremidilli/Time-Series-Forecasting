@@ -2,7 +2,7 @@
 
 pool_size_trend=24
 sigma=3.0
-scale_data="N"
+scale_data="Y"
 
 main() {
     input_dataset_id=$1
@@ -21,4 +21,6 @@ main() {
     echo "Pipeline is built with the name of " $output_dataset_id
 }
 
-main "ds_20240203_04" "ds_20240203_04_pt"
+main "ds_20240203_large" "ds_20240203_large_pt_scaled"
+
+main "ds_20240203_few_shot" "ds_20240203_few_shot_pt_scaled"

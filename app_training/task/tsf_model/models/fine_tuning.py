@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from tsf_model.layers import PositionEmbedding, TransformerDecoder
+from tsf_model.layers import PositionEmbedding, LinearHead
 
 
 @tf.keras.saving.register_keras_serializable()
@@ -8,47 +8,19 @@ class FineTuning(tf.keras.Model):
     '''Keras model for fine-tuning purpose.'''
     def __init__(
             self,
-            num_layers,
-            hidden_dims,
-            nr_of_heads,
-            dff,
-            dropout_rate,
-            pre_trained_lookback_coefficient,
-            msk_scalar,
             revIn_tre,
             revIn_sea,
             revIn_res,
             patch_tokenizer,
             encoder_representation,
-            decoder_tre,
-            decoder_sea,
-            decoder_res,
+            nr_of_timesteps,
+            nr_of_covariates,
             **kwargs):
         '''
         args:
-            num_layers,
-            hidden_dims,
-            nr_of_heads,
-            dff,
-            dropout_rate,
-            pre_trained_lookback_coefficient,
-            msk_scalar,
-            revIn_tre,
-            revIn_sea,
-            revIn_res,
-            patch_tokenizer,
-            encoder_representation,
-            decoder_tre,
-            decoder_sea,
-            decoder_res,
+
         '''
         super().__init__(**kwargs)
-
-        self.msk_scalar = msk_scalar
-        self.pre_trained_lookback_coefficient = \
-            pre_trained_lookback_coefficient
-
-        self.pe = PositionEmbedding(embedding_dims=hidden_dims)
 
         self.revIn_tre = revIn_tre
         self.revIn_sea = revIn_sea
@@ -57,28 +29,24 @@ class FineTuning(tf.keras.Model):
         self.patch_tokenizer = patch_tokenizer
         self.encoder_representation = encoder_representation
 
-        self.decoder_tre = decoder_tre
-        self.decoder_sea = decoder_sea
-        self.decoder_res = decoder_res
-
-        self.decoder = TransformerDecoder(
-            num_layers=num_layers,
-            hidden_dims=hidden_dims,
-            nr_of_heads=nr_of_heads,
-            dff=dff,
-            dropout_rate=dropout_rate)
-
-        self.dense = tf.keras.layers.Dense(1)
-
-        self.lb_fc_concatter = tf.keras.layers.Concatenate(axis=1)
+        self.nr_of_timesteps = nr_of_timesteps
+        self.decoder_tre = LinearHead(
+            nr_of_timesteps=nr_of_timesteps,
+            nr_of_covariates=nr_of_covariates,
+            name='decoder_tre')
+        self.decoder_sea = LinearHead(
+            nr_of_timesteps=nr_of_timesteps,
+            nr_of_covariates=nr_of_covariates,
+            name='decoder_sea')
+        self.decoder_res = LinearHead(
+            nr_of_timesteps=nr_of_timesteps,
+            nr_of_covariates=nr_of_covariates,
+            name='decoder_res')
 
         self.revIn_tre.trainable = False
         self.revIn_sea.trainable = False
         self.revIn_res.trainable = False
-        self.encoder_representation.trainable = False
-        self.decoder_tre.trainable = False
-        self.decoder_sea.trainable = False
-        self.decoder_res.trainable = False
+        self.encoder_representation.trainable = True
 
     def get_config(self):
         config = super().get_config()
@@ -88,10 +56,7 @@ class FineTuning(tf.keras.Model):
                 'revIn_sea': self.revIn_sea,
                 'revIn_res': self.revIn_res,
                 'patch_tokenizer': self.patch_tokenizer,
-                'encoder_representation': self.encoder_representation,
-                'decoder_tre': self.decoder_tre,
-                'decoder_sea': self.decoder_sea,
-                'decoder_res': self.decoder_res,
+                'encoder_representation': self.encoder_representation
             }
         )
         return config
@@ -107,12 +72,6 @@ class FineTuning(tf.keras.Model):
             config['patch_tokenizer'])
         config['encoder_representation'] = tf.keras.layers.deserialize(
             config['encoder_representation'])
-        config['decoder_tre'] = tf.keras.layers.deserialize(
-            config['decoder_tre'])
-        config['decoder_sea'] = tf.keras.layers.deserialize(
-            config['decoder_sea'])
-        config['decoder_res'] = tf.keras.layers.deserialize(
-            config['decoder_res'])
 
         return cls(**config)
 
@@ -124,21 +83,10 @@ class FineTuning(tf.keras.Model):
             sea: (None, timesteps, covariates)
             res: (None, timesteps, covariates)
             dates: (None, features)
-            shifted: (none, timesteps, covariates)
         returns:
             pred: (None, timesteps, covariates)
         '''
-        lb_tre, lb_sea, lb_res, dates, shifted = inputs
-
-        nr_of_fc_steps = \
-            int(lb_tre.shape[1] / self.pre_trained_lookback_coefficient)
-        fc_tre = tf.zeros_like(lb_tre)[:, :nr_of_fc_steps, :] + self.msk_scalar
-        fc_sea = tf.zeros_like(lb_tre)[:, :nr_of_fc_steps, :] + self.msk_scalar
-        fc_res = tf.zeros_like(lb_tre)[:, :nr_of_fc_steps, :] + self.msk_scalar
-
-        tre = self.lb_fc_concatter([lb_tre, fc_tre])
-        sea = self.lb_fc_concatter([lb_sea, fc_sea])
-        res = self.lb_fc_concatter([lb_res, fc_res])
+        tre, sea, res, dates = inputs
 
         # instance normalize
         tre_norm = self.revIn_tre(tre)
@@ -163,9 +111,6 @@ class FineTuning(tf.keras.Model):
         y_pred_res = self.revIn_res.denormalize((res, y_pred_res))
 
         # compose
-        t = y_pred_tre + y_pred_sea + y_pred_res
+        pred = y_pred_tre + y_pred_sea + y_pred_res
 
-        z = self.pe(shifted)
-        y = self.decoder((z, t))
-        pred = self.dense(y)
         return pred

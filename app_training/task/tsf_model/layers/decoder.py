@@ -4,19 +4,19 @@ import tensorflow as tf
 
 
 @tf.keras.saving.register_keras_serializable()
-class MppDecoder(tf.keras.layers.Layer):
+class LinearHead(tf.keras.layers.Layer):
     '''Decoder for masked auto-encoder.'''
-    def __init__(self, nr_of_time_steps, nr_of_covariates, **kwargs):
+    def __init__(self, nr_of_timesteps, nr_of_covariates, **kwargs):
         super().__init__(**kwargs)
 
         self.flatten = tf.keras.layers.Flatten()
 
         self.dense = tf.keras.layers.Dense(
-            units=nr_of_time_steps * nr_of_covariates,
+            units=nr_of_timesteps * nr_of_covariates,
             use_bias=True)
 
         self.reshaper = tf.keras.layers.Reshape(
-            target_shape=(nr_of_time_steps, nr_of_covariates))
+            target_shape=(nr_of_timesteps, nr_of_covariates))
 
     def call(self, x):
         '''
