@@ -356,7 +356,56 @@ class PreTraining(tf.keras.Model):
             masks=masks,
             loss_fn=tf.keras.losses.mean_absolute_error)
 
-        if mae_tre > self.mae_threshold_tre:
+        if mae_comp > self.mae_threshold_comp:
+            with tf.GradientTape() as tape:
+                y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed, masks = \
+                    self(data, mask=True)
+
+                pred_original = \
+                    self.pre_processor.data_denormalizer(y_pred_composed)
+
+                # compute the loss values
+                # compute the loss values
+                loss_mae_comp = self.calculate_masked_loss(
+                    y_pred=y_pred_composed,
+                    y_true=anchor_composed,
+                    masks=masks,
+                    loss_fn=tf.keras.losses.mean_squared_error)
+
+                loss_mae_tre = self.calculate_masked_loss(
+                    y_pred=y_pred_tre,
+                    y_true=anchor_tre,
+                    masks=masks,
+                    loss_fn=tf.keras.losses.mean_squared_error)
+
+                loss_mae_sea = self.calculate_masked_loss(
+                    y_pred=y_pred_sea,
+                    y_true=anchor_sea,
+                    masks=masks,
+                    loss_fn=tf.keras.losses.mean_squared_error)
+
+                mae_trainable_vars = self.revIn_tre.trainable_variables + \
+                    self.revIn_sea.trainable_variables + \
+                    self.revIn_res.trainable_variables + \
+                    self.encoder_representation.trainable_variables + \
+                    self.decoder_tre.trainable_variables + \
+                    self.decoder_sea.trainable_variables + \
+                    self.decoder_res.trainable_variables
+
+            # compute gradients
+            mae_graidents = tape.gradient(
+                loss_mae_comp,
+                mae_trainable_vars)
+
+            # update weights
+            self.mae_comp_optimizer.apply_gradients(
+                zip(mae_graidents, mae_trainable_vars))
+
+            # log losses
+            self.loss_tracker_mae_comp.update_state(loss_mae_comp)
+            self.loss_tracker_mae_tre.update_state(loss_mae_tre)
+            self.loss_tracker_mae_sea.update_state(loss_mae_sea)
+        elif mae_tre > self.mae_threshold_tre:
             with tf.GradientTape() as tape:
                 y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed, masks = \
                     self(data, mask=True)
@@ -440,56 +489,6 @@ class PreTraining(tf.keras.Model):
 
             # update weights
             self.mae_sea_optimizer.apply_gradients(
-                zip(mae_graidents, mae_trainable_vars))
-
-            # log losses
-            self.loss_tracker_mae_comp.update_state(loss_mae_comp)
-            self.loss_tracker_mae_tre.update_state(loss_mae_tre)
-            self.loss_tracker_mae_sea.update_state(loss_mae_sea)
-
-        elif mae_comp > self.mae_threshold_comp:
-            with tf.GradientTape() as tape:
-                y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed, masks = \
-                    self(data, mask=True)
-
-                pred_original = \
-                    self.pre_processor.data_denormalizer(y_pred_composed)
-
-                # compute the loss values
-                # compute the loss values
-                loss_mae_comp = self.calculate_masked_loss(
-                    y_pred=y_pred_composed,
-                    y_true=anchor_composed,
-                    masks=masks,
-                    loss_fn=tf.keras.losses.mean_squared_error)
-
-                loss_mae_tre = self.calculate_masked_loss(
-                    y_pred=y_pred_tre,
-                    y_true=anchor_tre,
-                    masks=masks,
-                    loss_fn=tf.keras.losses.mean_squared_error)
-
-                loss_mae_sea = self.calculate_masked_loss(
-                    y_pred=y_pred_sea,
-                    y_true=anchor_sea,
-                    masks=masks,
-                    loss_fn=tf.keras.losses.mean_squared_error)
-
-                mae_trainable_vars = self.revIn_tre.trainable_variables + \
-                    self.revIn_sea.trainable_variables + \
-                    self.revIn_res.trainable_variables + \
-                    self.encoder_representation.trainable_variables + \
-                    self.decoder_tre.trainable_variables + \
-                    self.decoder_sea.trainable_variables + \
-                    self.decoder_res.trainable_variables
-
-            # compute gradients
-            mae_graidents = tape.gradient(
-                loss_mae_comp,
-                mae_trainable_vars)
-
-            # update weights
-            self.mae_comp_optimizer.apply_gradients(
                 zip(mae_graidents, mae_trainable_vars))
 
             # log losses

@@ -257,6 +257,13 @@ def get_fine_tuning_args():
         type=float,
         help='validation_rate')
 
+    parser.add_argument(
+        '--fine_tune_backbone',
+        required=False,
+        default='N',
+        type=str,
+        help='fine_tune_backbone')
+
     try:
         args = parser.parse_args()
     except:

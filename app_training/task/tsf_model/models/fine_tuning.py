@@ -15,6 +15,7 @@ class FineTuning(tf.keras.Model):
             encoder_representation,
             nr_of_timesteps,
             nr_of_covariates,
+            fine_tune_backbone,
             **kwargs):
         '''
         args:
@@ -43,10 +44,12 @@ class FineTuning(tf.keras.Model):
             nr_of_covariates=nr_of_covariates,
             name='decoder_res')
 
+        self.fine_tune_backbone = fine_tune_backbone
+
         self.revIn_tre.trainable = False
         self.revIn_sea.trainable = False
         self.revIn_res.trainable = False
-        self.encoder_representation.trainable = True
+        self.encoder_representation.trainable = fine_tune_backbone
 
     def get_config(self):
         config = super().get_config()
