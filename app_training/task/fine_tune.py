@@ -62,7 +62,10 @@ if __name__ == '__main__':
         encoder_representation=pre_trained_model.encoder_representation,
         nr_of_timesteps=lbl.shape[0],
         nr_of_covariates=lbl.shape[-1],
-        fine_tune_backbone=fine_tune_backbone)
+        fine_tune_backbone=fine_tune_backbone,
+        decoder_tre=pre_trained_model.decoder_tre,
+        decoder_sea=pre_trained_model.decoder_sea,
+        decoder_res=pre_trained_model.decoder_res)
 
     optimizer = tf.keras.optimizers.Adam(
         learning_rate=learning_rate,
