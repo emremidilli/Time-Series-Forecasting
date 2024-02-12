@@ -22,15 +22,13 @@ if __name__ == '__main__':
     columns of [time_idx], [group_id] and [value].
     this format is the TimeSeriesDataset format of pytorch forecasting.
 
-    the script produces 8 numpy datasets in following formats:
+    the script produces 6 numpy datasets in following formats:
     1. lb_train: (None, nr_of_covariates, lookback_horizon)
     2. fc_train: (None, nr_of_covariates, forecast_horizon)
-    3. ix_train: (None)
-    4. lb_test: (None, nr_of_covariates, lookback_horizon)
-    5. fc_test: (None, nr_of_covariates, forecast_horizon)
-    6. ix_test: (None)
-    7. ts_train: (None, nr_of_timestamp_features)
-    8. ts_test: (None, nr_of_timestamp_features)
+    3. lb_test: (None, nr_of_covariates, lookback_horizon)
+    4. fc_test: (None, nr_of_covariates, forecast_horizon)
+    5. ts_train: (None, nr_of_timestamp_features)
+    6. ts_test: (None, nr_of_timestamp_features)
     '''
 
     args = get_args_to_build_datasets()
@@ -164,10 +162,8 @@ if __name__ == '__main__':
 
     np.save(os.path.join(save_dir, 'lb_train.npy'), lb[:-test_size])
     np.save(os.path.join(save_dir, 'fc_train.npy'), fc[:-test_size])
-    np.save(os.path.join(save_dir, 'ix_train.npy'), ix[:-test_size])
 
     np.save(os.path.join(save_dir, 'lb_test.npy'), lb[-test_size:])
     np.save(os.path.join(save_dir, 'fc_test.npy'), fc[-test_size:])
-    np.save(os.path.join(save_dir, 'ix_test.npy'), ix[-test_size:])
 
     print(f'Completed.\tTrain-Test size: {train_size} - {test_size}')

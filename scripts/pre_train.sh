@@ -1,7 +1,7 @@
 #!/bin/bash
 
 model_id="model_20240203_05_pt_comp_tre_sea_cl"
-dataset_id="ds_20240203_large_pt_scaled"
+dataset_id="ds_universal_ETTh1_96_4_S_pt"
 resume_training="N"
 nr_of_epochs=200
 mask_rate=0.40

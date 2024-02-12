@@ -1,0 +1,11 @@
+version: '3.9'
+services:
+  app_universal_data:
+    build:
+      context: .
+    volumes:
+      - ../task:/workspace:cached
+      - ../../../tsf-bin:/workspace/tsf-bin
+    env_file:
+      - ../../dir_names.env
+    command: /bin/sh -c "sleep infinity"

@@ -1,0 +1,9 @@
+version: '3.9'
+services:
+  app_universal_data:
+    build:
+      context: .
+    volumes:
+      - ../../tsf-bin:/app/tsf-bin
+    env_file:
+      - ../dir_names.env
