@@ -126,45 +126,28 @@ def get_input_args_inference():
     parser.add_argument(
         '--lb_dir',
         required=False,
-        default=os.path.join(
-            './tsf-bin',
-            os.environ['FORMATTED_NAME'],
-            'ETTh1',
-            'lb_test.npy'),
+        default='./tsf-bin/02_formatted_data/ds_universal_ETTh1_96_4_S/lb_test.npy',
         type=str,
         help='lb_dir')
 
     parser.add_argument(
         '--ts_dir',
         required=False,
-        default=os.path.join(
-            './tsf-bin',
-            os.environ['FORMATTED_NAME'],
-            'ETTh1',
-            'ts_test.npy'),
+        default='./tsf-bin/02_formatted_data/ds_universal_ETTh1_96_4_S/ts_test.npy',
         type=str,
         help='ts_dir')
 
     parser.add_argument(
         '--pre_processor_dir',
         required=False,
-        default=os.path.join(
-            './tsf-bin',
-            os.environ['PREPROCESSED_NAME'],
-            'ETTh1',
-            'fine_tune',
-            'input_preprocessor'),
+        default='./tsf-bin/03_preprocessing/ds_universal_ETTh1_96_4_S_ft/input_preprocessor/',
         type=str,
         help='pre_processor_dir')
 
     parser.add_argument(
         '--save_dir',
         required=False,
-        default=os.path.join(
-            './tsf-bin',
-            os.environ['INFERENCE_NAME'],
-            'ETTh1',
-            'input'),
+        default='./tsf-bin/05_inference/ds_universal_ETTh1_96_4_S/input/',
         type=str,
         help='save_dir')
 

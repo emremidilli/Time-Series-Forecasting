@@ -1,21 +1,18 @@
 #!/bin/bash
 
-channel=$1
-
-lb_dir="./tsf-bin/02_formatted_data/$channel/lb_train.npy"
-ts_dir="./tsf-bin/02_formatted_data/$channel/ts_train.npy"
-pre_processor_dir="./tsf-bin/03_preprocessing/$channel/fine_tune/input_preprocessor/"
-input_save_dir="./tsf-bin/05_inference/$channel/input/"
-model_dir="./tsf-bin/04_artifacts/$channel/fine_tune/saved_model/"
-output_save_dir="./tsf-bin/05_inference/$channel/output/"
-nr_of_forecasting_steps=168
-begin_scalar=-1.0
-
-cd ../app_input_pipeline/
-
-
 main() {
+    dataset_id=$1
+    pre_processor_id=$2
+    model_id=$3
+
+    lb_dir="./tsf-bin/02_formatted_data/$dataset_id/lb_test.npy"
+    ts_dir="./tsf-bin/02_formatted_data/$dataset_id/ts_test.npy"
+
+    pre_processor_dir="./tsf-bin/03_preprocessing/$pre_processor_id/input_preprocessor/"
+    input_save_dir="./tsf-bin/05_inference/$dataset_id/input/"
+
     echo "inference is started"
+    cd ../app_input_pipeline/
 
     docker-compose run --rm app_input_pipeline \
         inference.py \
@@ -24,17 +21,15 @@ main() {
         --pre_processor_dir=$pre_processor_dir \
         --save_dir=$input_save_dir
 
+    output_save_dir="./tsf-bin/05_inference/$dataset_id/output/"
     cd ../app_training/
     docker-compose run --rm app_training \
         inference.py \
-        --input_dataset_dir=$input_save_dir \
-        --model_dir=$model_dir \
-        --output_save_dir=$output_save_dir \
-        --nr_of_forecasting_steps=$nr_of_forecasting_steps \
-        --begin_scalar=$begin_scalar
+        --model_id=$model_id \
+        --input_dir=$input_save_dir \
+        --output_dir=$output_save_dir
 
     echo "inference is completed."
 }
 
-main
-
+main "ds_universal_ETTh1_96_4_S" "ds_universal_ETTh1_96_4_S_ft" "model_20240203_06_ft"

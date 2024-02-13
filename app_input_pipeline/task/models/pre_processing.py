@@ -1,8 +1,9 @@
-import tensorflow as tf
-
 from layers import TrendSeasonalityTokenizer
 
+import tensorflow as tf
 
+
+@tf.keras.saving.register_keras_serializable()
 class InputPreProcessor(tf.keras.Model):
     '''
     Preprocess for input of fine-tuning models.
@@ -89,6 +90,7 @@ class InputPreProcessor(tf.keras.Model):
         return (y_lb_tre, y_lb_sea, y_lb_res, y_ts)
 
 
+@tf.keras.saving.register_keras_serializable()
 class TargetPreProcessor(tf.keras.Model):
     '''Preprocess to produce target features.'''
     def __init__(self, scale_data, **kwargs):

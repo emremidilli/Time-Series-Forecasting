@@ -278,18 +278,25 @@ def get_inference_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        '--dataset_id',
-        required=False,
-        default='ds_debug',
-        type=str,
-        help='dataset_id')
-
-    parser.add_argument(
         '--model_id',
         required=False,
-        default='model_debug',
+        default='model_20240203_06_ft',
         type=str,
         help='model_id')
+
+    parser.add_argument(
+        '--input_dir',
+        required=False,
+        default='./tsf-bin/05_inference/ds_universal_ETTh1_96_4_S/input/',
+        type=str,
+        help='input_dir')
+
+    parser.add_argument(
+        '--output_dir',
+        required=False,
+        default='./tsf-bin/05_inference/ds_universal_ETTh1_96_4_S/output/',
+        type=str,
+        help='output_dir')
 
     try:
         args = parser.parse_args()

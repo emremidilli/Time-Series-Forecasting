@@ -2,7 +2,7 @@
 
 model_id="model_20240203_06_ft"
 pre_trained_model_id="model_20240203_05_pt_comp_tre_sea_cl"
-dataset_id="ds_20240203_large_ft_scaled"
+dataset_id="ds_universal_ETTh1_96_4_S_ft"
 resume_training="N"
 validation_rate=0.00
 mini_batch_size=128

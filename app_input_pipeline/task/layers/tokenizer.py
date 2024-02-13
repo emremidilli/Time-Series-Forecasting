@@ -1,6 +1,7 @@
 import tensorflow as tf
 
 
+@tf.keras.saving.register_keras_serializable()
 class TrendSeasonalityTokenizer(tf.keras.layers.Layer):
     '''
     A tokenizer that decomposes a time-series into

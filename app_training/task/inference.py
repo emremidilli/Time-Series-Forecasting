@@ -6,16 +6,11 @@ if __name__ == '__main__':
     '''Produces prediction based on given dataset.'''
     args = get_inference_args()
 
-    dataset_id = args.dataset_id
     model_id = args.model_id
+    input_dir = args.input_dir
+    output_dir = args.output_dir
 
-    dataset_dir = os.path.join(
-        os.environ['BIN_NAME'],
-        os.environ['PREPROCESSED_NAME'],
-        dataset_id,
-        'dataset')
-
-    ds = tf.data.Dataset.load(path=dataset_dir)
+    ds = tf.data.Dataset.load(path=input_dir)
 
     predictor = load_model(model_id=model_id)
 
@@ -27,9 +22,4 @@ if __name__ == '__main__':
 
     ds_pred = tf.data.Dataset.from_tensor_slices(pred)
 
-    output_save_dir = os.path.join(
-        os.environ['BIN_NAME'],
-        os.environ['INFERENCE_NAME'],
-        dataset_id)
-
-    ds_pred.save(output_save_dir)
+    ds_pred.save(output_dir)
