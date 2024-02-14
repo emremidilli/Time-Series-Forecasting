@@ -20,4 +20,8 @@ main() {
         --features=$features
 }
 
-main "etth1" "ds_universal_ETTh1_96_4_S" 96 4 "S"
+# main "etth1" "ds_universal_ETTh1_96_4_S" 96 4 "S"
+
+# main "etth1" "ds_universal_ETTh1_96_4_MS" 96 4 "MS"
+
+main "etth1" "ds_universal_ETTh1_96_4_M" 96 4 "M"

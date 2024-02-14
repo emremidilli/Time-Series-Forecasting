@@ -1,16 +1,16 @@
 #!/bin/bash
 
-model_id="model_20240203_05_pt_comp_tre_sea_cl"
+model_id="model_20240203_05_pt_comp_tre_sea_cl_02"
 dataset_id="ds_universal_ETTh1_96_4_S_pt"
-resume_training="N"
-nr_of_epochs=200
+resume_training="Y"
+nr_of_epochs=500
 mask_rate=0.40
 mask_scalar=0.00
 validation_rate=0
 mini_batch_size=128
-mae_threshold_tre=0.50
-mae_threshold_sea=0.01
-mae_threshold_comp=0.50
+mae_threshold_comp=0.30
+mae_threshold_tre=0.25
+mae_threshold_sea=0.005
 cl_threshold=0.25
 save_model="Y"
 patch_size=16
@@ -21,7 +21,7 @@ nr_of_encoder_blocks=3
 nr_of_heads=4
 clip_norm=1.0
 warmup_steps=4000
-scale_factor=1.0
+scale_factor=0.5
 encoder_ffn_units=128
 embedding_dims=16
 projection_head=16

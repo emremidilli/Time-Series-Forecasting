@@ -280,14 +280,15 @@ class PreTraining(tf.keras.Model):
         nr_of_forecast_patches = tf.shape(x_fc_tre)[1]
 
         # mask
-        x_lb_tre_msk, x_lb_sea_msk, x_lb_res_msk, _ = self.patch_masker(
-            (x_lb_tre, x_lb_sea, x_lb_res))
+        x_fc_tre_msk, x_fc_sea_msk, x_fc_res_msk, _ = self.patch_masker(
+            (x_fc_tre, x_fc_sea, x_fc_res))
+
         x_tre_true = self.lookback_forecast_concatter(
-            [x_lb_tre_msk, x_fc_tre])
+            [x_lb_tre, x_fc_tre_msk])
         x_sea_true = self.lookback_forecast_concatter(
-            [x_lb_sea_msk, x_fc_sea])
+            [x_lb_sea, x_fc_sea_msk])
         x_res_true = self.lookback_forecast_concatter(
-            [x_lb_res_msk, x_fc_res])
+            [x_lb_res, x_fc_res_msk])
 
         # shift
         i = tf.random.uniform(
@@ -298,11 +299,11 @@ class PreTraining(tf.keras.Model):
         x_fc_tre_sft, x_fc_sea_sft, x_fc_res_sft = self.patch_shifter(
             (x_fc_tre, x_fc_sea, x_fc_res, i))
         x_tre_false = self.lookback_forecast_concatter(
-            [x_lb_tre_msk, x_fc_tre_sft])
+            [x_lb_tre, x_fc_tre_sft])
         x_sea_false = self.lookback_forecast_concatter(
-            [x_lb_sea_msk, x_fc_sea_sft])
+            [x_lb_sea, x_fc_sea_sft])
         x_res_false = self.lookback_forecast_concatter(
-            [x_lb_res_msk, x_fc_res_sft])
+            [x_lb_res, x_fc_res_sft])
 
         return (x_tre_true,
                 x_sea_true,
@@ -364,7 +365,6 @@ class PreTraining(tf.keras.Model):
                 pred_original = \
                     self.pre_processor.data_denormalizer(y_pred_composed)
 
-                # compute the loss values
                 # compute the loss values
                 loss_mae_comp = self.calculate_masked_loss(
                     y_pred=y_pred_composed,
