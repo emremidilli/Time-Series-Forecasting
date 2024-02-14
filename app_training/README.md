@@ -6,20 +6,16 @@ Trains given datasets. There are two training jobs:
 
 2. Fine-tuning
 
-# Inputs
+# Pre-Training
 
-Inputs are in tf.data.Dataset format. Input dataset contains 4 compoenents:
+It is a masked auto encoder training followed by contastive learning.
 
-1. Distribution
+Pre-training is applied over a univariate dataset.
 
-2. Trend
+Pre-trained backbone is utilized in fine-tuning phase.
 
-3. Seasonality
+# Fine-Tuning
 
-4. Datetime features
+Fine-tuning model is multi-variate model. Each covariate shares the same backbone.
 
-# Targets
-
-Targets are in tf.data.Dataset format. Target dataset contains 1 component:
-
-1. Quantiles
+If there are N covariates, N linear heads are used.

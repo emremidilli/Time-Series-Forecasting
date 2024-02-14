@@ -62,6 +62,11 @@ if __name__ == '__main__':
     ts_train = ts_train[:, -1, :]
     ts_test = ts_test[:, -1, :]
 
+    # for MS, forecasting horizons should be OT field.
+    if args.features == 'MS':
+        fc_train = fc_train[:, :, [-1]]
+        fc_test = fc_test[:, :, [-1]]
+
     save_dir = os.path.join(
         os.environ.get('BIN_NAME'),
         os.environ.get('FORMATTED_NAME'),

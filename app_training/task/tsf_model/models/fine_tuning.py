@@ -1,11 +1,11 @@
 import tensorflow as tf
 
-from tsf_model.layers import PositionEmbedding, LinearHead
+from tsf_model.layers import LinearHead
 
 
 @tf.keras.saving.register_keras_serializable()
 class FineTuning(tf.keras.Model):
-    '''Keras model for fine-tuning purpose.'''
+    '''Keras model for fine-tuning multivariate time series.'''
     def __init__(
             self,
             revIn_tre,
@@ -15,6 +15,97 @@ class FineTuning(tf.keras.Model):
             encoder_representation,
             nr_of_timesteps,
             nr_of_covariates,
+            fine_tune_backbone,
+            decoder_tre,
+            decoder_sea,
+            decoder_res,
+            **kwargs):
+        '''
+        args:
+
+        '''
+        super().__init__(**kwargs)
+
+        self.nr_of_covariates = nr_of_covariates
+
+        self.univariates = []
+        for i in range(nr_of_covariates):
+            self.univariates.append(
+                Univariate(
+                    revIn_tre=revIn_tre,
+                    revIn_sea=revIn_sea,
+                    revIn_res=revIn_res,
+                    patch_tokenizer=patch_tokenizer,
+                    encoder_representation=encoder_representation,
+                    nr_of_timesteps=nr_of_timesteps,
+                    fine_tune_backbone=fine_tune_backbone,
+                    decoder_tre=decoder_tre,
+                    decoder_sea=decoder_sea,
+                    decoder_res=decoder_res))
+
+    def call(self, inputs):
+        '''
+        Timesteps of forecast horizon are masked.
+        args:
+            tre: (None, timesteps, covariates)
+            sea: (None, timesteps, covariates)
+            res: (None, timesteps, covariates)
+            dates: (None, features)
+        returns:
+            pred: (None, timesteps, covariates)
+        '''
+        tre, sea, res, dates = inputs
+
+        preds = []
+        for i in range(self.nr_of_covariates):
+            tre_i = tre[:, :, i]
+            sea_i = sea[:, :, i]
+            res_i = res[:, :, i]
+
+            tre_i = tf.expand_dims(tre_i, axis=-1)
+            sea_i = tf.expand_dims(sea_i, axis=-1)
+            res_i = tf.expand_dims(res_i, axis=-1)
+
+            univariate_model = self.univariates[i]
+
+            pred_i = univariate_model((tre_i, sea_i, res_i, dates))
+
+            preds.append(pred_i)
+
+        pred = tf.stack(preds, axis=2)
+
+        return pred
+
+    def get_config(self):
+        config = super().get_config()
+        univariates_config = []
+        for univariate_model in self.univariates:
+            univariates_config.append(univariate_model.get_config())
+        config.update({
+            'nr_of_covariates': self.nr_of_covariates,
+            'univariates': univariates_config
+        })
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        univariates_config = config['univariates']
+        config['univariates'] = \
+            [Univariate.from_config(c) for c in univariates_config]
+        return cls(**config)
+
+
+@tf.keras.saving.register_keras_serializable()
+class Univariate(tf.keras.Model):
+    '''Keras model for fine-tuning univariate time series.'''
+    def __init__(
+            self,
+            revIn_tre,
+            revIn_sea,
+            revIn_res,
+            patch_tokenizer,
+            encoder_representation,
+            nr_of_timesteps,
             fine_tune_backbone,
             decoder_tre,
             decoder_sea,
@@ -49,21 +140,23 @@ class FineTuning(tf.keras.Model):
 
         self.lienar_head = LinearHead(
             nr_of_timesteps=nr_of_timesteps,
-            nr_of_covariates=nr_of_covariates,
+            nr_of_covariates=1,
             name='lienar_head')
 
     def get_config(self):
         config = super().get_config()
         config.update(
             {
-                'revIn_tre': self.revIn_tre,
-                'revIn_sea': self.revIn_sea,
-                'revIn_res': self.revIn_res,
-                'patch_tokenizer': self.patch_tokenizer,
-                'encoder_representation': self.encoder_representation,
-                'decoder_tre': self.decoder_tre,
-                'decoder_sea': self.decoder_sea,
-                'decoder_res': self.decoder_res
+                'revIn_tre': tf.keras.layers.serialize(self.revIn_tre),
+                'revIn_sea': tf.keras.layers.serialize(self.revIn_sea),
+                'revIn_res': tf.keras.layers.serialize(self.revIn_res),
+                'patch_tokenizer': tf.keras.layers.serialize(
+                    self.patch_tokenizer),
+                'encoder_representation': tf.keras.layers.serialize(
+                    self.encoder_representation),
+                'decoder_tre': tf.keras.layers.serialize(self.decoder_tre),
+                'decoder_sea': tf.keras.layers.serialize(self.decoder_sea),
+                'decoder_res': tf.keras.layers.serialize(self.decoder_res)
             }
         )
         return config
@@ -92,12 +185,12 @@ class FineTuning(tf.keras.Model):
         '''
         Timesteps of forecast horizon are masked.
         args:
-            tre: (None, timesteps, covariates)
-            sea: (None, timesteps, covariates)
-            res: (None, timesteps, covariates)
+            tre: (None, timesteps, 1)
+            sea: (None, timesteps, 1)
+            res: (None, timesteps, 1)
             dates: (None, features)
         returns:
-            pred: (None, timesteps, covariates)
+            pred: (None, timesteps, 1)
         '''
         tre, sea, res, dates = inputs
 
