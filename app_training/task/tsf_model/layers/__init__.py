@@ -10,3 +10,4 @@ from .masker import PatchMasker  # noqa: F401
 from .shifter import PatchShifter  # noqa: F401
 from .normalization import ReversibleInstanceNormalization  # noqa: F401
 from .tokenizer import PatchTokenizer  # noqa: F401
+from .prompt import SoftPrompts  # noqa: F401
