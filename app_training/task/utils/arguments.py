@@ -178,6 +178,20 @@ def get_pre_training_args():
         type=int,
         help='lookback_coefficient')
 
+    parser.add_argument(
+        '--prompt_pool_size',
+        required=False,
+        default=20,
+        type=int,
+        help='prompt_pool_size')
+
+    parser.add_argument(
+        '--nr_of_most_similar_prompts',
+        required=False,
+        default=2,
+        type=int,
+        help='nr_of_most_similar_prompts')
+
     try:
         args = parser.parse_args()
     except:

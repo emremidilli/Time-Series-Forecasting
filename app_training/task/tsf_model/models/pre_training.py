@@ -1,8 +1,9 @@
 import tensorflow as tf
 
 from tsf_model.layers import Representation, \
-    LinearHead, ProjectionHead, PatchMasker, PatchShifter, \
-    ReversibleInstanceNormalization, PatchTokenizer
+    LinearHead, ProjectionHead, PatchMasker, TimeStepShifter, \
+    ReversibleInstanceNormalization, PatchTokenizer, \
+    SoftPrompts
 
 
 @tf.keras.saving.register_keras_serializable()
@@ -13,67 +14,77 @@ class PreTraining(tf.keras.Model):
     '''
     def __init__(
             self,
-            nr_of_covariates,
-            patch_size,
-            nr_of_encoder_blocks,
-            nr_of_heads,
-            dropout_rate,
-            encoder_ffn_units,
-            embedding_dims,
-            projection_head_units,
-            msk_rate,
-            msk_scalar,
-            nr_of_timesteps,
-            contrastive_learning_patches,
-            mae_threshold_comp,
-            mae_threshold_tre,
-            mae_threshold_sea,
-            cl_threshold,
-            cl_margin,
-            pre_processor,
+            nr_of_covariates: int,
+            patch_size: int,
+            nr_of_encoder_blocks: int,
+            nr_of_heads: int,
+            dropout_rate: float,
+            encoder_ffn_units: int,
+            embedding_dims: int,
+            projection_head_units: int,
+            msk_rate: float,
+            msk_scalar: float,
+            nr_of_timesteps: int,
+            contrastive_learning_patches: int,
+            mae_threshold_comp: float,
+            mae_threshold_tre: float,
+            mae_threshold_sea: float,
+            cl_threshold: float,
+            cl_margin: float,
+            pre_processor: tf.keras.Model,
+            prompt_pool_size: int,
+            nr_of_most_similar_prompts: int,
             **kwargs):
         '''
         args:
-            nr_of_covariates (int):
-                number of covariates.
-            patch_size (int):
-                number of timesteps in a patch.
-            nr_of_encoder_blocks (int):
-                number of blocks of transformer encoders.
-            nr_of_heads (int):
-                number of attention heads of transformer encoders.
-            dropout_rate (float):
-                dropout rate.
-            encoder_ffn_units (int):
-                units of feed-forward networks of transformer encoders.
-            embedding_dims (int): embedding dimension.
-            projection_head_units (int):
-                units of projection head of contrastive learning.
-            msk_rate (float): masking rate of the input patches.
-            msk_scalar (float): values of the masked tokens.
-            nr_of_timesteps (int): number of output timesteps.
-            contrastive_learning_patches (int):
-                number of patches for contrastive learning.
-            mae_threshold_comp (float):
-                stop criteria of composed value for masked autoencoder task.
-            mae_threshold_tre (float):
-                stop criteria of trend component for masked autoencoder task.
-            mae_threshold_sea (float):
-                stop criteria of seasonality component for
+            nr_of_covariates: number of covariates.
+            patch_size: number of timesteps in a patch.
+            nr_of_encoder_blocks: number of blocks of transformer encoders.
+            nr_of_heads: number of attention heads of transformer encoders.
+            dropout_rate: dropout rate.
+            encoder_ffn_units: units of feed-forward networks of
+                transformer encoders.
+            embedding_dims: embedding dimension.
+            projection_head_units: units of projection head of
+                contrastive learning.
+            msk_rate: masking rate of the input patches.
+            msk_scalar: values of the masked tokens.
+            nr_of_timesteps: number of output timesteps.
+            contrastive_learning_patches: number of patches for
+                contrastive learning.
+            mae_threshold_comp: stop criteria of composed value
+                for masked autoencoder task.
+            mae_threshold_tre: stop criteria of trend component for
                 masked autoencoder task.
-            cl_threshold (float):
-                stop criteria for contrastive learning task.
-            cl_margin (float):
-                margin for triple contrastive learning loss
-            pre_processor (tf.keras.Model):
-                pre processor model from app_input_pipeline.
+            mae_threshold_sea: stop criteria of seasonality component for
+                masked autoencoder task.
+            cl_threshold: stop criteria for contrastive learning task.
+            cl_margin: margin for triple contrastive learning loss
+            pre_processor: pre processor model from app_input_pipeline.
+            prompt_pool_size: number of the prompts in prompt pool
         '''
         super(PreTraining, self).__init__(**kwargs)
 
-        self.cl_margin = cl_margin
-
         self.nr_of_covariates = nr_of_covariates
         self.patch_size = patch_size
+        self.nr_of_encoder_blocks = nr_of_encoder_blocks
+        self.nr_of_heads = nr_of_heads
+        self.dropout_rate = dropout_rate
+        self.encoder_ffn_units = encoder_ffn_units
+        self.embedding_dims = embedding_dims
+        self.projection_head_units = projection_head_units
+        self.msk_rate = msk_rate
+        self.msk_scalar = msk_scalar
+        self.nr_of_timesteps = nr_of_timesteps
+        self.contrastive_learning_patches = contrastive_learning_patches
+        self.mae_threshold_comp = mae_threshold_comp
+        self.mae_threshold_tre = mae_threshold_tre
+        self.mae_threshold_sea = mae_threshold_sea
+        self.cl_threshold = cl_threshold
+        self.cl_margin = cl_margin
+        self.pre_processor = pre_processor
+        self.prompt_pool_size = prompt_pool_size
+        self.nr_of_most_similar_prompts = nr_of_most_similar_prompts
 
         self.revIn_tre = ReversibleInstanceNormalization(
             nr_of_covariates=nr_of_covariates,
@@ -91,12 +102,16 @@ class PreTraining(tf.keras.Model):
             patch_size=patch_size,
             nr_of_covariates=nr_of_covariates)
 
-        self.contrastive_learning_patches = contrastive_learning_patches
+        self.shared_prompt = None
 
         self.patch_masker = PatchMasker(
             masking_rate=msk_rate, msk_scalar=msk_scalar)
 
-        self.patch_shifter = PatchShifter()
+        self.timestep_shifter = TimeStepShifter()
+
+        self.tre_embedding = tf.keras.layers.Dense(units=self.embedding_dims)
+        self.sea_embedding = tf.keras.layers.Dense(units=self.embedding_dims)
+        self.res_embedding = tf.keras.layers.Dense(units=self.embedding_dims)
 
         self.encoder_representation = Representation(
             nr_of_encoder_blocks,
@@ -105,9 +120,8 @@ class PreTraining(tf.keras.Model):
             encoder_ffn_units,
             embedding_dims)
 
-        self.lookback_forecast_concatter = tf.keras.layers.Concatenate(axis=1)
+        self.timesteps_concatter = tf.keras.layers.Concatenate(axis=1)
 
-        self.nr_of_timesteps = nr_of_timesteps
         self.decoder_tre = LinearHead(
             nr_of_timesteps=nr_of_timesteps,
             nr_of_covariates=nr_of_covariates,
@@ -124,13 +138,6 @@ class PreTraining(tf.keras.Model):
         self.projection_head = ProjectionHead(
             projection_head_units,
             name='projection_head')
-
-        self.pre_processor = pre_processor
-
-        self.mae_threshold_comp = mae_threshold_comp
-        self.mae_threshold_tre = mae_threshold_tre
-        self.mae_threshold_sea = mae_threshold_sea
-        self.cl_threshold = cl_threshold
 
         # learning rate tracker
         self.lr_tracker = tf.keras.metrics.Mean(name='lr')
@@ -283,11 +290,11 @@ class PreTraining(tf.keras.Model):
         x_fc_tre_msk, x_fc_sea_msk, x_fc_res_msk, _ = self.patch_masker(
             (x_fc_tre, x_fc_sea, x_fc_res))
 
-        x_tre_true = self.lookback_forecast_concatter(
+        x_tre_true = self.timesteps_concatter(
             [x_lb_tre, x_fc_tre_msk])
-        x_sea_true = self.lookback_forecast_concatter(
+        x_sea_true = self.timesteps_concatter(
             [x_lb_sea, x_fc_sea_msk])
-        x_res_true = self.lookback_forecast_concatter(
+        x_res_true = self.timesteps_concatter(
             [x_lb_res, x_fc_res_msk])
 
         # shift
@@ -296,13 +303,13 @@ class PreTraining(tf.keras.Model):
             minval=1,
             maxval=nr_of_forecast_patches,
             dtype=tf.int32)
-        x_fc_tre_sft, x_fc_sea_sft, x_fc_res_sft = self.patch_shifter(
+        x_fc_tre_sft, x_fc_sea_sft, x_fc_res_sft = self.timestep_shifter(
             (x_fc_tre, x_fc_sea, x_fc_res, i))
-        x_tre_false = self.lookback_forecast_concatter(
+        x_tre_false = self.timesteps_concatter(
             [x_lb_tre, x_fc_tre_sft])
-        x_sea_false = self.lookback_forecast_concatter(
+        x_sea_false = self.timesteps_concatter(
             [x_lb_sea, x_fc_sea_sft])
-        x_res_false = self.lookback_forecast_concatter(
+        x_res_false = self.timesteps_concatter(
             [x_lb_res, x_fc_res_sft])
 
         return (x_tre_true,
@@ -777,23 +784,69 @@ class PreTraining(tf.keras.Model):
         tre, sea, res, dates = inputs
 
         # instance normalize
-        tre = self.revIn_tre(tre)
-        sea = self.revIn_sea(sea)
-        res = self.revIn_res(res)
+        tre_norm = self.revIn_tre(tre)
+        sea_norm = self.revIn_sea(sea)
+        res_norm = self.revIn_res(res)
 
         # tokenize timesteps into patches
-        tre = self.patch_tokenizer(tre)
-        sea = self.patch_tokenizer(sea)
-        res = self.patch_tokenizer(res)
+        tre_patch = self.patch_tokenizer(tre_norm)
+        sea_patch = self.patch_tokenizer(sea_norm)
+        res_patch = self.patch_tokenizer(res_norm)
+
+        if self.shared_prompt is None:
+            self.shared_prompt = SoftPrompts(
+                key_dims=self.nr_of_timesteps * self.nr_of_covariates,
+                embedding_dims=self.embedding_dims,
+                prompt_length=tre_patch.shape[-2],
+                prompt_pool_size=self.prompt_pool_size,
+                nr_of_most_similar_prompts=self.nr_of_most_similar_prompts)
+
+        tre_prompts = self.shared_prompt(tre_norm)
+        sea_prompts = self.shared_prompt(sea_norm)
+        res_prompts = self.shared_prompt(res_norm)
 
         tre_true, sea_true, res_true, tre_false, sea_false, res_false = \
-            self.augment_pairs((tre, sea, res))
+            self.augment_pairs((tre_patch, sea_patch, res_patch))\
+
+        tre_anchor_embed = self.tre_embedding(tre_patch)
+        tre_true_embed = self.tre_embedding(tre_true)
+        tre_false_embed = self.tre_embedding(tre_false)
+
+        sea_anchor_embed = self.sea_embedding(sea_patch)
+        sea_true_embed = self.sea_embedding(sea_true)
+        sea_false_embed = self.sea_embedding(sea_false)
+
+        res_anchor_embed = self.res_embedding(res_patch)
+        res_true_embed = self.res_embedding(res_true)
+        res_false_embed = self.res_embedding(res_false)
+
+        tre_anchor_embed = \
+            self.timesteps_concatter([tre_prompts, tre_anchor_embed])
+        sea_anchor_embed = \
+            self.timesteps_concatter([sea_prompts, sea_anchor_embed])
+        res_anchor_embed = \
+            self.timesteps_concatter([res_prompts, res_anchor_embed])
+
+        tre_false_embed = \
+            self.timesteps_concatter([tre_prompts, tre_false_embed])
+        sea_false_embed = \
+            self.timesteps_concatter([sea_prompts, sea_false_embed])
+        res_false_embed = \
+            self.timesteps_concatter([res_prompts, res_false_embed])
+
+        tre_true_embed = \
+            self.timesteps_concatter([tre_prompts, tre_true_embed])
+        sea_true_embed = \
+            self.timesteps_concatter([sea_prompts, sea_true_embed])
+        res_true_embed = \
+            self.timesteps_concatter([res_prompts, res_true_embed])
+
         x_cont_temp_true = self.encoder_representation(
-            (tre_true, sea_true, res_true, dates))
+            (tre_true_embed, sea_true_embed, res_true_embed, dates))
         x_cont_temp_false = self.encoder_representation(
-            (tre_false, sea_false, res_false, dates))
+            (tre_false_embed, sea_false_embed, res_false_embed, dates))
         x_cont_temp_anchor = self.encoder_representation(
-            (tre, sea, res, dates))
+            (tre_anchor_embed, sea_anchor_embed, res_anchor_embed, dates))
 
         y_logits_false = self.projection_head(x_cont_temp_false)
         y_logits_true = self.projection_head(x_cont_temp_true)
@@ -832,8 +885,28 @@ class PreTraining(tf.keras.Model):
             tre_patch, sea_patch, res_patch, masks = self.mask_patches(
                 (tre_patch, sea_patch, res_patch))
 
+        if self.shared_prompt is None:
+            self.shared_prompt = SoftPrompts(
+                key_dims=self.nr_of_timesteps * self.nr_of_covariates,
+                embedding_dims=self.embedding_dims,
+                prompt_length=tre_patch.shape[-2],
+                prompt_pool_size=self.prompt_pool_size,
+                nr_of_most_similar_prompts=self.nr_of_most_similar_prompts)
+
+        tre_prompts = self.shared_prompt(tre_norm)
+        sea_prompts = self.shared_prompt(sea_norm)
+        res_prompts = self.shared_prompt(res_norm)
+
+        tre_embed = self.tre_embedding(tre_patch)
+        sea_embed = self.sea_embedding(sea_patch)
+        res_embed = self.res_embedding(res_patch)
+
+        tre_input = self.timesteps_concatter([tre_prompts, tre_embed])
+        sea_input = self.timesteps_concatter([sea_prompts, sea_embed])
+        res_input = self.timesteps_concatter([res_prompts, res_embed])
+
         y_cont_temp = self.encoder_representation(
-            (tre_patch, sea_patch, res_patch, dates))
+            (tre_input, sea_input, res_input, dates))
 
         y_pred_tre = self.decoder_tre(y_cont_temp)
         y_pred_sea = self.decoder_sea(y_cont_temp)

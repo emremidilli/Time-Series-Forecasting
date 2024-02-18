@@ -35,8 +35,7 @@ class PreTrainingCheckpointCallback(BaseCheckpointCallback):
                 mae_sea_optimizer=self.model.mae_sea_optimizer,
                 cl_optimizer=self.model.cl_optimizer)
 
-            checkpoint_epoch.save(
-                file_prefix=self.ckpt_dir)
+            checkpoint_epoch.save(file_prefix=self.ckpt_dir)
 
     def get_most_recent_ckpt(
             self,
@@ -49,8 +48,7 @@ class PreTrainingCheckpointCallback(BaseCheckpointCallback):
         finds the latest checkpoint.
         returns epoch_nr, step_nr, model, mae_optimizer and cl_optimizer.
         '''
-        ckpt_parent_dir = os.path.dirname(
-            self.ckpt_dir)
+        ckpt_parent_dir = os.path.dirname(self.ckpt_dir)
 
         latest_ckpt = tf.train.latest_checkpoint(ckpt_parent_dir)
 
@@ -94,16 +92,14 @@ class FineTuningCheckpointCallback(BaseCheckpointCallback):
                 model=self.model,
                 optimizer=self.model.optimizer)
 
-            checkpoint_epoch.save(
-                file_prefix=self.ckpt_dir)
+            checkpoint_epoch.save(file_prefix=self.ckpt_dir)
 
     def get_most_recent_ckpt(self, model, optimizer):
         '''
         finds the latest checkpoint.
         returns epoch_nr, step_nr, model, optimizer.
         '''
-        ckpt_parent_dir = os.path.dirname(
-            self.ckpt_dir)
+        ckpt_parent_dir = os.path.dirname(self.ckpt_dir)
 
         latest_ckpt = tf.train.latest_checkpoint(ckpt_parent_dir)
 

@@ -19,10 +19,11 @@ class PatchTokenizer(tf.keras.layers.Layer):
         '''
         inputs:
             x: (None, timesteps, covariates)
-        outputs:
-            y: (None, nr_of_patches, patch_size x nr_of_covariates)
-                in rest of the model, it will be treated as
-                (None, timesteps, features)
+        returns:
+            y: (None, nr_of_patches, covariates x patch_size)
+                it will act as (None, timesteps, features) at
+                rest of the model.
         '''
         y = self.reshaper(x)
+
         return y

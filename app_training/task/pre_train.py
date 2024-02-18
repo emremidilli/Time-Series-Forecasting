@@ -47,6 +47,8 @@ if __name__ == '__main__':
     save_model = args.save_model
     patch_size = args.patch_size
     lookback_coefficient = args.lookback_coefficient
+    prompt_pool_size = args.prompt_pool_size
+    nr_of_most_similar_prompts = args.nr_of_most_similar_prompts
 
     artifacts_dir = os.path.join(
         os.environ['BIN_NAME'],
@@ -120,7 +122,10 @@ if __name__ == '__main__':
         mae_threshold_sea=mae_threshold_sea,
         cl_threshold=cl_threshold,
         cl_margin=cl_margin,
-        pre_processor=pre_processor)
+        pre_processor=pre_processor,
+        prompt_pool_size=prompt_pool_size,
+        nr_of_most_similar_prompts=nr_of_most_similar_prompts)
+
     if resume_training == 'Y':
         starting_epoch, \
             starting_step, \
@@ -162,7 +167,8 @@ if __name__ == '__main__':
             terminate_on_nan_callback,
             ram_cleaner_callback,
             learning_rate_callback,
-            checkpoint_callback])
+            # checkpoint_callback
+            ])
 
     log_experiments(
         model_id=model_id,

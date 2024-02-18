@@ -1,13 +1,13 @@
 #!/bin/bash
 
-model_id="model_20240203_05_pt_comp_tre_sea_cl_02"
+model_id="model_pt_20240218_01"
 dataset_id="ds_universal_ETTh1_96_4_S_pt"
-resume_training="Y"
-nr_of_epochs=500
+resume_training="N"
+nr_of_epochs=100
 mask_rate=0.40
 mask_scalar=0.00
 validation_rate=0
-mini_batch_size=128
+mini_batch_size=64
 mae_threshold_comp=0.30
 mae_threshold_tre=0.25
 mae_threshold_sea=0.005
@@ -16,6 +16,8 @@ save_model="Y"
 patch_size=16
 cl_margin=0.25
 lookback_coefficient=4
+prompt_pool_size=100
+nr_of_most_similar_prompts=3
 
 nr_of_encoder_blocks=3
 nr_of_heads=4
@@ -59,7 +61,9 @@ main() {
         --cl_margin=$cl_margin \
         --save_model=$save_model \
         --patch_size=$patch_size \
-        --lookback_coefficient=$lookback_coefficient
+        --lookback_coefficient=$lookback_coefficient \
+        --prompt_pool_size=$prompt_pool_size \
+        --nr_of_most_similar_prompts=$nr_of_most_similar_prompts
 
     echo "pre-training is completed"
 
