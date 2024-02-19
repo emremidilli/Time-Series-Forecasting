@@ -1,4 +1,7 @@
 #!/bin/bash
+cd ../app_training/
+
+# docker-compose build
 
 REPO_NAME=senaacers55/tsf-pre-training
 TAG_NAME=time-series-forecasting-app_training
