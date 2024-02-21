@@ -156,6 +156,8 @@ class Univariate(tf.keras.Model):
         self.decoder_res.trainable = fine_tune_backbone
         self.encoder_representation.trainable = fine_tune_backbone
 
+        self.timesteps_concatter = tf.keras.layers.Concatenate(axis=1)
+
         self.lienar_head = LinearHead(
             nr_of_timesteps=nr_of_timesteps,
             nr_of_covariates=1,
@@ -178,7 +180,8 @@ class Univariate(tf.keras.Model):
                 'shared_prompt': tf.keras.layers.serialize(self.shared_prompt),
                 'decoder_tre': tf.keras.layers.serialize(self.decoder_tre),
                 'decoder_sea': tf.keras.layers.serialize(self.decoder_sea),
-                'decoder_res': tf.keras.layers.serialize(self.decoder_res)
+                'decoder_res': tf.keras.layers.serialize(self.decoder_res),
+                'linear_head': tf.keras.layers.serialize(self.linear_head)
             }
         )
         return config
@@ -208,6 +211,8 @@ class Univariate(tf.keras.Model):
             config['decoder_sea'])
         config['decoder_res'] = tf.keras.layers.deserialize(
             config['decoder_res'])
+        config['linear_head'] = tf.keras.layers.deserialize(
+            config['linear_head'])
 
         return cls(**config)
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-model_id="model_20240203_06_ft"
-pre_trained_model_id="model_20240203_05_pt_comp_tre_sea_cl_02"
+model_id="model_ft_20240218_01"
+pre_trained_model_id="model_pt_20240218_01"
 dataset_id="ds_universal_ETTh1_96_4_M_ft"
 resume_training="N"
 validation_rate=0.00
