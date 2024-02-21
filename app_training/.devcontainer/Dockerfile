@@ -1,4 +1,4 @@
-FROM tensorflow/tensorflow:2.13.0rc2-gpu-jupyter
+FROM tensorflow/tensorflow:2.13.0rc2-gpu
 
 LABEL maintainer="yunusemremidilli@gmail.com"
 

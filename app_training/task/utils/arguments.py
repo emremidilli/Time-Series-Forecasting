@@ -10,14 +10,14 @@ def get_pre_training_args():
     parser.add_argument(
         '--model_id',
         required=False,
-        default='model_05',
+        default='test_pt',
         type=str,
         help='model_id')
 
     parser.add_argument(
         '--dataset_id',
         required=False,
-        default='dataset_03',
+        default='test_pt',
         type=str,
         help='dataset_id')
 
@@ -73,19 +73,19 @@ def get_pre_training_args():
     parser.add_argument(
         '--encoder_ffn_units',
         required=False,
-        default=32,
+        default=8,
         type=int,
         help='encoder_ffn_units')
     parser.add_argument(
         '--embedding_dims',
         required=False,
-        default=32,
+        default=8,
         type=int,
         help='embedding_dims')
     parser.add_argument(
         '--projection_head',
         required=False,
-        default=32,
+        default=8,
         type=int,
         help='projection_head')
     parser.add_argument(
@@ -106,19 +106,19 @@ def get_pre_training_args():
     parser.add_argument(
         '--nr_of_epochs',
         required=False,
-        default=20,
+        default=10,
         type=int,
         help='nr_of_epochs')
     parser.add_argument(
         '--mask_scalar',
         required=False,
-        default=0.001,
+        default=0.00,
         type=float,
         help='mask_scalar')
     parser.add_argument(
         '--mask_rate',
         required=False,
-        default=0.70,
+        default=0.40,
         type=float,
         help='mask_rate')
 
@@ -132,21 +132,21 @@ def get_pre_training_args():
     parser.add_argument(
         '--mae_threshold_comp',
         required=False,
-        default=0.1,
+        default=0.50,
         type=float,
         help='mae_threshold_comp')
 
     parser.add_argument(
         '--mae_threshold_tre',
         required=False,
-        default=0.1,
+        default=0.50,
         type=float,
         help='mae_threshold_tre')
 
     parser.add_argument(
         '--mae_threshold_sea',
         required=False,
-        default=0.1,
+        default=0.05,
         type=float,
         help='mae_threshold_sea')
 
@@ -181,14 +181,14 @@ def get_pre_training_args():
     parser.add_argument(
         '--prompt_pool_size',
         required=False,
-        default=20,
+        default=2,
         type=int,
         help='prompt_pool_size')
 
     parser.add_argument(
         '--nr_of_most_similar_prompts',
         required=False,
-        default=2,
+        default=1,
         type=int,
         help='nr_of_most_similar_prompts')
 

@@ -41,13 +41,15 @@ class SoftPrompts(tf.keras.layers.Layer):
         self.prompt_keys = self.add_weight(
             shape=(prompt_pool_size, key_dims),
             initializer='random_uniform',
-            trainable=False
+            trainable=False,
+            name='prompt_keys'
         )
 
         self.prompt_values = self.add_weight(
             shape=(prompt_pool_size, prompt_length, embedding_dims),
             initializer='random_uniform',
-            trainable=False
+            trainable=False,
+            name='prompt_values'
         )
 
     def call(self, inputs):

@@ -2,6 +2,7 @@ version: "3.9"
 
 services:
   app_training:
+    image: app_training:latest
     build:
       context: .
     deploy:

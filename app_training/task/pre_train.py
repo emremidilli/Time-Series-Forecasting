@@ -167,8 +167,7 @@ if __name__ == '__main__':
             terminate_on_nan_callback,
             ram_cleaner_callback,
             learning_rate_callback,
-            # checkpoint_callback
-            ])
+            checkpoint_callback])
 
     log_experiments(
         model_id=model_id,

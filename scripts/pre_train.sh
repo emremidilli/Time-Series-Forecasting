@@ -7,7 +7,7 @@ nr_of_epochs=100
 mask_rate=0.40
 mask_scalar=0.00
 validation_rate=0
-mini_batch_size=64
+mini_batch_size=128
 mae_threshold_comp=0.30
 mae_threshold_tre=0.25
 mae_threshold_sea=0.005
@@ -16,7 +16,7 @@ save_model="Y"
 patch_size=16
 cl_margin=0.25
 lookback_coefficient=4
-prompt_pool_size=100
+prompt_pool_size=1000
 nr_of_most_similar_prompts=3
 
 nr_of_encoder_blocks=3

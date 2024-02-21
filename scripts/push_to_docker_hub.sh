@@ -1,12 +1,17 @@
 #!/bin/bash
-cd ../app_training/
 
-# docker-compose build
+app_name=$1
+cd ../$app_name/
+
+docker-compose build
+
+IMAGE_NAME="$app_name:latest"
 
 REPO_NAME=senaacers55/tsf-pre-training
-TAG_NAME=time-series-forecasting-app_training
+TAG_NAME=$app_name
 IMAGE_URI=$REPO_NAME:$TAG_NAME
 
+docker tag $IMAGE_NAME $IMAGE_URI
+
 docker login
-docker tag $TAG_NAME:latest $IMAGE_URI
 docker push $IMAGE_URI
