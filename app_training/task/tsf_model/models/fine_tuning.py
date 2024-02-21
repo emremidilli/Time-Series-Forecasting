@@ -12,10 +12,14 @@ class FineTuning(tf.keras.Model):
             revIn_sea,
             revIn_res,
             patch_tokenizer,
+            tre_embedding,
+            sea_embedding,
+            res_embedding,
             encoder_representation,
             nr_of_timesteps,
             nr_of_covariates,
             fine_tune_backbone,
+            shared_prompt,
             decoder_tre,
             decoder_sea,
             decoder_res,
@@ -36,9 +40,13 @@ class FineTuning(tf.keras.Model):
                     revIn_sea=revIn_sea,
                     revIn_res=revIn_res,
                     patch_tokenizer=patch_tokenizer,
+                    tre_embedding=tre_embedding,
+                    sea_embedding=sea_embedding,
+                    res_embedding=res_embedding,
                     encoder_representation=encoder_representation,
                     nr_of_timesteps=nr_of_timesteps,
                     fine_tune_backbone=fine_tune_backbone,
+                    shared_prompt=shared_prompt,
                     decoder_tre=decoder_tre,
                     decoder_sea=decoder_sea,
                     decoder_res=decoder_res))
@@ -104,9 +112,13 @@ class Univariate(tf.keras.Model):
             revIn_sea,
             revIn_res,
             patch_tokenizer,
+            tre_embedding,
+            sea_embedding,
+            res_embedding,
             encoder_representation,
             nr_of_timesteps,
             fine_tune_backbone,
+            shared_prompt,
             decoder_tre,
             decoder_sea,
             decoder_res,
@@ -125,11 +137,17 @@ class Univariate(tf.keras.Model):
         self.decoder_res = decoder_res
         self.fine_tune_backbone = fine_tune_backbone
 
+        self.tre_embedding = tre_embedding
+        self.sea_embedding = sea_embedding
+        self.res_embedding = res_embedding
+
         self.patch_tokenizer = patch_tokenizer
         self.encoder_representation = encoder_representation
+        self.shared_prompt = shared_prompt
 
         self.nr_of_timesteps = nr_of_timesteps
 
+        self.shared_prompt.trainable = False
         self.revIn_tre.trainable = False
         self.revIn_sea.trainable = False
         self.revIn_res.trainable = False
@@ -150,10 +168,14 @@ class Univariate(tf.keras.Model):
                 'revIn_tre': tf.keras.layers.serialize(self.revIn_tre),
                 'revIn_sea': tf.keras.layers.serialize(self.revIn_sea),
                 'revIn_res': tf.keras.layers.serialize(self.revIn_res),
+                'tre_embedding': tf.keras.layers.serialize(self.tre_embedding),
+                'sea_embedding': tf.keras.layers.serialize(self.sea_embedding),
+                'res_embedding': tf.keras.layers.serialize(self.res_embedding),
                 'patch_tokenizer': tf.keras.layers.serialize(
                     self.patch_tokenizer),
                 'encoder_representation': tf.keras.layers.serialize(
                     self.encoder_representation),
+                'shared_prompt': tf.keras.layers.serialize(self.shared_prompt),
                 'decoder_tre': tf.keras.layers.serialize(self.decoder_tre),
                 'decoder_sea': tf.keras.layers.serialize(self.decoder_sea),
                 'decoder_res': tf.keras.layers.serialize(self.decoder_res)
@@ -168,10 +190,18 @@ class Univariate(tf.keras.Model):
             config['revIn_sea'])
         config['revIn_res'] = tf.keras.layers.deserialize(
             config['revIn_res'])
+        config['tre_embedding'] = tf.keras.layers.deserialize(
+            config['tre_embedding'])
+        config['sea_embedding'] = tf.keras.layers.deserialize(
+            config['sea_embedding'])
+        config['res_embedding'] = tf.keras.layers.deserialize(
+            config['res_embedding'])
         config['patch_tokenizer'] = tf.keras.layers.deserialize(
             config['patch_tokenizer'])
         config['encoder_representation'] = tf.keras.layers.deserialize(
             config['encoder_representation'])
+        config['shared_prompt'] = tf.keras.layers.deserialize(
+            config['shared_prompt'])
         config['decoder_tre'] = tf.keras.layers.deserialize(
             config['decoder_tre'])
         config['decoder_sea'] = tf.keras.layers.deserialize(
@@ -204,8 +234,20 @@ class Univariate(tf.keras.Model):
         sea_patch = self.patch_tokenizer(sea_norm)
         res_patch = self.patch_tokenizer(res_norm)
 
+        tre_prompts = self.shared_prompt(tre_norm)
+        sea_prompts = self.shared_prompt(sea_norm)
+        res_prompts = self.shared_prompt(res_norm)
+
+        tre_embed = self.tre_embedding(tre_patch)
+        sea_embed = self.sea_embedding(sea_patch)
+        res_embed = self.res_embedding(res_patch)
+
+        tre_input = self.timesteps_concatter([tre_prompts, tre_embed])
+        sea_input = self.timesteps_concatter([sea_prompts, sea_embed])
+        res_input = self.timesteps_concatter([res_prompts, res_embed])
+
         y_cont_temp = self.encoder_representation(
-            (tre_patch, sea_patch, res_patch, dates))
+            (tre_input, sea_input, res_input, dates))
 
         y_pred_tre = self.decoder_tre(y_cont_temp)
         y_pred_sea = self.decoder_sea(y_cont_temp)
