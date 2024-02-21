@@ -180,8 +180,7 @@ class Univariate(tf.keras.Model):
                 'shared_prompt': tf.keras.layers.serialize(self.shared_prompt),
                 'decoder_tre': tf.keras.layers.serialize(self.decoder_tre),
                 'decoder_sea': tf.keras.layers.serialize(self.decoder_sea),
-                'decoder_res': tf.keras.layers.serialize(self.decoder_res),
-                'linear_head': tf.keras.layers.serialize(self.linear_head)
+                'decoder_res': tf.keras.layers.serialize(self.decoder_res)
             }
         )
         return config
@@ -211,8 +210,6 @@ class Univariate(tf.keras.Model):
             config['decoder_sea'])
         config['decoder_res'] = tf.keras.layers.deserialize(
             config['decoder_res'])
-        config['linear_head'] = tf.keras.layers.deserialize(
-            config['linear_head'])
 
         return cls(**config)
 
