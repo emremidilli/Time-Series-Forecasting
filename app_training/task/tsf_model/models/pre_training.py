@@ -341,7 +341,7 @@ class PreTraining(tf.keras.Model):
 
         # masked auto-encoder (mae)
         y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed, masks = \
-            self(data, mask=True)
+            self(data)
 
         pred_original = \
             self.pre_processor.data_denormalizer(y_pred_composed)
@@ -367,7 +367,7 @@ class PreTraining(tf.keras.Model):
         if mae_comp > self.mae_threshold_comp:
             with tf.GradientTape() as tape:
                 y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed, masks = \
-                    self(data, mask=True)
+                    self(data)
 
                 pred_original = \
                     self.pre_processor.data_denormalizer(y_pred_composed)
@@ -415,7 +415,7 @@ class PreTraining(tf.keras.Model):
         elif mae_tre > self.mae_threshold_tre:
             with tf.GradientTape() as tape:
                 y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed, masks = \
-                    self(data, mask=True)
+                    self(data)
 
                 pred_original = \
                     self.pre_processor.data_denormalizer(y_pred_composed)
@@ -460,7 +460,7 @@ class PreTraining(tf.keras.Model):
         elif mae_sea > self.mae_threshold_sea:
             with tf.GradientTape() as tape:
                 y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed, masks = \
-                    self(data, mask=True)
+                    self(data)
 
                 pred_original = \
                     self.pre_processor.data_denormalizer(y_pred_composed)
@@ -649,7 +649,7 @@ class PreTraining(tf.keras.Model):
             self.pre_processor.data_denormalizer(anchor_composed)
 
         y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed, masks = \
-            self(data, mask=True)
+            self(data)
 
         pred_original = \
             self.pre_processor.data_denormalizer(y_pred_composed)
@@ -854,7 +854,7 @@ class PreTraining(tf.keras.Model):
 
         return y_logits_false, y_logits_true, y_logits_anchor
 
-    def call(self, inputs, mask=False):
+    def call(self, inputs):
         '''
         args:
             tre: (None, timesteps, covariates)
@@ -880,10 +880,8 @@ class PreTraining(tf.keras.Model):
         sea_patch = self.patch_tokenizer(sea_norm)
         res_patch = self.patch_tokenizer(res_norm)
 
-        if mask is True:
-            # masked some patches
-            tre_patch, sea_patch, res_patch, masks = self.mask_patches(
-                (tre_patch, sea_patch, res_patch))
+        tre_patch, sea_patch, res_patch, masks = self.mask_patches(
+            (tre_patch, sea_patch, res_patch))
 
         if self.shared_prompt is None:
             self.shared_prompt = SoftPrompts(
@@ -920,7 +918,4 @@ class PreTraining(tf.keras.Model):
         # compose
         y_pred_composed = y_pred_tre + y_pred_sea + y_pred_res
 
-        if mask is True:
-            return (y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed, masks)
-
-        return (y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed)
+        return (y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed, masks)

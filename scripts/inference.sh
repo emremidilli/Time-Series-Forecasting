@@ -32,6 +32,4 @@ main() {
     echo "inference is completed."
 }
 
-# main "ds_universal_ETTh1_96_4_S" "ds_universal_ETTh1_96_4_S_ft" "model_20240203_06_ft"
-
-main "ds_universal_ETTh1_96_4_M" "ds_universal_ETTh1_96_4_M_ft" "model_20240203_06_ft"
+main "ds_universal_ETTh1_96_4_M" "ds_universal_ETTh1_96_4_M_ft" "model_ft_20240218_01"

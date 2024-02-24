@@ -99,14 +99,14 @@ def get_pre_training_args():
     parser.add_argument(
         '--mini_batch_size',
         required=False,
-        default=128,
+        default=8,
         type=int,
         help='mini_batch_size')
 
     parser.add_argument(
         '--nr_of_epochs',
         required=False,
-        default=10,
+        default=5,
         type=int,
         help='nr_of_epochs')
     parser.add_argument(
@@ -167,14 +167,14 @@ def get_pre_training_args():
     parser.add_argument(
         '--patch_size',
         required=False,
-        default=24,
+        default=48,
         type=int,
         help='patch_size')
 
     parser.add_argument(
         '--lookback_coefficient',
         required=False,
-        default=2,
+        default=1,
         type=int,
         help='lookback_coefficient')
 

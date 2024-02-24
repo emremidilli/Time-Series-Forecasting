@@ -15,13 +15,87 @@ import tarfile
 import tensorflow as tf
 
 
-def log_experiments(model_id, history, parameters):
+def _create_tmp_directory():
+    '''creates a tmp directory'''
+    Path(os.path.join('tmp'))\
+        .mkdir(parents=True, exist_ok=True)
+
+
+def _remove_tmp_directory():
+    '''removes tmp directory'''
+    shutil.rmtree(os.path.join('tmp'), ignore_errors=True)
+
+
+def _unbatch_dataset(
+        ds: tf.data.Dataset):
+    '''covert tf.data.Dataset to single batch tensors'''
+
+    # Reverting back to separate tensors
+    tre_list, sea_list, res_list, ts_list = [], [], [], []
+
+    for tre_batch, sea_batch, res_batch, ts_batch in ds:
+        tre_list.append(tre_batch)
+        sea_list.append(sea_batch)
+        res_list.append(res_batch)
+        ts_list.append(ts_batch)
+
+    # Concatenate the lists to form tensors
+    tre = tf.concat(tre_list, axis=0)
+    sea = tf.concat(sea_list, axis=0)
+    res = tf.concat(res_list, axis=0)
+    ts = tf.concat(ts_list, axis=0)
+
+    new_ds = tf.data.Dataset.from_tensor_slices(
+        (tre, sea, res, ts))
+
+    return new_ds
+
+
+def _predict_and_save(
+        model: tf.keras.Model,
+        ds: tf.data.Dataset,
+        ds_name: str):
+    '''
+    predicts an input dataset and saves
+    the input and prediction into tmp folder.
+    '''
+    ds = _unbatch_dataset(ds)
+
+    npy_input = list(ds.batch(len(ds)).as_numpy_iterator())[0]
+
+    pred_tre, pred_sea, pred_res, _, pred_masks = \
+        model.predict(npy_input, batch_size=len(ds))
+
+    _create_tmp_directory()
+
+    ds_dir = os.path.join('tmp', ds_name)
+
+    true_save_dir = os.path.join(ds_dir, 'true')
+    ds.save(true_save_dir)
+
+    pred_save_dir = os.path.join(ds_dir, 'pred')
+    pred = tf.data.Dataset.from_tensor_slices((pred_tre, pred_sea, pred_res))
+    pred.save(pred_save_dir)
+
+    mask_save_dir = os.path.join(ds_dir, 'masks')
+    mask = tf.data.Dataset.from_tensor_slices(pred_masks)
+    mask.save(mask_save_dir)
+
+    mlflow.log_artifacts(ds_dir, artifact_path=ds_name)
+
+    _remove_tmp_directory()
+
+
+def log_experiments(
+        model_id: str,
+        history: tf.keras.callbacks.History,
+        model: tf.keras.Model,
+        ds_train: tf.data.Dataset,
+        ds_val: tf.data.Dataset,
+        ds_test: tf.data.Dataset,
+        parameters: dict):
     '''
     Experiments are logged into Databricks with MlFlow.
-    args:
-        model_id (str)
-        history (pandas.DataFrame)
-        parameters (dictionary)
     '''
 
     mlflow.login()
@@ -30,6 +104,31 @@ def log_experiments(model_id, history, parameters):
 
     with mlflow.start_run():
         history_logs = history.history
+
+        mlflow.log_param("train_evaluation", model.evaluate(ds_train))
+        _predict_and_save(model, ds_train, 'train')
+
+        if ds_val is not None:
+            mlflow.log_param("validation_evaluation", model.evaluate(ds_val))
+            _predict_and_save(model, ds_val, 'validation')
+
+        mlflow.log_param("test_evaluation", model.evaluate(ds_test))
+        _predict_and_save(model, ds_test, 'test')
+
+        mlflow.log_param(
+            'trainable_params',
+            tf.reduce_sum([
+                tf.reduce_prod(var.shape)
+                for var in model.trainable_variables
+            ]))
+
+        mlflow.log_param(
+            'non_trainable_params',
+            tf.reduce_sum([
+                tf.reduce_prod(var.shape)
+                for var in model.non_trainable_variables
+            ]))
+
         mlflow.log_params(parameters)
         mlflow.log_table(
             data=history_logs,
@@ -75,7 +174,7 @@ def upload_model(model, model_id):
         bucket_name,
         model_key)
 
-    shutil.rmtree(os.path.join('tmp'), ignore_errors=True)
+    _remove_tmp_directory()
 
 
 def load_model(model_id):
@@ -92,8 +191,7 @@ def load_model(model_id):
         model (tf.keras.Model)
     '''
 
-    Path(os.path.join('tmp'))\
-        .mkdir(parents=True, exist_ok=True)
+    _create_tmp_directory()
 
     s3 = boto3.client(
         's3',
@@ -119,6 +217,6 @@ def load_model(model_id):
     model = tf.keras.models.load_model(
         os.path.join(local_extraction_path, 'tf_model'))
 
-    shutil.rmtree(os.path.join('tmp'), ignore_errors=True)
+    _remove_tmp_directory()
 
     return model

@@ -8,7 +8,7 @@ validation_rate=0.00
 mini_batch_size=128
 learning_rate=0.0001
 clip_norm=1.0
-nr_of_epochs=200
+nr_of_epochs=300
 fine_tune_backbone="Y"
 
 cd ../app_training/

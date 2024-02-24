@@ -59,16 +59,12 @@ if __name__ == '__main__':
     dataset_dir = os.path.join(
         os.environ['BIN_NAME'],
         os.environ['PREPROCESSED_NAME'],
-        dataset_id,
-        'dataset')
+        dataset_id)
 
-    input_pipeline_dir = os.path.join(
-        os.environ['BIN_NAME'],
-        os.environ['PREPROCESSED_NAME'],
-        dataset_id,
-        'input_preprocessor')
+    input_pipeline_dir = os.path.join(dataset_dir, 'input_preprocessor')
 
-    ds = tf.data.Dataset.load(path=dataset_dir)
+    ds = tf.data.Dataset.load(path=os.path.join(dataset_dir, 'dataset_train'))
+
     tre, _, _, _ = next(iter(ds))
 
     ds_train = ds
@@ -78,6 +74,10 @@ if __name__ == '__main__':
         ds_val = ds_val.batch(mini_batch_size).prefetch(tf.data.AUTOTUNE)
 
     ds_train = ds_train.batch(mini_batch_size).prefetch(tf.data.AUTOTUNE)
+
+    ds_test = tf.data.Dataset.load(
+        path=os.path.join(dataset_dir, 'dataset_test'))
+    ds_test = ds_test.batch(mini_batch_size).prefetch(tf.data.AUTOTUNE)
 
     checkpoint_callback = PreTrainingCheckpointCallback(
         ckpt_dir=custom_ckpt_dir,
@@ -171,7 +171,11 @@ if __name__ == '__main__':
 
     log_experiments(
         model_id=model_id,
+        model=model,
         history=history,
+        ds_train=ds_train,
+        ds_val=ds_val,
+        ds_test=ds_test,
         parameters=vars(args))
 
     if save_model == "Y":

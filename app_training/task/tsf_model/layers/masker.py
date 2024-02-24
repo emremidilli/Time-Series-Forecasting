@@ -26,8 +26,9 @@ class PatchMasker(tf.keras.layers.Layer):
         x_tre, x_sea, x_res = inputs
 
         nr_of_timesteps = x_tre.shape[1]
-        nr_of_timesteps_to_mask = int(tf.math.ceil(
-            nr_of_timesteps * self.masking_rate))
+        nr_of_timesteps_to_mask = tf.cast(
+            tf.math.ceil(nr_of_timesteps * self.masking_rate),
+            dtype=tf.int32)
 
         random_tensor = \
             tf.random.uniform(shape=(nr_of_timesteps, ), minval=0, maxval=1)
@@ -40,36 +41,20 @@ class PatchMasker(tf.keras.layers.Layer):
         y_sea = tf.add(tf.zeros_like(x_sea), self.msk_scalar)
         y_res = tf.add(tf.zeros_like(x_res), self.msk_scalar)
 
-        z_tre = []
-        z_sea = []
-        z_res = []
-        z_masks = []
-        for i in range(nr_of_timesteps):
+        mask_condition = tf.reduce_any(
+            tf.equal(
+                tf.range(nr_of_timesteps)[:, tf.newaxis],
+                indices_to_mask), axis=1)
+        # Expand dimensions for broadcasting
+        mask_condition = tf.expand_dims(mask_condition, axis=-1)
 
-            r_tre = tf.constant([])
-            r_sea = tf.constant([])
-            r_res = tf.constant([])
-            r_mask = tf.constant(False)
+        r_tre = tf.where(mask_condition, y_tre, x_tre)
+        r_sea = tf.where(mask_condition, y_sea, x_sea)
+        r_res = tf.where(mask_condition, y_res, x_res)
 
-            if tf.reduce_any(tf.math.equal(i, indices_to_mask)):
-                r_tre = y_tre[:, i]
-                r_sea = y_sea[:, i]
-                r_res = y_res[:, i]
-                r_mask = True
-            else:
-                r_tre = x_tre[:, i]
-                r_sea = x_sea[:, i]
-                r_res = x_res[:, i]
-                r_mask = False
-
-            z_tre.append(r_tre)
-            z_sea.append(r_sea)
-            z_res.append(r_res)
-            z_masks.append(r_mask)
-
-        z_tre = tf.stack(z_tre, axis=1)
-        z_sea = tf.stack(z_sea, axis=1)
-        z_res = tf.stack(z_res, axis=1)
-        z_masks = tf.stack(z_masks)
+        z_tre = tf.stack([r_tre[:, i] for i in range(nr_of_timesteps)], axis=1)
+        z_sea = tf.stack([r_sea[:, i] for i in range(nr_of_timesteps)], axis=1)
+        z_res = tf.stack([r_res[:, i] for i in range(nr_of_timesteps)], axis=1)
+        z_masks = tf.squeeze(mask_condition, axis=-1)
 
         return (z_tre, z_sea, z_res, z_masks)
