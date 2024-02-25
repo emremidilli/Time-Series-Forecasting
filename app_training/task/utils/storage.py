@@ -64,7 +64,7 @@ def _predict_and_save(
     npy_input = list(ds.batch(len(ds)).as_numpy_iterator())[0]
 
     pred_tre, pred_sea, pred_res, _, pred_masks = \
-        model.predict(npy_input, batch_size=len(ds))
+        model.predict(npy_input)
 
     _create_tmp_directory()
 
