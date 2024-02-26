@@ -8,7 +8,7 @@ from tsf_model import PreTraining
 
 from utils import PreTrainingCheckpointCallback, LearningRateCallback, \
     RamCleaner, get_pre_training_args, \
-    train_test_split, upload_model, log_experiments
+    train_test_split, upload_model, log_experiments, MaskingCallback
 
 
 if __name__ == '__main__':
@@ -83,10 +83,6 @@ if __name__ == '__main__':
         ckpt_dir=custom_ckpt_dir,
         epoch_freq=25)
 
-    ram_cleaner_callback = RamCleaner()
-
-    terminate_on_nan_callback = tf.keras.callbacks.TerminateOnNaN()
-
     mae_comp_optimizer = tf.keras.optimizers.Adam(clipnorm=clip_norm)
     mae_tre_optimizer = tf.keras.optimizers.Adam(clipnorm=clip_norm)
     mae_sea_optimizer = tf.keras.optimizers.Adam(clipnorm=clip_norm)
@@ -97,6 +93,8 @@ if __name__ == '__main__':
         int(tre.shape[0] / (lookback_coefficient + 1))
     contrastive_learning_patches = \
         int(contrastive_learning_patches / patch_size)
+
+    masked_auto_encoder_patches = int(tre.shape[0] / patch_size)
 
     nr_of_timesteps = tre.shape[0]
 
@@ -113,7 +111,6 @@ if __name__ == '__main__':
         encoder_ffn_units=encoder_ffn_units,
         embedding_dims=embedding_dims,
         projection_head_units=projection_head,
-        msk_rate=mask_rate,
         msk_scalar=mask_scalar,
         nr_of_timesteps=nr_of_timesteps,
         contrastive_learning_patches=contrastive_learning_patches,
@@ -156,6 +153,21 @@ if __name__ == '__main__':
         scale_factor=scale_factor,
         remained_step_nr=starting_step)
 
+    masking_callback = MaskingCallback(
+        nr_of_patches=masked_auto_encoder_patches,
+        masking_rate=mask_rate,
+        masks_feature='masks')
+
+    masking_callback_cl = MaskingCallback(
+        nr_of_patches=(
+            masked_auto_encoder_patches - contrastive_learning_patches),
+        masking_rate=mask_rate,
+        masks_feature='cl_masks')
+
+    ram_cleaner_callback = RamCleaner()
+
+    terminate_on_nan_callback = tf.keras.callbacks.TerminateOnNaN()
+
     history = model.fit(
         ds_train,
         validation_data=ds_val,
@@ -167,7 +179,9 @@ if __name__ == '__main__':
             terminate_on_nan_callback,
             ram_cleaner_callback,
             learning_rate_callback,
-            checkpoint_callback])
+            checkpoint_callback,
+            masking_callback,
+            masking_callback_cl])
 
     log_experiments(
         model_id=model_id,

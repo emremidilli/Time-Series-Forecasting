@@ -22,7 +22,6 @@ class PreTraining(tf.keras.Model):
             encoder_ffn_units: int,
             embedding_dims: int,
             projection_head_units: int,
-            msk_rate: float,
             msk_scalar: float,
             nr_of_timesteps: int,
             contrastive_learning_patches: int,
@@ -47,7 +46,6 @@ class PreTraining(tf.keras.Model):
             embedding_dims: embedding dimension.
             projection_head_units: units of projection head of
                 contrastive learning.
-            msk_rate: masking rate of the input patches.
             msk_scalar: values of the masked tokens.
             nr_of_timesteps: number of output timesteps.
             contrastive_learning_patches: number of patches for
@@ -73,7 +71,6 @@ class PreTraining(tf.keras.Model):
         self.encoder_ffn_units = encoder_ffn_units
         self.embedding_dims = embedding_dims
         self.projection_head_units = projection_head_units
-        self.msk_rate = msk_rate
         self.msk_scalar = msk_scalar
         self.nr_of_timesteps = nr_of_timesteps
         self.contrastive_learning_patches = contrastive_learning_patches
@@ -104,8 +101,7 @@ class PreTraining(tf.keras.Model):
 
         self.shared_prompt = None
 
-        self.patch_masker = PatchMasker(
-            masking_rate=msk_rate, msk_scalar=msk_scalar)
+        self.patch_masker = PatchMasker(msk_scalar=msk_scalar)
 
         self.timestep_shifter = TimeStepShifter()
 
@@ -168,6 +164,17 @@ class PreTraining(tf.keras.Model):
 
         self.task_to_train = tf.Variable('mae')
 
+        self.masks = tf.Variable(
+            initial_value=False,
+            trainable=False,
+            dtype=tf.bool,
+            name='masks')
+        self.cl_masks = tf.Variable(
+            initial_value=False,
+            trainable=False,
+            dtype=tf.bool,
+            name='cl_masks')
+
     def compile(
             self,
             mae_comp_optimizer,
@@ -224,7 +231,6 @@ class PreTraining(tf.keras.Model):
             self,
             y_pred,
             y_true,
-            masks,
             loss_fn):
         '''
         Calculates loss only for masked patches.
@@ -236,8 +242,6 @@ class PreTraining(tf.keras.Model):
                 which is unpactached.
             y_true (None, timesteps, covariates)- actual output
                 which is unpatched.
-            masks (None, timesteps, covariates) - masked patches
-                that consists of boolean values.
             loss_fn (tf.keras.losses) - loss function
 
         returns
@@ -246,24 +250,18 @@ class PreTraining(tf.keras.Model):
         true_patched = self.patch_tokenizer(y_true)
         pred_patched = self.patch_tokenizer(y_pred)
 
-        true_masked = tf.boolean_mask(tensor=true_patched, mask=masks, axis=1)
-        pred_masked = tf.boolean_mask(tensor=pred_patched, mask=masks, axis=1)
+        true_masked = tf.boolean_mask(
+            tensor=true_patched,
+            mask=self.masks,
+            axis=1)
+        pred_masked = tf.boolean_mask(
+            tensor=pred_patched,
+            mask=self.masks,
+            axis=1)
 
         loss = loss_fn(y_pred=pred_masked, y_true=true_masked)
 
         return tf.reduce_mean(loss)
-
-    def mask_patches(self, data):
-        '''
-        Masks both lookback and forecast patches.
-        Patch steps to mask are determined randomly.
-        '''
-        x_tre, x_sea, x_res = data
-
-        x_tre_msk, x_sea_msk, x_res_msk, masks = self.patch_masker(
-            (x_tre, x_sea, x_res))
-
-        return (x_tre_msk, x_sea_msk, x_res_msk, masks)
 
     def augment_pairs(self, data):
         '''
@@ -287,8 +285,8 @@ class PreTraining(tf.keras.Model):
         nr_of_forecast_patches = tf.shape(x_fc_tre)[1]
 
         # mask
-        x_fc_tre_msk, x_fc_sea_msk, x_fc_res_msk, _ = self.patch_masker(
-            (x_fc_tre, x_fc_sea, x_fc_res))
+        x_fc_tre_msk, x_fc_sea_msk, x_fc_res_msk = self.patch_masker(
+            (x_fc_tre, x_fc_sea, x_fc_res, self.cl_masks))
 
         x_tre_true = self.timesteps_concatter(
             [x_lb_tre, x_fc_tre_msk])
@@ -340,7 +338,7 @@ class PreTraining(tf.keras.Model):
             self.pre_processor.data_denormalizer(anchor_composed)
 
         # masked auto-encoder (mae)
-        y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed, masks = \
+        y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed = \
             self(data)
 
         pred_original = \
@@ -349,24 +347,21 @@ class PreTraining(tf.keras.Model):
         mae_tre = self.calculate_masked_loss(
             y_pred=y_pred_tre,
             y_true=anchor_tre,
-            masks=masks,
             loss_fn=tf.keras.losses.mean_absolute_error)
 
         mae_sea = self.calculate_masked_loss(
             y_pred=y_pred_sea,
             y_true=anchor_sea,
-            masks=masks,
             loss_fn=tf.keras.losses.mean_absolute_error)
 
         mae_comp = self.calculate_masked_loss(
             y_pred=y_pred_composed,
             y_true=anchor_composed,
-            masks=masks,
             loss_fn=tf.keras.losses.mean_absolute_error)
 
         if mae_comp > self.mae_threshold_comp:
             with tf.GradientTape() as tape:
-                y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed, masks = \
+                y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed = \
                     self(data)
 
                 pred_original = \
@@ -376,19 +371,16 @@ class PreTraining(tf.keras.Model):
                 loss_mae_comp = self.calculate_masked_loss(
                     y_pred=y_pred_composed,
                     y_true=anchor_composed,
-                    masks=masks,
                     loss_fn=tf.keras.losses.mean_squared_error)
 
                 loss_mae_tre = self.calculate_masked_loss(
                     y_pred=y_pred_tre,
                     y_true=anchor_tre,
-                    masks=masks,
                     loss_fn=tf.keras.losses.mean_squared_error)
 
                 loss_mae_sea = self.calculate_masked_loss(
                     y_pred=y_pred_sea,
                     y_true=anchor_sea,
-                    masks=masks,
                     loss_fn=tf.keras.losses.mean_squared_error)
 
                 mae_trainable_vars = self.revIn_tre.trainable_variables + \
@@ -414,7 +406,7 @@ class PreTraining(tf.keras.Model):
             self.loss_tracker_mae_sea.update_state(loss_mae_sea)
         elif mae_tre > self.mae_threshold_tre:
             with tf.GradientTape() as tape:
-                y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed, masks = \
+                y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed = \
                     self(data)
 
                 pred_original = \
@@ -424,19 +416,16 @@ class PreTraining(tf.keras.Model):
                 loss_mae_comp = self.calculate_masked_loss(
                     y_pred=y_pred_composed,
                     y_true=anchor_composed,
-                    masks=masks,
                     loss_fn=tf.keras.losses.mean_squared_error)
 
                 loss_mae_tre = self.calculate_masked_loss(
                     y_pred=y_pred_tre,
                     y_true=anchor_tre,
-                    masks=masks,
                     loss_fn=tf.keras.losses.mean_squared_error)
 
                 loss_mae_sea = self.calculate_masked_loss(
                     y_pred=y_pred_sea,
                     y_true=anchor_sea,
-                    masks=masks,
                     loss_fn=tf.keras.losses.mean_squared_error)
 
                 mae_trainable_vars = self.revIn_tre.trainable_variables + \
@@ -459,7 +448,7 @@ class PreTraining(tf.keras.Model):
 
         elif mae_sea > self.mae_threshold_sea:
             with tf.GradientTape() as tape:
-                y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed, masks = \
+                y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed = \
                     self(data)
 
                 pred_original = \
@@ -470,19 +459,16 @@ class PreTraining(tf.keras.Model):
                 loss_mae_comp = self.calculate_masked_loss(
                     y_pred=y_pred_composed,
                     y_true=anchor_composed,
-                    masks=masks,
                     loss_fn=tf.keras.losses.mean_squared_error)
 
                 loss_mae_tre = self.calculate_masked_loss(
                     y_pred=y_pred_tre,
                     y_true=anchor_tre,
-                    masks=masks,
                     loss_fn=tf.keras.losses.mean_squared_error)
 
                 loss_mae_sea = self.calculate_masked_loss(
                     y_pred=y_pred_sea,
                     y_true=anchor_sea,
-                    masks=masks,
                     loss_fn=tf.keras.losses.mean_squared_error)
 
                 mae_trainable_vars = self.revIn_sea.trainable_variables + \
@@ -509,49 +495,41 @@ class PreTraining(tf.keras.Model):
         mae_composed = self.calculate_masked_loss(
             y_pred=y_pred_composed,
             y_true=anchor_composed,
-            masks=masks,
             loss_fn=tf.keras.losses.mean_absolute_error)
 
         mae_original = self.calculate_masked_loss(
             y_pred=pred_original,
             y_true=anchor_original,
-            masks=masks,
             loss_fn=tf.keras.losses.mean_absolute_error)
 
         mae_tre = self.calculate_masked_loss(
             y_pred=y_pred_tre,
             y_true=anchor_tre,
-            masks=masks,
             loss_fn=tf.keras.losses.mean_absolute_error)
 
         mae_sea = self.calculate_masked_loss(
             y_pred=y_pred_sea,
             y_true=anchor_sea,
-            masks=masks,
             loss_fn=tf.keras.losses.mean_absolute_error)
 
         mae_res = self.calculate_masked_loss(
             y_pred=y_pred_res,
             y_true=anchor_res,
-            masks=masks,
             loss_fn=tf.keras.losses.mean_absolute_error)
 
         cos_tre = self.calculate_masked_loss(
             y_pred=y_pred_tre,
             y_true=anchor_tre,
-            masks=masks,
             loss_fn=tf.keras.losses.cosine_similarity)
 
         cos_sea = self.calculate_masked_loss(
             y_pred=y_pred_sea,
             y_true=anchor_sea,
-            masks=masks,
             loss_fn=tf.keras.losses.cosine_similarity)
 
         cos_res = self.calculate_masked_loss(
             y_pred=y_pred_res,
             y_true=anchor_res,
-            masks=masks,
             loss_fn=tf.keras.losses.cosine_similarity)
 
         # compute own metrics
@@ -648,7 +626,7 @@ class PreTraining(tf.keras.Model):
         anchor_original = \
             self.pre_processor.data_denormalizer(anchor_composed)
 
-        y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed, masks = \
+        y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed = \
             self(data)
 
         pred_original = \
@@ -658,19 +636,16 @@ class PreTraining(tf.keras.Model):
         loss_mae_comp = self.calculate_masked_loss(
             y_pred=y_pred_composed,
             y_true=anchor_composed,
-            masks=masks,
             loss_fn=tf.keras.losses.mean_squared_error)
 
         loss_mae_tre = self.calculate_masked_loss(
             y_pred=y_pred_tre,
             y_true=anchor_tre,
-            masks=masks,
             loss_fn=tf.keras.losses.mean_squared_error)
 
         loss_mae_sea = self.calculate_masked_loss(
             y_pred=y_pred_sea,
             y_true=anchor_sea,
-            masks=masks,
             loss_fn=tf.keras.losses.mean_squared_error)
 
         # compute own metrics
@@ -681,49 +656,41 @@ class PreTraining(tf.keras.Model):
         mae_composed = self.calculate_masked_loss(
             y_pred=y_pred_composed,
             y_true=anchor_composed,
-            masks=masks,
             loss_fn=tf.keras.losses.mean_absolute_error)
 
         mae_original = self.calculate_masked_loss(
             y_pred=pred_original,
             y_true=anchor_original,
-            masks=masks,
             loss_fn=tf.keras.losses.mean_absolute_error)
 
         mae_tre = self.calculate_masked_loss(
             y_pred=y_pred_tre,
             y_true=anchor_tre,
-            masks=masks,
             loss_fn=tf.keras.losses.mean_absolute_error)
 
         mae_sea = self.calculate_masked_loss(
             y_pred=y_pred_sea,
             y_true=anchor_sea,
-            masks=masks,
             loss_fn=tf.keras.losses.mean_absolute_error)
 
         mae_res = self.calculate_masked_loss(
             y_pred=y_pred_res,
             y_true=anchor_res,
-            masks=masks,
             loss_fn=tf.keras.losses.mean_absolute_error)
 
         cos_tre = self.calculate_masked_loss(
             y_pred=y_pred_tre,
             y_true=anchor_tre,
-            masks=masks,
             loss_fn=tf.keras.losses.cosine_similarity)
 
         cos_sea = self.calculate_masked_loss(
             y_pred=y_pred_sea,
             y_true=anchor_sea,
-            masks=masks,
             loss_fn=tf.keras.losses.cosine_similarity)
 
         cos_res = self.calculate_masked_loss(
             y_pred=y_pred_res,
             y_true=anchor_res,
-            masks=masks,
             loss_fn=tf.keras.losses.cosine_similarity)
 
         self.mae_composed.update_state(mae_composed)
@@ -880,8 +847,8 @@ class PreTraining(tf.keras.Model):
         sea_patch = self.patch_tokenizer(sea_norm)
         res_patch = self.patch_tokenizer(res_norm)
 
-        tre_patch, sea_patch, res_patch, masks = self.mask_patches(
-            (tre_patch, sea_patch, res_patch))
+        tre_patch, sea_patch, res_patch = self.patch_masker(
+            (tre_patch, sea_patch, res_patch, self.masks))
 
         if self.shared_prompt is None:
             self.shared_prompt = SoftPrompts(
@@ -918,4 +885,4 @@ class PreTraining(tf.keras.Model):
         # compose
         y_pred_composed = y_pred_tre + y_pred_sea + y_pred_res
 
-        return (y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed, masks)
+        return (y_pred_tre, y_pred_sea, y_pred_res, y_pred_composed)
