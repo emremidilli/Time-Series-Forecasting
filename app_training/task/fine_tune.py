@@ -37,12 +37,11 @@ if __name__ == '__main__':
     dataset_dir = os.path.join(
         os.environ['BIN_NAME'],
         os.environ['PREPROCESSED_NAME'],
-        dataset_id,
-        'dataset')
+        dataset_id)
 
     pre_trained_model = load_model(model_id=pre_trained_model_id)
 
-    ds = tf.data.Dataset.load(path=dataset_dir)
+    ds = tf.data.Dataset.load(path=os.path.join(dataset_dir, 'dataset_train'))
 
     (_, _, _, _), lbl = next(iter(ds))
 
@@ -53,6 +52,10 @@ if __name__ == '__main__':
         ds_val = ds_val.batch(mini_batch_size).prefetch(tf.data.AUTOTUNE)
 
     ds_train = ds_train.batch(mini_batch_size).prefetch(tf.data.AUTOTUNE)
+
+    ds_test = tf.data.Dataset.load(
+        path=os.path.join(dataset_dir, 'dataset_test'))
+    ds_test = ds_test.batch(mini_batch_size).prefetch(tf.data.AUTOTUNE)
 
     model = FineTuning(
         revIn_tre=pre_trained_model.revIn_tre,
@@ -116,8 +119,13 @@ if __name__ == '__main__':
 
     log_experiments(
         model_id=model_id,
+        model=model,
         history=history,
-        parameters=vars(args))
+        ds_train=ds_train,
+        ds_val=ds_val,
+        ds_test=ds_test,
+        parameters=vars(args),
+        model_type='ft')
 
     upload_model(model=model, model_id=model_id)
 

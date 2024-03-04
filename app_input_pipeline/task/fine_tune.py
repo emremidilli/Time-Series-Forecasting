@@ -25,19 +25,33 @@ if __name__ == '__main__':
     else:
         scale_data = False
 
-    training_data_folder = os.path.join(
+        dataset_folder = os.path.join(
         os.environ['BIN_NAME'],
         os.environ['FORMATTED_NAME'],
         input_dataset_id)
 
     lb_train = read_npy_file(
-        os.path.join(training_data_folder, 'lb_train.npy'),
+        os.path.join(dataset_folder, 'lb_train.npy'),
         dtype='float32')
+
     fc_train = read_npy_file(
-        os.path.join(training_data_folder, 'fc_train.npy'),
+        os.path.join(dataset_folder, 'fc_train.npy'),
         dtype='float32')
+
     ts_train = read_npy_file(
-        os.path.join(training_data_folder, 'ts_train.npy'),
+        os.path.join(dataset_folder, 'ts_train.npy'),
+        dtype='int32')
+
+    lb_test = read_npy_file(
+        os.path.join(dataset_folder, 'lb_test.npy'),
+        dtype='float32')
+
+    fc_test = read_npy_file(
+        os.path.join(dataset_folder, 'fc_test.npy'),
+        dtype='float32')
+
+    ts_test = read_npy_file(
+        os.path.join(dataset_folder, 'ts_test.npy'),
         dtype='int32')
 
     nr_of_covariates = lb_train.shape[-1]
@@ -48,21 +62,31 @@ if __name__ == '__main__':
         scale_data=scale_data)
 
     input_pre_processor.adapt((lb_train, ts_train))
-    lb_tre, lb_sea, lb_res, ts = input_pre_processor((lb_train, ts_train))
+    lb_tre_train, lb_sea_train, lb_res_train, ts_train = \
+        input_pre_processor((lb_train, ts_train))
+    lb_tre_test, lb_sea_test, lb_res_test, ts_test = \
+        input_pre_processor((lb_test, ts_test))
 
     target_pre_processor = TargetPreProcessor(scale_data=scale_data)
-    lbl = target_pre_processor((fc_train))
+    lbl_train = target_pre_processor((fc_train))
+    lbl_test = target_pre_processor((fc_test))
 
-    ds = tf.data.Dataset.from_tensor_slices(
-        ((lb_tre, lb_sea, lb_res, ts), lbl))
+    ds_train = tf.data.Dataset.from_tensor_slices(
+        ((lb_tre_train, lb_sea_train, lb_res_train, ts_train), lbl_train))
+
+    ds_test = tf.data.Dataset.from_tensor_slices(
+        ((lb_tre_test, lb_sea_test, lb_res_test, ts_test), lbl_test))
 
     sub_dir = os.path.join(
         os.environ['BIN_NAME'],
         os.environ['PREPROCESSED_NAME'],
         output_dataset_id)
 
-    ds.save(
-        os.path.join(sub_dir, 'dataset'))
+    ds_train.save(
+        os.path.join(sub_dir, 'dataset_train'))
+
+    ds_test.save(
+        os.path.join(sub_dir, 'dataset_test'))
 
     tf.saved_model.save(
         obj=input_pre_processor,

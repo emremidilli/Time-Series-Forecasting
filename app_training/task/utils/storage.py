@@ -26,9 +26,12 @@ def _remove_tmp_directory():
     shutil.rmtree(os.path.join('tmp'), ignore_errors=True)
 
 
-def _unbatch_dataset(
+def _unbatch_dataset_pt(
         ds: tf.data.Dataset):
-    '''covert tf.data.Dataset to single batch tensors'''
+    '''
+    covert tf.data.Dataset to single batch tensors.
+    it applies to only pre-training dataset.
+    '''
 
     # Reverting back to separate tensors
     tre_list, sea_list, res_list, ts_list = [], [], [], []
@@ -51,15 +54,16 @@ def _unbatch_dataset(
     return new_ds
 
 
-def _predict_and_save(
+def _predict_and_save_pt(
         model: tf.keras.Model,
         ds: tf.data.Dataset,
         ds_name: str):
     '''
     predicts an input dataset and saves
     the input and prediction into tmp folder.
+    it applies to pre-training model.
     '''
-    ds = _unbatch_dataset(ds)
+    ds = _unbatch_dataset_pt(ds)
 
     npy_input = list(ds.batch(len(ds)).as_numpy_iterator())[0]
 
@@ -88,6 +92,70 @@ def _predict_and_save(
     _remove_tmp_directory()
 
 
+def _unbatch_dataset_ft(
+        ds: tf.data.Dataset):
+    '''
+    covert tf.data.Dataset to single batch tensors.
+    it applies only to fine-tuning dataset.
+    '''
+
+    # Reverting back to separate tensors
+    tre_list, sea_list, res_list, ts_list, lbl_list = [], [], [], [], []
+
+    for (tre_batch, sea_batch, res_batch, ts_batch), lbl_batch in ds:
+        tre_list.append(tre_batch)
+        sea_list.append(sea_batch)
+        res_list.append(res_batch)
+        ts_list.append(ts_batch)
+        lbl_list.append(lbl_batch)
+
+    # Concatenate the lists to form tensors
+    tre = tf.concat(tre_list, axis=0)
+    sea = tf.concat(sea_list, axis=0)
+    res = tf.concat(res_list, axis=0)
+    ts = tf.concat(ts_list, axis=0)
+    lbl = tf.concat(lbl_list, axis=0)
+
+    new_input = tf.data.Dataset.from_tensor_slices(
+        (tre, sea, res, ts))
+
+    new_lbl = tf.data.Dataset.from_tensor_slices(
+        (lbl))
+
+    return new_input, new_lbl
+
+
+def _predict_and_save_ft(
+        model: tf.keras.Model,
+        ds: tf.data.Dataset,
+        ds_name: str):
+    '''
+    predicts an input dataset and saves
+    the input and prediction into tmp folder.
+    it applies to fine-tuning model.
+    '''
+    ds_input, ds_lbl = _unbatch_dataset_ft(ds)
+
+    npy_input = list(ds_input.batch(len(ds_input)).as_numpy_iterator())[0]
+
+    pred = model.predict(npy_input)
+
+    _create_tmp_directory()
+
+    ds_dir = os.path.join('tmp', ds_name)
+
+    true_save_dir = os.path.join(ds_dir, 'true')
+    ds_lbl.save(true_save_dir)
+
+    pred_save_dir = os.path.join(ds_dir, 'pred')
+    pred = tf.data.Dataset.from_tensor_slices(pred)
+    pred.save(pred_save_dir)
+
+    mlflow.log_artifacts(ds_dir, artifact_path=ds_name)
+
+    _remove_tmp_directory()
+
+
 def log_experiments(
         model_id: str,
         history: tf.keras.callbacks.History,
@@ -95,10 +163,16 @@ def log_experiments(
         ds_train: tf.data.Dataset,
         ds_val: tf.data.Dataset,
         ds_test: tf.data.Dataset,
-        parameters: dict):
+        parameters: dict,
+        model_type: str = 'pt'):
     '''
     Experiments are logged into Databricks with MlFlow.
     '''
+
+    if model_type == 'pt':
+        _predict_and_save = _predict_and_save_pt
+    else:
+        _predict_and_save = _predict_and_save_ft
 
     mlflow.login()
     mlflow.set_tracking_uri("databricks")

@@ -3,7 +3,7 @@
 model_id="model_pt_20240218_01"
 dataset_id="ds_universal_ETTh1_96_4_S_pt"
 resume_training="N"
-nr_of_epochs=100
+nr_of_epochs=1000
 mask_rate=0.40
 mask_scalar=0.00
 validation_rate=0
