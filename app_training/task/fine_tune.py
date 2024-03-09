@@ -24,9 +24,6 @@ if __name__ == '__main__':
     learning_rate = args.learning_rate
     clip_norm = args.clip_norm
     nr_of_epochs = args.nr_of_epochs
-    fine_tune_backbone = args.fine_tune_backbone
-
-    fine_tune_backbone = (fine_tune_backbone.upper() == 'Y')
 
     artifacts_dir = os.path.join(
         os.environ['BIN_NAME'],
@@ -68,7 +65,6 @@ if __name__ == '__main__':
         encoder_representation=pre_trained_model.encoder_representation,
         nr_of_timesteps=lbl.shape[0],
         nr_of_covariates=lbl.shape[-1],
-        fine_tune_backbone=fine_tune_backbone,
         shared_prompt=pre_trained_model.shared_prompt,
         decoder_tre=pre_trained_model.decoder_tre,
         decoder_sea=pre_trained_model.decoder_sea,

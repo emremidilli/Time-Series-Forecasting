@@ -208,21 +208,21 @@ def get_fine_tuning_args():
     parser.add_argument(
         '--model_id',
         required=False,
-        default='model_06',
+        default='test_ft',
         type=str,
         help='model_id')
 
     parser.add_argument(
         '--pre_trained_model_id',
         required=False,
-        default='model_05',
+        default='test_pt',
         type=str,
         help='pre_trained_model_id')
 
     parser.add_argument(
         '--dataset_id',
         required=False,
-        default='dataset_04',
+        default='ds_universal_ETTh2_96_4_M_ft',
         type=str,
         help='dataset_id')
 
@@ -270,13 +270,6 @@ def get_fine_tuning_args():
         default=0.15,
         type=float,
         help='validation_rate')
-
-    parser.add_argument(
-        '--fine_tune_backbone',
-        required=False,
-        default='N',
-        type=str,
-        help='fine_tune_backbone')
 
     try:
         args = parser.parse_args()

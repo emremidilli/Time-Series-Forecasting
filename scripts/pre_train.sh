@@ -1,9 +1,9 @@
 #!/bin/bash
 
-model_id="model_pt_20240218_01"
-dataset_id="ds_universal_ETTh1_96_4_S_pt"
+model_id="model_pt_ETTm2_20240304"
+dataset_id="ds_universal_ETTm2_96_4_S_pt"
 resume_training="N"
-nr_of_epochs=1000
+nr_of_epochs=300
 mask_rate=0.40
 mask_scalar=0.00
 validation_rate=0
@@ -16,7 +16,7 @@ save_model="Y"
 patch_size=16
 cl_margin=0.25
 lookback_coefficient=4
-prompt_pool_size=128
+prompt_pool_size=30
 nr_of_most_similar_prompts=3
 
 nr_of_encoder_blocks=3

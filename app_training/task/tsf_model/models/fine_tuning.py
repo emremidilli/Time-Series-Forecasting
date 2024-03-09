@@ -18,7 +18,6 @@ class FineTuning(tf.keras.Model):
             encoder_representation,
             nr_of_timesteps,
             nr_of_covariates,
-            fine_tune_backbone,
             shared_prompt,
             decoder_tre,
             decoder_sea,
@@ -45,7 +44,6 @@ class FineTuning(tf.keras.Model):
                     res_embedding=res_embedding,
                     encoder_representation=encoder_representation,
                     nr_of_timesteps=nr_of_timesteps,
-                    fine_tune_backbone=fine_tune_backbone,
                     shared_prompt=shared_prompt,
                     decoder_tre=decoder_tre,
                     decoder_sea=decoder_sea,
@@ -117,7 +115,6 @@ class Univariate(tf.keras.Model):
             res_embedding,
             encoder_representation,
             nr_of_timesteps,
-            fine_tune_backbone,
             shared_prompt,
             decoder_tre,
             decoder_sea,
@@ -135,7 +132,6 @@ class Univariate(tf.keras.Model):
         self.decoder_tre = decoder_tre
         self.decoder_sea = decoder_sea
         self.decoder_res = decoder_res
-        self.fine_tune_backbone = fine_tune_backbone
 
         self.tre_embedding = tre_embedding
         self.sea_embedding = sea_embedding
@@ -148,13 +144,20 @@ class Univariate(tf.keras.Model):
         self.nr_of_timesteps = nr_of_timesteps
 
         self.shared_prompt.trainable = False
-        self.revIn_tre.trainable = False
-        self.revIn_sea.trainable = False
-        self.revIn_res.trainable = False
-        self.decoder_tre.trainable = fine_tune_backbone
-        self.decoder_sea.trainable = fine_tune_backbone
-        self.decoder_res.trainable = fine_tune_backbone
-        self.encoder_representation.trainable = fine_tune_backbone
+        self.revIn_tre.trainable = True
+        self.revIn_sea.trainable = True
+        self.revIn_res.trainable = True
+        self.tre_embedding.trainable = True
+        self.sea_embedding.trainable = True
+        self.res_embedding.trainable = True
+        self.decoder_tre.trainable = True
+        self.decoder_sea.trainable = True
+        self.decoder_res.trainable = True
+
+        self.encoder_representation.trainable = True
+        for enc in self.encoder_representation.encoders_temporal:
+            enc.attention.trainable = False
+            enc.feedforward.trainable = False
 
         self.timesteps_concatter = tf.keras.layers.Concatenate(axis=1)
 
