@@ -1,5 +1,7 @@
 from models import InputPreProcessor
 
+import numpy as np
+
 import os
 
 import tensorflow as tf
@@ -38,6 +40,14 @@ if __name__ == '__main__':
         os.path.join(dataset_folder, 'ts_train.npy'),
         dtype='int32')
 
+    lb_val = read_npy_file(
+        os.path.join(dataset_folder, 'lb_val.npy'),
+        dtype='float32')
+
+    ts_val = read_npy_file(
+        os.path.join(dataset_folder, 'ts_val.npy'),
+        dtype='int32')
+
     lb_test = read_npy_file(
         os.path.join(dataset_folder, 'lb_test.npy'),
         dtype='float32')
@@ -53,10 +63,17 @@ if __name__ == '__main__':
         sigma=sigma,
         scale_data=scale_data)
 
-    input_pre_processor.adapt((lb_train, ts_train))
-    tre, sea, res, ts = input_pre_processor((lb_train, ts_train))
+    lb_train_val = np.concatenate((lb_train, lb_val), axis=0)
+    ts_train_val = np.concatenate((ts_train, ts_val), axis=0)
 
+    input_pre_processor.adapt((lb_train_val, ts_train_val))
+
+    tre, sea, res, ts = input_pre_processor((lb_train, ts_train))
     ds_train = tf.data.Dataset.from_tensor_slices(
+        (tre, sea, res, ts))
+
+    tre, sea, res, ts = input_pre_processor((lb_val, ts_val))
+    ds_val = tf.data.Dataset.from_tensor_slices(
         (tre, sea, res, ts))
 
     tre, sea, res, ts = input_pre_processor((lb_test, ts_test))
@@ -70,6 +87,9 @@ if __name__ == '__main__':
 
     ds_train.save(
         os.path.join(sub_dir, 'dataset_train'))
+
+    ds_val.save(
+        os.path.join(sub_dir, 'dataset_validation'))
 
     ds_test.save(
         os.path.join(sub_dir, 'dataset_test'))

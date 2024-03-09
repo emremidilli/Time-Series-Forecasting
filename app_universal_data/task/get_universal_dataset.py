@@ -31,13 +31,7 @@ if __name__ == '__main__':
     lb_train = []
     fc_train = []
     ts_train = []
-
     for i, batch in enumerate(dls.train):
-        lb_train.append(batch[0])
-        fc_train.append(batch[1])
-        ts_train.append(batch[2])
-
-    for i, batch in enumerate(dls.valid):
         lb_train.append(batch[0])
         fc_train.append(batch[1])
         ts_train.append(batch[2])
@@ -45,6 +39,18 @@ if __name__ == '__main__':
     lb_train = np.concatenate(lb_train, axis=0)
     fc_train = np.concatenate(fc_train, axis=0)
     ts_train = np.concatenate(ts_train, axis=0)
+
+    lb_val = []
+    fc_val = []
+    ts_val = []
+    for i, batch in enumerate(dls.valid):
+        lb_val.append(batch[0])
+        fc_val.append(batch[1])
+        ts_val.append(batch[2])
+
+    lb_val = np.concatenate(lb_val, axis=0)
+    fc_val = np.concatenate(fc_val, axis=0)
+    ts_val = np.concatenate(ts_val, axis=0)
 
     lb_test = []
     fc_test = []
@@ -60,11 +66,13 @@ if __name__ == '__main__':
 
     # use only time features of the last timestep of lookback window
     ts_train = ts_train[:, -1, :]
+    ts_val = ts_val[:, -1, :]
     ts_test = ts_test[:, -1, :]
 
     # for MS, forecasting horizons should be OT field.
     if args.features == 'MS':
         fc_train = fc_train[:, :, [-1]]
+        fc_val = fc_val[:, :, [-1]]
         fc_test = fc_test[:, :, [-1]]
 
     save_dir = os.path.join(
@@ -79,8 +87,13 @@ if __name__ == '__main__':
     np.save(os.path.join(save_dir, 'fc_train.npy'), fc_train)
     np.save(os.path.join(save_dir, 'ts_train.npy'), ts_train)
 
+    np.save(os.path.join(save_dir, 'lb_val.npy'), lb_val)
+    np.save(os.path.join(save_dir, 'fc_val.npy'), fc_val)
+    np.save(os.path.join(save_dir, 'ts_val.npy'), ts_val)
+
     np.save(os.path.join(save_dir, 'lb_test.npy'), lb_test)
     np.save(os.path.join(save_dir, 'fc_test.npy'), fc_test)
     np.save(os.path.join(save_dir, 'ts_test.npy'), ts_test)
 
-    print(f'Completed.\tTrain-Test size: {len(lb_train)} - {len(lb_test)}')
+    print(f'Completed.\tTrain-Val-Test size:\
+        {len(lb_train)} - {len(lb_val)} - {len(lb_test)}')

@@ -30,6 +30,14 @@ def get_pre_training_args():
         help='resume_training')
 
     parser.add_argument(
+        '--concat_train_val',
+        required=False,
+        default='N',
+        choices=['Y', 'N'],
+        type=str,
+        help='concat_train_val')
+
+    parser.add_argument(
         '--save_model',
         required=False,
         default='Y',
@@ -121,13 +129,6 @@ def get_pre_training_args():
         default=0.40,
         type=float,
         help='mask_rate')
-
-    parser.add_argument(
-        '--validation_rate',
-        required=False,
-        default=0.15,
-        type=float,
-        help='validation_rate')
 
     parser.add_argument(
         '--mae_threshold_comp',
@@ -234,6 +235,14 @@ def get_fine_tuning_args():
         type=str,
         help='resume_training')
 
+    parser.add_argument(
+        '--concat_train_val',
+        required=False,
+        default='N',
+        choices=['Y', 'N'],
+        type=str,
+        help='concat_train_val')
+
     # Optimizer-related hyperparameters.
     parser.add_argument(
         '--learning_rate',
@@ -263,13 +272,6 @@ def get_fine_tuning_args():
         default=900,
         type=int,
         help='nr_of_epochs')
-
-    parser.add_argument(
-        '--validation_rate',
-        required=False,
-        default=0.15,
-        type=float,
-        help='validation_rate')
 
     try:
         args = parser.parse_args()

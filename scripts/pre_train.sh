@@ -3,10 +3,10 @@
 model_id="model_pt_ETTh1_20240304"
 dataset_id="ds_universal_ETTh1_96_4_S_pt"
 resume_training="N"
+concat_train_val="N"
 nr_of_epochs=300
 mask_rate=0.40
 mask_scalar=0.00
-validation_rate=0
 mini_batch_size=128
 mae_threshold_comp=0.35
 mae_threshold_tre=0.20

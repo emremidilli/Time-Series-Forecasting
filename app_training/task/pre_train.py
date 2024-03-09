@@ -8,7 +8,7 @@ from tsf_model import PreTraining
 
 from utils import PreTrainingCheckpointCallback, LearningRateCallback, \
     RamCleaner, get_pre_training_args, \
-    train_test_split, upload_model, log_experiments, MaskingCallback
+    upload_model, log_experiments, MaskingCallback
 
 
 if __name__ == '__main__':
@@ -38,7 +38,6 @@ if __name__ == '__main__':
     projection_head = args.projection_head
     warmup_steps = args.warmup_steps
     scale_factor = args.scale_factor
-    validation_rate = args.validation_rate
     mae_threshold_comp = args.mae_threshold_comp
     mae_threshold_tre = args.mae_threshold_tre
     mae_threshold_sea = args.mae_threshold_sea
@@ -49,6 +48,7 @@ if __name__ == '__main__':
     lookback_coefficient = args.lookback_coefficient
     prompt_pool_size = args.prompt_pool_size
     nr_of_most_similar_prompts = args.nr_of_most_similar_prompts
+    concat_train_val = args.concat_train_val
 
     artifacts_dir = os.path.join(
         os.environ['BIN_NAME'],
@@ -63,20 +63,26 @@ if __name__ == '__main__':
 
     input_pipeline_dir = os.path.join(dataset_dir, 'input_preprocessor')
 
-    ds = tf.data.Dataset.load(path=os.path.join(dataset_dir, 'dataset_train'))
+    ds_train = tf.data.Dataset.load(
+        path=os.path.join(dataset_dir, 'dataset_train'))
 
-    tre, _, _, _ = next(iter(ds))
+    ds_val = tf.data.Dataset.load(
+        path=os.path.join(dataset_dir, 'dataset_validation'))
 
-    ds_train = ds
-    ds_val = None
-    if validation_rate > 0:
-        ds_train, ds_val = train_test_split(ds, test_rate=validation_rate)
-        ds_val = ds_val.batch(mini_batch_size).prefetch(tf.data.AUTOTUNE)
-
-    ds_train = ds_train.batch(mini_batch_size).prefetch(tf.data.AUTOTUNE)
+    if concat_train_val == 'Y':
+        ds_train = ds_train.concatenate(ds_val)
+        ds_val = None
 
     ds_test = tf.data.Dataset.load(
         path=os.path.join(dataset_dir, 'dataset_test'))
+
+    tre, _, _, _ = next(iter(ds_train))
+
+    ds_train = ds_train.batch(mini_batch_size).prefetch(tf.data.AUTOTUNE)
+
+    if ds_val is not None:
+        ds_val = ds_val.batch(mini_batch_size).prefetch(tf.data.AUTOTUNE)
+
     ds_test = ds_test.batch(mini_batch_size).prefetch(tf.data.AUTOTUNE)
 
     checkpoint_callback = PreTrainingCheckpointCallback(
@@ -168,6 +174,23 @@ if __name__ == '__main__':
 
     terminate_on_nan_callback = tf.keras.callbacks.TerminateOnNaN()
 
+    metric_to_monitor = 'mae_comp'
+    if ds_val is not None:
+        metric_to_monitor = 'val_mae_comp'
+    early_stopping = tf.keras.callbacks.EarlyStopping(
+        monitor=metric_to_monitor,
+        patience=10,
+        start_from_epoch=50,
+        restore_best_weights=True)
+
+    callbacks = [
+        terminate_on_nan_callback,
+        ram_cleaner_callback,
+        learning_rate_callback,
+        checkpoint_callback,
+        masking_callback,
+        masking_callback_cl]
+
     history = model.fit(
         ds_train,
         validation_data=ds_val,
@@ -175,13 +198,7 @@ if __name__ == '__main__':
         verbose=2,
         initial_epoch=starting_epoch,
         shuffle=False,
-        callbacks=[
-            terminate_on_nan_callback,
-            ram_cleaner_callback,
-            learning_rate_callback,
-            checkpoint_callback,
-            masking_callback,
-            masking_callback_cl])
+        callbacks=callbacks)
 
     log_experiments(
         model_id=model_id,

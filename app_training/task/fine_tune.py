@@ -7,7 +7,7 @@ import tensorflow as tf
 from tsf_model import FineTuning
 
 from utils import get_fine_tuning_args, FineTuningCheckpointCallback, \
-    upload_model, load_model, train_test_split, RamCleaner, log_experiments
+    upload_model, load_model, RamCleaner, log_experiments
 
 
 if __name__ == '__main__':
@@ -19,11 +19,11 @@ if __name__ == '__main__':
     pre_trained_model_id = args.pre_trained_model_id
     dataset_id = args.dataset_id
     resume_training = args.resume_training
-    validation_rate = args.validation_rate
     mini_batch_size = args.mini_batch_size
     learning_rate = args.learning_rate
     clip_norm = args.clip_norm
     nr_of_epochs = args.nr_of_epochs
+    concat_train_val = args.concat_train_val
 
     artifacts_dir = os.path.join(
         os.environ['BIN_NAME'],
@@ -38,20 +38,26 @@ if __name__ == '__main__':
 
     pre_trained_model = load_model(model_id=pre_trained_model_id)
 
-    ds = tf.data.Dataset.load(path=os.path.join(dataset_dir, 'dataset_train'))
+    ds_train = tf.data.Dataset.load(
+        path=os.path.join(dataset_dir, 'dataset_train'))
 
-    (_, _, _, _), lbl = next(iter(ds))
-
-    ds_train = ds
-    ds_val = None
-    if validation_rate > 0:
-        ds_train, ds_val = train_test_split(ds, test_rate=validation_rate)
-        ds_val = ds_val.batch(mini_batch_size).prefetch(tf.data.AUTOTUNE)
-
-    ds_train = ds_train.batch(mini_batch_size).prefetch(tf.data.AUTOTUNE)
+    ds_val = tf.data.Dataset.load(
+        path=os.path.join(dataset_dir, 'dataset_validation'))
 
     ds_test = tf.data.Dataset.load(
         path=os.path.join(dataset_dir, 'dataset_test'))
+
+    if concat_train_val == 'Y':
+        ds_train = ds_train.concatenate(ds_val)
+        ds_val = None
+
+    (_, _, _, _), lbl = next(iter(ds_train))
+
+    ds_train = ds_train.batch(mini_batch_size).prefetch(tf.data.AUTOTUNE)
+
+    if ds_val is not None:
+        ds_val = ds_val.batch(mini_batch_size).prefetch(tf.data.AUTOTUNE)
+
     ds_test = ds_test.batch(mini_batch_size).prefetch(tf.data.AUTOTUNE)
 
     model = FineTuning(
@@ -83,7 +89,7 @@ if __name__ == '__main__':
     ram_cleaner_callback = RamCleaner()
 
     metric_to_monitor = 'mae'
-    if validation_rate > 0:
+    if ds_val is not None:
         metric_to_monitor = 'val_mae'
     early_stopping = tf.keras.callbacks.EarlyStopping(
         monitor=metric_to_monitor,
