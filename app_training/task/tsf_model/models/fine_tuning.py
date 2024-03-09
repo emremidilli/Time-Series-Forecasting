@@ -1,6 +1,7 @@
 import tensorflow as tf
 
-from tsf_model.layers import LinearHead
+from tsf_model.layers import LinearHead, \
+    ReversibleInstanceNormalization
 
 
 @tf.keras.saving.register_keras_serializable()
@@ -35,19 +36,10 @@ class FineTuning(tf.keras.Model):
         for i in range(nr_of_covariates):
             self.univariates.append(
                 Univariate(
-                    revIn_tre=revIn_tre,
-                    revIn_sea=revIn_sea,
-                    revIn_res=revIn_res,
                     patch_tokenizer=patch_tokenizer,
-                    tre_embedding=tre_embedding,
-                    sea_embedding=sea_embedding,
-                    res_embedding=res_embedding,
                     encoder_representation=encoder_representation,
                     nr_of_timesteps=nr_of_timesteps,
-                    shared_prompt=shared_prompt,
-                    decoder_tre=decoder_tre,
-                    decoder_sea=decoder_sea,
-                    decoder_res=decoder_res))
+                    shared_prompt=shared_prompt))
 
     def call(self, inputs):
         '''
@@ -106,19 +98,10 @@ class Univariate(tf.keras.Model):
     '''Keras model for fine-tuning univariate time series.'''
     def __init__(
             self,
-            revIn_tre,
-            revIn_sea,
-            revIn_res,
             patch_tokenizer,
-            tre_embedding,
-            sea_embedding,
-            res_embedding,
             encoder_representation,
             nr_of_timesteps,
             shared_prompt,
-            decoder_tre,
-            decoder_sea,
-            decoder_res,
             **kwargs):
         '''
         args:
@@ -126,16 +109,37 @@ class Univariate(tf.keras.Model):
         '''
         super().__init__(**kwargs)
 
-        self.revIn_tre = revIn_tre
-        self.revIn_sea = revIn_sea
-        self.revIn_res = revIn_res
-        self.decoder_tre = decoder_tre
-        self.decoder_sea = decoder_sea
-        self.decoder_res = decoder_res
+        self.embedding_dims = \
+            encoder_representation.get_config()['embedding_dims']
 
-        self.tre_embedding = tre_embedding
-        self.sea_embedding = sea_embedding
-        self.res_embedding = res_embedding
+        self.revIn_tre = ReversibleInstanceNormalization(
+            nr_of_covariates=1,
+            epsilon=1e-6)
+
+        self.revIn_sea = ReversibleInstanceNormalization(
+            nr_of_covariates=1,
+            epsilon=1e-6)
+
+        self.revIn_res = ReversibleInstanceNormalization(
+            nr_of_covariates=1,
+            epsilon=1e-6)
+
+        self.tre_embedding = tf.keras.layers.Dense(units=self.embedding_dims)
+        self.sea_embedding = tf.keras.layers.Dense(units=self.embedding_dims)
+        self.res_embedding = tf.keras.layers.Dense(units=self.embedding_dims)
+
+        self.decoder_tre = LinearHead(
+            nr_of_timesteps=nr_of_timesteps,
+            nr_of_covariates=1,
+            name='decoder_tre')
+        self.decoder_sea = LinearHead(
+            nr_of_timesteps=nr_of_timesteps,
+            nr_of_covariates=1,
+            name='decoder_sea')
+        self.decoder_res = LinearHead(
+            nr_of_timesteps=nr_of_timesteps,
+            nr_of_covariates=1,
+            name='decoder_res')
 
         self.patch_tokenizer = patch_tokenizer
         self.encoder_representation = encoder_representation
@@ -144,15 +148,6 @@ class Univariate(tf.keras.Model):
         self.nr_of_timesteps = nr_of_timesteps
 
         self.shared_prompt.trainable = False
-        self.revIn_tre.trainable = True
-        self.revIn_sea.trainable = True
-        self.revIn_res.trainable = True
-        self.tre_embedding.trainable = True
-        self.sea_embedding.trainable = True
-        self.res_embedding.trainable = True
-        self.decoder_tre.trainable = True
-        self.decoder_sea.trainable = True
-        self.decoder_res.trainable = True
 
         self.encoder_representation.trainable = True
         for enc in self.encoder_representation.encoders_temporal:

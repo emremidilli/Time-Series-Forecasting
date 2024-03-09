@@ -1,10 +1,10 @@
 #!/bin/bash
 
-model_id="model_ft_ETTm2_20240304"
-pre_trained_model_id="model_pt_ETTm2_20240304"
-dataset_id="ds_universal_ETTm2_96_4_M_ft"
+model_id="model_ft_ETTh1_20240304"
+pre_trained_model_id="model_pt_ETTh1_20240304"
+dataset_id="ds_universal_ETTh1_96_4_M_ft"
 resume_training="N"
-validation_rate=0.00
+validation_rate=0.15
 mini_batch_size=128
 learning_rate=0.0001
 clip_norm=1.0

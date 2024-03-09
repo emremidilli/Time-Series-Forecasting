@@ -1,7 +1,7 @@
 #!/bin/bash
 
-model_id="model_pt_ETTm2_20240304"
-dataset_id="ds_universal_ETTm2_96_4_S_pt"
+model_id="model_pt_ETTh1_20240304"
+dataset_id="ds_universal_ETTh1_96_4_S_pt"
 resume_training="N"
 nr_of_epochs=300
 mask_rate=0.40

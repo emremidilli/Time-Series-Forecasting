@@ -82,6 +82,15 @@ if __name__ == '__main__':
 
     ram_cleaner_callback = RamCleaner()
 
+    metric_to_monitor = 'mae'
+    if validation_rate > 0:
+        metric_to_monitor = 'val_mae'
+    early_stopping = tf.keras.callbacks.EarlyStopping(
+        monitor=metric_to_monitor,
+        patience=10,
+        start_from_epoch=50,
+        restore_best_weights=True)
+
     starting_epoch = 0
     if resume_training == 'Y':
         starting_epoch, _, model, optimizer = checkpoint_callback.\
@@ -102,7 +111,8 @@ if __name__ == '__main__':
     callbacks = [
         terminate_on_nan_callback,
         checkpoint_callback,
-        ram_cleaner_callback]
+        ram_cleaner_callback,
+        early_stopping]
 
     history = model.fit(
         ds_train,
