@@ -41,7 +41,6 @@ if __name__ == '__main__':
     mae_threshold_comp = args.mae_threshold_comp
     mae_threshold_tre = args.mae_threshold_tre
     mae_threshold_sea = args.mae_threshold_sea
-    cl_threshold = args.cl_threshold
     cl_margin = args.cl_margin
     save_model = args.save_model
     patch_size = args.patch_size
@@ -85,6 +84,7 @@ if __name__ == '__main__':
 
     ds_test = ds_test.batch(mini_batch_size).prefetch(tf.data.AUTOTUNE)
 
+
     checkpoint_callback = PreTrainingCheckpointCallback(
         ckpt_dir=custom_ckpt_dir,
         epoch_freq=25)
@@ -108,6 +108,7 @@ if __name__ == '__main__':
 
     starting_epoch = 0
     starting_step = 0
+
     model = PreTraining(
         nr_of_covariates=tre.shape[-1],
         patch_size=patch_size,
@@ -123,7 +124,6 @@ if __name__ == '__main__':
         mae_threshold_comp=mae_threshold_comp,
         mae_threshold_tre=mae_threshold_tre,
         mae_threshold_sea=mae_threshold_sea,
-        cl_threshold=cl_threshold,
         cl_margin=cl_margin,
         pre_processor=pre_processor,
         prompt_pool_size=prompt_pool_size,
@@ -174,9 +174,9 @@ if __name__ == '__main__':
 
     terminate_on_nan_callback = tf.keras.callbacks.TerminateOnNaN()
 
-    metric_to_monitor = 'mae_comp'
+    metric_to_monitor = 'mae_composed'
     if ds_val is not None:
-        metric_to_monitor = 'val_mae_comp'
+        metric_to_monitor = 'val_mae_composed'
     early_stopping = tf.keras.callbacks.EarlyStopping(
         monitor=metric_to_monitor,
         patience=10,
@@ -189,7 +189,8 @@ if __name__ == '__main__':
         learning_rate_callback,
         checkpoint_callback,
         masking_callback,
-        masking_callback_cl]
+        masking_callback_cl,
+        early_stopping]
 
     history = model.fit(
         ds_train,

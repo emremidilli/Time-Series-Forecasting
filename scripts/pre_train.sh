@@ -1,20 +1,19 @@
 #!/bin/bash
 
-model_id="model_pt_ETTh1_20240304"
+model_id="model_pt_ETTh1_20240310"
 dataset_id="ds_universal_ETTh1_96_4_S_pt"
 resume_training="N"
 concat_train_val="N"
-nr_of_epochs=300
+nr_of_epochs=1500
 mask_rate=0.40
 mask_scalar=0.00
 mini_batch_size=128
-mae_threshold_comp=0.35
+mae_threshold_comp=0.25
 mae_threshold_tre=0.20
 mae_threshold_sea=0.005
-cl_threshold=0.25
 save_model="Y"
 patch_size=16
-cl_margin=0.25
+cl_margin=0.75
 lookback_coefficient=4
 prompt_pool_size=30
 nr_of_most_similar_prompts=3
@@ -40,6 +39,7 @@ main() {
         --model_id=$model_id \
         --dataset_id=$dataset_id \
         --resume_training=$resume_training \
+        --concat_train_val=$concat_train_val \
         --nr_of_epochs=$nr_of_epochs \
         --mask_rate=$mask_rate \
         --mask_scalar=$mask_scalar \
@@ -53,11 +53,9 @@ main() {
         --projection_head=$projection_head \
         --warmup_steps=$warmup_steps \
         --scale_factor=$scale_factor \
-        --validation_rate=$validation_rate \
         --mae_threshold_tre=$mae_threshold_tre \
         --mae_threshold_sea=$mae_threshold_sea \
         --mae_threshold_comp=$mae_threshold_comp \
-        --cl_threshold=$cl_threshold \
         --cl_margin=$cl_margin \
         --save_model=$save_model \
         --patch_size=$patch_size \

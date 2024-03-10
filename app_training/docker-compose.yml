@@ -10,7 +10,7 @@ services:
         reservations:
           devices:
           - driver: nvidia
-            count: 1
+            count: -1
             capabilities: [gpu]
     volumes:
       - ../../tsf-bin:/app/tsf-bin

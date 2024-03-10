@@ -152,13 +152,6 @@ def get_pre_training_args():
         help='mae_threshold_sea')
 
     parser.add_argument(
-        '--cl_threshold',
-        required=False,
-        default=0.25,
-        type=float,
-        help='cl_threshold')
-
-    parser.add_argument(
         '--cl_margin',
         required=False,
         default=0.25,

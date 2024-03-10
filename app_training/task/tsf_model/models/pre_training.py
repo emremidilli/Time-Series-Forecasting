@@ -28,7 +28,6 @@ class PreTraining(tf.keras.Model):
             mae_threshold_comp: float,
             mae_threshold_tre: float,
             mae_threshold_sea: float,
-            cl_threshold: float,
             cl_margin: float,
             pre_processor: tf.keras.Model,
             prompt_pool_size: int,
@@ -56,7 +55,6 @@ class PreTraining(tf.keras.Model):
                 masked autoencoder task.
             mae_threshold_sea: stop criteria of seasonality component for
                 masked autoencoder task.
-            cl_threshold: stop criteria for contrastive learning task.
             cl_margin: margin for triple contrastive learning loss
             pre_processor: pre processor model from app_input_pipeline.
             prompt_pool_size: number of the prompts in prompt pool
@@ -77,7 +75,6 @@ class PreTraining(tf.keras.Model):
         self.mae_threshold_comp = mae_threshold_comp
         self.mae_threshold_tre = mae_threshold_tre
         self.mae_threshold_sea = mae_threshold_sea
-        self.cl_threshold = cl_threshold
         self.cl_margin = cl_margin
         self.pre_processor = pre_processor
         self.prompt_pool_size = prompt_pool_size
@@ -547,11 +544,16 @@ class PreTraining(tf.keras.Model):
             y_logits_false, y_logits_true, y_logits_anchor = \
                 self.call_contrastive_learning(data)
 
+            # Compute cosine distance instead of Euclidean distance
+            distance_true = 1 - tf.reduce_sum(
+                y_logits_anchor * y_logits_true, axis=-1) / (
+                    tf.norm(y_logits_anchor, axis=-1) * tf.norm(
+                        y_logits_true, axis=-1) + 1e-9)
+            distance_false = 1 - tf.reduce_sum(
+                y_logits_anchor * y_logits_false, axis=-1) / (
+                    tf.norm(y_logits_anchor, axis=-1) * tf.norm(
+                        y_logits_false, axis=-1) + 1e-9)
             # compute the loss value
-            distance_true = tf.reduce_sum(
-                tf.square(y_logits_anchor - y_logits_true), -1)
-            distance_false = tf.reduce_sum(
-                tf.square(y_logits_anchor - y_logits_false), -1)
             loss_cl = \
                 tf\
                 .maximum(distance_true - distance_false + self.cl_margin, 0.0)
