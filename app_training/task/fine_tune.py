@@ -24,6 +24,7 @@ if __name__ == '__main__':
     clip_norm = args.clip_norm
     nr_of_epochs = args.nr_of_epochs
     concat_train_val = args.concat_train_val
+    patience = args.patience
 
     artifacts_dir = os.path.join(
         os.environ['BIN_NAME'],
@@ -93,7 +94,7 @@ if __name__ == '__main__':
         metric_to_monitor = 'val_mae'
     early_stopping = tf.keras.callbacks.EarlyStopping(
         monitor=metric_to_monitor,
-        patience=10,
+        patience=patience,
         start_from_epoch=50,
         restore_best_weights=True)
 

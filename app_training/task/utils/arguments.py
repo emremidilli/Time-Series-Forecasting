@@ -45,6 +45,13 @@ def get_pre_training_args():
         type=str,
         help='save_model')
 
+    parser.add_argument(
+        '--patience',
+        required=False,
+        default=5,
+        type=int,
+        help='patience')
+
     # Optimizer-related hyperparameters.
     parser.add_argument(
         '--clip_norm',
@@ -235,6 +242,13 @@ def get_fine_tuning_args():
         choices=['Y', 'N'],
         type=str,
         help='concat_train_val')
+
+    parser.add_argument(
+        '--patience',
+        required=False,
+        default=5,
+        type=int,
+        help='patience')
 
     # Optimizer-related hyperparameters.
     parser.add_argument(

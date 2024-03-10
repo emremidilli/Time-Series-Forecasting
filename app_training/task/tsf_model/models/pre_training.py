@@ -159,8 +159,6 @@ class PreTraining(tf.keras.Model):
         self.mae_original = \
             tf.keras.metrics.Mean(name='mae_original')
 
-        self.task_to_train = tf.Variable('mae')
-
         self.masks = tf.Variable(
             initial_value=False,
             trainable=False,
@@ -327,7 +325,6 @@ class PreTraining(tf.keras.Model):
             1. masked patch prediction
             2. contrastive learning
         '''
-        self.task_to_train.assign('mae')
 
         anchor_tre, anchor_sea, anchor_res, _ = data
         anchor_composed = anchor_tre + anchor_sea + anchor_res
@@ -486,9 +483,6 @@ class PreTraining(tf.keras.Model):
             self.loss_tracker_mae_tre.update_state(loss_mae_tre)
             self.loss_tracker_mae_sea.update_state(loss_mae_sea)
 
-        else:
-            self.task_to_train.assign('cl')
-
         mae_composed = self.calculate_masked_loss(
             y_pred=y_pred_composed,
             y_true=anchor_composed,
@@ -558,7 +552,9 @@ class PreTraining(tf.keras.Model):
                 tf\
                 .maximum(distance_true - distance_false + self.cl_margin, 0.0)
 
-        if self.task_to_train == 'cl':
+        if (mae_comp <= self.mae_threshold_comp) \
+            and (mae_tre <= self.mae_threshold_tre)\
+            and (mae_sea <= self.mae_threshold_sea):
             # compute gradients
             trainable_vars = \
                 self.revIn_tre.trainable_variables + \

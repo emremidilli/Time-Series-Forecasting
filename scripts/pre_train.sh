@@ -1,9 +1,10 @@
 #!/bin/bash
 
-model_id="model_pt_ETTh1_20240310"
-dataset_id="ds_universal_ETTh1_96_4_S_pt"
+model_id="model_pt_ETTh2_20240310"
+dataset_id="ds_universal_ETTh2_96_4_S_pt"
 resume_training="N"
 concat_train_val="N"
+patience=5
 nr_of_epochs=1500
 mask_rate=0.40
 mask_scalar=0.00
@@ -40,6 +41,7 @@ main() {
         --dataset_id=$dataset_id \
         --resume_training=$resume_training \
         --concat_train_val=$concat_train_val \
+        --patience=$patience \
         --nr_of_epochs=$nr_of_epochs \
         --mask_rate=$mask_rate \
         --mask_scalar=$mask_scalar \
