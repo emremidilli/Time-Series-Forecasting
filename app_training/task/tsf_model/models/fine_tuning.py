@@ -39,7 +39,10 @@ class FineTuning(tf.keras.Model):
                     patch_tokenizer=patch_tokenizer,
                     encoder_representation=encoder_representation,
                     nr_of_timesteps=nr_of_timesteps,
-                    shared_prompt=shared_prompt))
+                    shared_prompt=shared_prompt,
+                    decoder_tre=decoder_tre,
+                    decoder_sea=decoder_sea,
+                    decoder_res=decoder_res))
 
     def call(self, inputs):
         '''
@@ -102,6 +105,9 @@ class Univariate(tf.keras.Model):
             encoder_representation,
             nr_of_timesteps,
             shared_prompt,
+            decoder_tre,
+            decoder_sea,
+            decoder_res,
             **kwargs):
         '''
         args:
@@ -128,18 +134,9 @@ class Univariate(tf.keras.Model):
         self.sea_embedding = tf.keras.layers.Dense(units=self.embedding_dims)
         self.res_embedding = tf.keras.layers.Dense(units=self.embedding_dims)
 
-        self.decoder_tre = LinearHead(
-            nr_of_timesteps=nr_of_timesteps,
-            nr_of_covariates=1,
-            name='decoder_tre')
-        self.decoder_sea = LinearHead(
-            nr_of_timesteps=nr_of_timesteps,
-            nr_of_covariates=1,
-            name='decoder_sea')
-        self.decoder_res = LinearHead(
-            nr_of_timesteps=nr_of_timesteps,
-            nr_of_covariates=1,
-            name='decoder_res')
+        self.decoder_tre = decoder_tre
+        self.decoder_sea = decoder_sea
+        self.decoder_res = decoder_res
 
         self.patch_tokenizer = patch_tokenizer
         self.encoder_representation = encoder_representation
@@ -153,6 +150,10 @@ class Univariate(tf.keras.Model):
         for enc in self.encoder_representation.encoders_temporal:
             enc.attention.trainable = False
             enc.feedforward.trainable = False
+
+        self.decoder_tre.trainable = False
+        self.decoder_sea.trainable = False
+        self.decoder_res.trainable = False
 
         self.timesteps_concatter = tf.keras.layers.Concatenate(axis=1)
 

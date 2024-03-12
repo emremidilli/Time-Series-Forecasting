@@ -1,7 +1,7 @@
 #!/bin/bash
 
-model_id="model_pt_ETTh2_20240310"
-dataset_id="ds_universal_ETTh2_96_4_S_pt"
+model_id="model_pt_ETTm2_20240310"
+dataset_id="ds_universal_ETTm2_96_4_S_pt"
 resume_training="N"
 concat_train_val="N"
 patience=5
@@ -9,12 +9,12 @@ nr_of_epochs=1500
 mask_rate=0.40
 mask_scalar=0.00
 mini_batch_size=128
-mae_threshold_comp=0.25
+mae_threshold_comp=0.20
 mae_threshold_tre=0.20
 mae_threshold_sea=0.005
 save_model="Y"
 patch_size=16
-cl_margin=0.75
+cl_margin=0.25
 lookback_coefficient=4
 prompt_pool_size=30
 nr_of_most_similar_prompts=3
@@ -23,7 +23,7 @@ nr_of_encoder_blocks=3
 nr_of_heads=4
 clip_norm=1.0
 warmup_steps=4000
-scale_factor=0.5
+scale_factor=1.0
 encoder_ffn_units=128
 embedding_dims=16
 projection_head=16

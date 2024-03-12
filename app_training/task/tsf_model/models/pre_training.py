@@ -538,21 +538,16 @@ class PreTraining(tf.keras.Model):
             y_logits_false, y_logits_true, y_logits_anchor = \
                 self.call_contrastive_learning(data)
 
-            # Compute cosine distance instead of Euclidean distance
-            distance_true = 1 - tf.reduce_sum(
-                y_logits_anchor * y_logits_true, axis=-1) / (
-                    tf.norm(y_logits_anchor, axis=-1) * tf.norm(
-                        y_logits_true, axis=-1) + 1e-9)
-            distance_false = 1 - tf.reduce_sum(
-                y_logits_anchor * y_logits_false, axis=-1) / (
-                    tf.norm(y_logits_anchor, axis=-1) * tf.norm(
-                        y_logits_false, axis=-1) + 1e-9)
             # compute the loss value
+            distance_true = tf.reduce_sum(
+                tf.square(y_logits_anchor - y_logits_true), -1)
+            distance_false = tf.reduce_sum(
+                tf.square(y_logits_anchor - y_logits_false), -1)
             loss_cl = \
                 tf\
                 .maximum(distance_true - distance_false + self.cl_margin, 0.0)
 
-        if (mae_comp <= self.mae_threshold_comp) \
+        if (mae_composed <= self.mae_threshold_comp) \
             and (mae_tre <= self.mae_threshold_tre)\
             and (mae_sea <= self.mae_threshold_sea):
             # compute gradients
