@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
     class Params:
         dset = args.input_dataset_id
-        context_points = args.lookback_coefficient * args.forecast_horizon
+        context_points = args.lookback_horizon
         target_points = args.forecast_horizon
         batch_size = 128
         num_workers = 0

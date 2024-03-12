@@ -173,13 +173,6 @@ def get_pre_training_args():
         help='patch_size')
 
     parser.add_argument(
-        '--lookback_coefficient',
-        required=False,
-        default=1,
-        type=int,
-        help='lookback_coefficient')
-
-    parser.add_argument(
         '--prompt_pool_size',
         required=False,
         default=2,

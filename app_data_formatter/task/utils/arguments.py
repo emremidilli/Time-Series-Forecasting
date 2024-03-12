@@ -37,10 +37,10 @@ def get_args_to_build_datasets():
         help='forecast_horizon')
 
     parser.add_argument(
-        '--lookback_coefficient',
+        '--lookback_horizon',
         required=True,
         type=int,
-        help='lookback_coefficient')
+        help='lookback_horizon')
 
     parser.add_argument(
         '--step_size',

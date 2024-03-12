@@ -37,7 +37,7 @@ if __name__ == '__main__':
     dataset_id = args.dataset_id
     list_of_covariates = args.list_of_covariates
     forecast_horizon = args.forecast_horizon
-    lookback_horizon = args.lookback_coefficient * forecast_horizon
+    lookback_horizon = args.lookback_horizon
     step_size = args.step_size
     test_size = args.test_size
     raw_frequency = args.raw_frequency

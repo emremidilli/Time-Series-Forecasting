@@ -1,9 +1,5 @@
 import argparse
 
-import json
-
-import os
-
 import sys
 
 
@@ -34,11 +30,11 @@ def get_args():
         help='forecast_horizon')
 
     parser.add_argument(
-        '--lookback_coefficient',
-        default=4,
+        '--lookback_horizon',
+        default=384,
         required=False,
         type=int,
-        help='lookback_coefficient')
+        help='lookback_horizon')
 
     parser.add_argument(
         '--features',

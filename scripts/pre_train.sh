@@ -15,7 +15,7 @@ mae_threshold_sea=0.005
 save_model="Y"
 patch_size=16
 cl_margin=0.25
-lookback_coefficient=4
+
 prompt_pool_size=30
 nr_of_most_similar_prompts=3
 
@@ -61,7 +61,6 @@ main() {
         --cl_margin=$cl_margin \
         --save_model=$save_model \
         --patch_size=$patch_size \
-        --lookback_coefficient=$lookback_coefficient \
         --prompt_pool_size=$prompt_pool_size \
         --nr_of_most_similar_prompts=$nr_of_most_similar_prompts
 

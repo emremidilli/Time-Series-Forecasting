@@ -9,7 +9,7 @@ main() {
     dataset_id=$2
     list_of_covariates=$3
     forecast_horizon=$4
-    lookback_coefficient=$5
+    lookback_horizon=$5
     step_size=$6
     raw_frequency=$7
     datetime_features=$8
@@ -21,7 +21,7 @@ main() {
         --dataset_id=$dataset_id \
         --list_of_covariates=$list_of_covariates \
         --forecast_horizon=$forecast_horizon \
-        --lookback_coefficient=$lookback_coefficient \
+        --lookback_horizon=$lookback_horizon \
         --step_size=$step_size \
         --test_size=$test_size \
         --raw_frequency=$raw_frequency \
@@ -30,6 +30,6 @@ main() {
     echo "successfull for "$model_id
 }
 
-main "ds_20240203_large" "ETTh1" "['OT']" 96 4 1 "h" "['month','day','dayofweek']"
+main "ds_20240203_large" "ETTh1" "['OT']" 96 384 1 "h" "['month','day','dayofweek']"
 
-main "ds_20240203_few_shot" "ETTh1" "['OT']" 96 4 24 "h" "['month','day','dayofweek']"
+main "ds_20240203_few_shot" "ETTh1" "['OT']" 96 384 24 "h" "['month','day','dayofweek']"

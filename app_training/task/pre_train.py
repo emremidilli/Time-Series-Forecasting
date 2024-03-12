@@ -44,7 +44,6 @@ if __name__ == '__main__':
     cl_margin = args.cl_margin
     save_model = args.save_model
     patch_size = args.patch_size
-    lookback_coefficient = args.lookback_coefficient
     prompt_pool_size = args.prompt_pool_size
     nr_of_most_similar_prompts = args.nr_of_most_similar_prompts
     concat_train_val = args.concat_train_val
@@ -96,7 +95,7 @@ if __name__ == '__main__':
     cl_optimizer = tf.keras.optimizers.Adam(clipnorm=clip_norm)
 
     contrastive_learning_patches = \
-        int(tre.shape[0] / (lookback_coefficient + 1))
+        int(tre.shape[0] * (mask_rate))
     contrastive_learning_patches = \
         int(contrastive_learning_patches / patch_size)
 
