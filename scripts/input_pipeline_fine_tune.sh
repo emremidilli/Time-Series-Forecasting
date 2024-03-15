@@ -22,13 +22,21 @@ main() {
 }
 
 # main "ds_universal_ETTh1_96_4_M" "ds_universal_ETTh1_96_4_M_ft"
-main "ds_universal_ETTh1_192_384_M" "ds_universal_ETTh1_192_384_M_ft"
+# main "ds_universal_ETTh1_192_384_M" "ds_universal_ETTh1_192_384_M_ft"
+# main "ds_universal_ETTh1_336_384_M" "ds_universal_ETTh1_336_384_M_ft"
+# main "ds_universal_ETTh1_720_384_M" "ds_universal_ETTh1_720_384_M_ft"
 
 # main "ds_universal_ETTh2_96_4_M" "ds_universal_ETTh2_96_4_M_ft"
-main "ds_universal_ETTh2_192_384_M" "ds_universal_ETTh2_192_384_M_ft"
+# main "ds_universal_ETTh2_192_384_M" "ds_universal_ETTh2_192_384_M_ft"
+# main "ds_universal_ETTh2_336_384_M" "ds_universal_ETTh2_336_384_M_ft"
+# main "ds_universal_ETTh2_720_384_M" "ds_universal_ETTh2_720_384_M_ft"
 
 # main "ds_universal_ETTm1_96_4_M" "ds_universal_ETTm1_96_4_M_ft"
-main "ds_universal_ETTm1_192_384_M" "ds_universal_ETTm1_192_384_M_ft"
+# main "ds_universal_ETTm1_192_384_M" "ds_universal_ETTm1_192_384_M_ft"
+# main "ds_universal_ETTm1_336_384_M" "ds_universal_ETTm1_336_384_M_ft"
+main "ds_universal_ETTm1_720_384_M" "ds_universal_ETTm1_720_384_M_ft"
 
-# main "ds_universal_ETTm2_96_4_M" "ds_universal_ETTm2_96_4_M_ft"
-main "ds_universal_ETTm2_192_384_M" "ds_universal_ETTm2_192_384_M_ft"
+# main "ds_universal_ETTm2_96_4_M" "ds_universal_ETTm2_96_4_M_ft"336
+# main "ds_universal_ETTm2_192_384_M" "ds_universal_ETTm2_192_384_M_ft"
+# main "ds_universal_ETTm2_336_384_M" "ds_universal_ETTm2_336_384_M_ft"
+# main "ds_universal_ETTm2_720_384_M" "ds_universal_ETTm2_720_384_M_ft"
